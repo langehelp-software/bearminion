@@ -18,6 +18,12 @@ updates:
     ignore:
       # Linked from packages/editor inside the workspace; its range moves with releases (changesets), not Dependabot.
       - dependency-name: bearminion
+      # Tracks the oldest supported Node (engines: >=22.12), not the newest.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+      # A TypeScript major needs tsdown, astro check and the d.ts build to support it first: upgrade by hand.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
     groups:
       minor-and-patch:
         update-types: [minor, patch]
