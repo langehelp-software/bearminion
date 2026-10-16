@@ -1,0 +1,53 @@
+---
+import type { Section } from './definitions'
+import { sectionComponents } from './registry'
+
+interface Props {
+  sections: Section[]
+  /** Site-wide motion. A section's own `motion` overrides this. */
+  motion?: boolean
+}
+
+const { sections, motion = true } = Astro.props
+const Hero = sectionComponents.hero
+const LogoStrip = sectionComponents.logoStrip
+const Features = sectionComponents.features
+const TextImage = sectionComponents.textImage
+const Stats = sectionComponents.stats
+const Testimonials = sectionComponents.testimonials
+const Pricing = sectionComponents.pricing
+const Faq = sectionComponents.faq
+const Cta = sectionComponents.cta
+const Contact = sectionComponents.contact
+---
+
+{
+  sections.map((section, index) => {
+    switch (section.type) {
+      case 'hero':
+        return <Hero section={section} index={index} motion={motion} />
+      case 'logoStrip':
+        return <LogoStrip section={section} index={index} motion={motion} />
+      case 'features':
+        return <Features section={section} index={index} motion={motion} />
+      case 'textImage':
+        return <TextImage section={section} index={index} motion={motion} />
+      case 'stats':
+        return <Stats section={section} index={index} motion={motion} />
+      case 'testimonials':
+        return <Testimonials section={section} index={index} motion={motion} />
+      case 'pricing':
+        return <Pricing section={section} index={index} motion={motion} />
+      case 'faq':
+        return <Faq section={section} index={index} motion={motion} />
+      case 'cta':
+        return <Cta section={section} index={index} motion={motion} />
+      case 'contact':
+        return <Contact section={section} index={index} motion={motion} />
+      default: {
+        const unreachable: never = section
+        return unreachable
+      }
+    }
+  })
+}

@@ -1,0 +1,131 @@
+---
+import { DEFAULT_CONTACT_ANCHOR } from '../shared'
+import type { Section } from '../definitions'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'faq' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  {
+    section.variant === 'accordion' && (
+      <div class="section-container">
+        <div class="mx-auto max-w-3xl" data-faq data-open="0">
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} align="center" field={field} />
+          <div class="mt-10 flex flex-col gap-3">
+            {props.items.map((item, itemIndex) => (
+              <div class="rounded-card-lg bg-surface px-6 ring-line" data-faq-item>
+                <button type="button" class="flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left" data-faq-button aria-expanded={itemIndex === 0 ? 'true' : 'false'}>
+                  <span class="text-[1.0625rem] font-medium tracking-[-0.02em]" data-field={field(`items.${itemIndex}.q`)}>{item.q}</span>
+                  <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-lg transition duration-200" data-faq-icon aria-hidden="true">+</span>
+                </button>
+                <div class="pb-5" data-faq-panel hidden={itemIndex !== 0}>
+                  <Typography as="p" size="body" color="muted" data-field={field(`items.${itemIndex}.a`)} markdown={item.a} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+  {
+    section.variant === 'split' && (
+      <div class="section-container grid items-start gap-12 @min-[760px]:grid-cols-[minmax(min(100%,20rem),0.8fr)_minmax(0,1.2fr)]" data-faq data-open="0">
+        <div class="flex flex-col items-start gap-6">
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} field={field} />
+          {props.more && (
+            <Typography as="p" size="body" color="muted" data-field={field('more')}>
+              {props.more}
+            </Typography>
+          )}
+          <a href={`#${DEFAULT_CONTACT_ANCHOR}`} class="text-[0.9375rem] font-medium text-link underline-offset-4 hover:underline">
+            Contact us →
+          </a>
+        </div>
+        <div>
+          {props.items.map((item, itemIndex) => (
+            <div class="border-t border-[var(--line)]" data-faq-item>
+              <button type="button" class="flex min-h-16 w-full items-center justify-between gap-4 py-4 text-left" data-faq-button aria-expanded={itemIndex === 0 ? 'true' : 'false'}>
+                <span class="text-[1.0625rem] font-medium tracking-[-0.02em]" data-field={field(`items.${itemIndex}.q`)}>{item.q}</span>
+                <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-lg transition duration-200" data-faq-icon aria-hidden="true">+</span>
+              </button>
+              <div class="pb-5" data-faq-panel hidden={itemIndex !== 0}>
+                <Typography as="p" size="body" color="muted" data-field={field(`items.${itemIndex}.a`)} markdown={item.a} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  {
+    section.variant === 'grid' && (
+      <div class="section-container">
+        <div class="grid items-end gap-8 @min-[760px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} field={field} />
+          {props.more && (
+            <Typography as="p" size="lead" color="muted" data-field={field('more')}>
+              {props.more}
+            </Typography>
+          )}
+        </div>
+        <ul class="mt-12 grid grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-x-8 gap-y-10">
+          {props.items.map((item, itemIndex) => (
+            <li class="border-t border-[var(--line)] pt-5">
+              <p class="font-mono text-[0.75rem] tracking-[0.08em] text-muted">{String(itemIndex + 1).padStart(2, '0')}</p>
+              <h3 class="mt-3 text-[1.125rem] font-semibold tracking-[-0.02em]" data-field={field(`items.${itemIndex}.q`)}>{item.q}</h3>
+              <Typography as="p" size="body" color="muted" class="mt-2" data-field={field(`items.${itemIndex}.a`)} markdown={item.a} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+</SectionShell>
+
+<script>
+  function bindFaq() {
+  document.querySelectorAll('[data-faq]').forEach((root) => {
+    if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') return
+    root.dataset.bound = 'true'
+    const items = [...root.querySelectorAll('[data-faq-item]')]
+    const paint = (openIndex: number) => {
+      root.dataset.open = String(openIndex)
+      items.forEach((item, index) => {
+        const button = item.querySelector('[data-faq-button]')
+        const panel = item.querySelector('[data-faq-panel]')
+        const icon = item.querySelector('[data-faq-icon]')
+        const open = index === openIndex
+        if (button instanceof HTMLButtonElement) button.setAttribute('aria-expanded', String(open))
+        if (panel instanceof HTMLElement) panel.hidden = !open
+        if (icon instanceof HTMLElement) {
+          icon.style.transform = open ? 'rotate(45deg)' : 'none'
+          icon.style.background = open ? 'var(--accent)' : 'transparent'
+          icon.style.color = open ? 'var(--on)' : 'inherit'
+        }
+      })
+    }
+    paint(Number(root.dataset.open ?? '0'))
+    items.forEach((item, index) => {
+      item.querySelector('[data-faq-button]')?.addEventListener('click', () => {
+        const current = Number(root.dataset.open ?? '0')
+        paint(current === index ? -1 : index)
+      })
+    })
+  })
+  }
+  bindFaq()
+  document.addEventListener('bearminion:preview', bindFaq)
+</script>

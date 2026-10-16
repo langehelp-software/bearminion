@@ -1,0 +1,379 @@
+/* Design tokens: fonts, radii and the four tone palettes. */
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+@theme {
+  --font-sans: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-chip: 0.5rem;
+  --radius-field: 0.75rem;
+  --radius-card: 1.25rem;
+  --radius-card-lg: 1.5rem;
+  --radius-panel: 1.75rem;
+
+  --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  --container-section: 80rem;
+}
+
+/*
+  Inline so utilities read the tone variables on the element that uses them.
+  A plain @theme variable is resolved on :root, which kept text-muted and
+  bg-surface on the base palette inside inverse and brand sections.
+*/
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-on: var(--on);
+  --color-link: var(--link);
+}
+
+/* ---- Tone palettes: light ---- */
+:root {
+  --t-base-bg: oklch(0.985 0.003 250);
+  --t-base-fg: oklch(0.21 0.012 255);
+  --t-base-muted: oklch(0.46 0.012 255);
+  --t-base-line: oklch(0.21 0.012 255 / 0.12);
+  --t-base-surface: oklch(1 0 0);
+  --t-base-accent: oklch(0.87 0.2 145);
+  --t-base-on: oklch(0.21 0.012 255);
+  --t-base-link: oklch(0.47 0.13 145);
+
+  --t-subtle-bg: oklch(0.955 0.006 250);
+  --t-subtle-fg: oklch(0.21 0.012 255);
+  --t-subtle-muted: oklch(0.46 0.012 255);
+  --t-subtle-line: oklch(0.21 0.012 255 / 0.12);
+  --t-subtle-surface: oklch(0.995 0.002 250);
+  --t-subtle-accent: oklch(0.87 0.2 145);
+  --t-subtle-on: oklch(0.21 0.012 255);
+  --t-subtle-link: oklch(0.47 0.13 145);
+
+  --t-inverse-bg: oklch(0.2 0.012 255);
+  --t-inverse-fg: oklch(0.97 0.004 250);
+  --t-inverse-muted: oklch(0.74 0.01 255);
+  --t-inverse-line: oklch(0.97 0.004 250 / 0.14);
+  --t-inverse-surface: oklch(0.255 0.012 255);
+  --t-inverse-accent: oklch(0.87 0.2 145);
+  --t-inverse-on: oklch(0.21 0.012 255);
+  --t-inverse-link: oklch(0.87 0.2 145);
+
+  --t-brand-bg: oklch(0.87 0.2 145);
+  --t-brand-fg: oklch(0.2 0.03 150);
+  --t-brand-muted: oklch(0.33 0.05 150);
+  --t-brand-line: oklch(0.2 0.03 150 / 0.2);
+  --t-brand-surface: oklch(0.92 0.13 145);
+  --t-brand-accent: oklch(0.2 0.012 255);
+  --t-brand-on: oklch(0.97 0.004 250);
+  --t-brand-link: oklch(0.2 0.03 150);
+
+  --bg: var(--t-base-bg);
+  --fg: var(--t-base-fg);
+  --muted: var(--t-base-muted);
+  --line: var(--t-base-line);
+  --surface: var(--t-base-surface);
+  --accent: var(--t-base-accent);
+  --on: var(--t-base-on);
+  --link: var(--t-base-link);
+}
+
+/* ---- Dark mode (data-theme="dark"): remap base / subtle / inverse; brand is unchanged ---- */
+[data-theme="dark"] {
+  --t-base-bg: oklch(0.17 0.01 255);
+  --t-base-fg: oklch(0.96 0.004 250);
+  --t-base-muted: oklch(0.72 0.01 255);
+  --t-base-line: oklch(0.96 0.004 250 / 0.12);
+  --t-base-surface: oklch(0.215 0.012 255);
+  --t-base-link: oklch(0.87 0.2 145);
+  --t-subtle-bg: oklch(0.205 0.012 255);
+  --t-subtle-fg: oklch(0.96 0.004 250);
+  --t-subtle-muted: oklch(0.72 0.01 255);
+  --t-subtle-line: oklch(0.96 0.004 250 / 0.12);
+  --t-subtle-surface: oklch(0.25 0.012 255);
+  --t-subtle-link: oklch(0.87 0.2 145);
+  --t-inverse-bg: oklch(0.96 0.004 250);
+  --t-inverse-fg: oklch(0.21 0.012 255);
+  --t-inverse-muted: oklch(0.46 0.012 255);
+  --t-inverse-line: oklch(0.21 0.012 255 / 0.12);
+  --t-inverse-surface: oklch(1 0 0);
+  --t-inverse-link: oklch(0.47 0.13 145);
+}
+
+/* ---- Tone application: put data-tone on every section root ---- */
+[data-tone] {
+  container-type: inline-size;
+  background: var(--bg);
+  color: var(--fg);
+}
+[data-tone="base"] {
+  --bg: var(--t-base-bg);
+  --fg: var(--t-base-fg);
+  --muted: var(--t-base-muted);
+  --line: var(--t-base-line);
+  --surface: var(--t-base-surface);
+  --accent: var(--t-base-accent);
+  --on: var(--t-base-on);
+  --link: var(--t-base-link);
+}
+[data-tone="subtle"] {
+  --bg: var(--t-subtle-bg);
+  --fg: var(--t-subtle-fg);
+  --muted: var(--t-subtle-muted);
+  --line: var(--t-subtle-line);
+  --surface: var(--t-subtle-surface);
+  --accent: var(--t-subtle-accent);
+  --on: var(--t-subtle-on);
+  --link: var(--t-subtle-link);
+}
+[data-tone="inverse"] {
+  --bg: var(--t-inverse-bg);
+  --fg: var(--t-inverse-fg);
+  --muted: var(--t-inverse-muted);
+  --line: var(--t-inverse-line);
+  --surface: var(--t-inverse-surface);
+  --accent: var(--t-inverse-accent);
+  --on: var(--t-inverse-on);
+  --link: var(--t-inverse-link);
+}
+[data-tone="brand"] {
+  --bg: var(--t-brand-bg);
+  --fg: var(--t-brand-fg);
+  --muted: var(--t-brand-muted);
+  --line: var(--t-brand-line);
+  --surface: var(--t-brand-surface);
+  --accent: var(--t-brand-accent);
+  --on: var(--t-brand-on);
+  --link: var(--t-brand-link);
+}
+
+[data-organism="header"][data-variant="floating"] {
+  background: transparent;
+}
+[data-organism="header"][data-variant="bar"],
+[data-organism="header"][data-variant="centered"] {
+  background: color-mix(in oklch, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+}
+[data-organism="footer"][data-tone="base"] {
+  box-shadow: inset 0 1px 0 var(--line);
+}
+
+@utility section-container {
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 4cqi, 3rem);
+  padding-block: clamp(4rem, 2rem + 6cqi, 8rem);
+}
+@utility placeholder-stripes {
+  background: repeating-linear-gradient(135deg, var(--line) 0 1px, transparent 1px 12px), var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+@utility ring-line {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background: var(--t-base-bg);
+  }
+  [data-section-id] {
+    scroll-margin-top: 7rem;
+  }
+  [data-field-kind="rich"] p {
+    margin: 0;
+  }
+  [data-field-kind="rich"] p + p {
+    margin-top: 0.75em;
+  }
+  [data-field-kind="rich"] a {
+    color: var(--link);
+    text-decoration-line: underline;
+    text-underline-offset: 0.15em;
+  }
+  [data-field-kind="rich"] ul,
+  [data-field-kind="rich"] ol {
+    margin: 0.75em 0;
+    padding-left: 1.25em;
+  }
+  [data-field-kind="rich"] ul {
+    list-style: disc;
+  }
+  [data-field-kind="rich"] ol {
+    list-style: decimal;
+  }
+  [data-field-kind="rich"] li + li {
+    margin-top: 0.35em;
+  }
+  [data-field-kind="rich"] li::marker {
+    color: var(--muted);
+  }
+  blockquote[data-field-kind="rich"]::before {
+    content: "“";
+  }
+  blockquote[data-field-kind="rich"]::after {
+    content: "”";
+  }
+  body {
+    background: var(--t-base-bg);
+    color: var(--t-base-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .bm-em {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+  .bm-em.font-sans {
+    font-family: var(--font-sans);
+    letter-spacing: 0;
+  }
+  .bm-em.font-mono {
+    font-family: var(--font-mono);
+    letter-spacing: 0;
+  }
+  .bm-em.font-normal {
+    font-weight: 400;
+  }
+  .bm-em.font-medium {
+    font-weight: 500;
+  }
+  .bm-em.font-semibold {
+    font-weight: 600;
+  }
+  .bm-em.font-bold {
+    font-weight: 700;
+  }
+  .bm-field {
+    height: 3rem;
+    width: 100%;
+    border: 0;
+    border-radius: 0.75rem;
+    background: var(--bg);
+    padding-inline: 1rem;
+    color: var(--fg);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .bm-field:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--link);
+  }
+  .bm-underline {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    background: transparent;
+    padding: 0.75rem 0;
+    font-size: clamp(1.125rem, 1rem + 0.6cqi, 1.5rem);
+    color: var(--fg);
+  }
+  .bm-underline:focus {
+    outline: none;
+    border-bottom-color: var(--fg);
+  }
+  .bm-marquee-mask {
+    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  }
+  .bm-marquee {
+    animation: bm-marquee 28s linear infinite;
+  }
+  /* Moving content needs a way to stop it (WCAG 2.2.2). It also lets the editor's pointer land on one logo. */
+  .bm-marquee:hover,
+  .bm-marquee:focus-within {
+    animation-play-state: paused;
+  }
+  .menu-bar {
+    display: block;
+    height: 1.5px;
+    width: 14px;
+    background: currentColor;
+    transition: transform 0.25s var(--ease-out-soft);
+  }
+  [data-open="true"] .menu-bar-1 {
+    transform: translateY(2.75px) rotate(45deg);
+  }
+  [data-open="true"] .menu-bar-2 {
+    transform: translateY(-2.75px) rotate(-45deg);
+  }
+  [data-motion="true"] [data-reveal] {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  [data-motion="true"] [data-reveal="16"] {
+    transform: translateY(16px);
+  }
+  [data-motion="true"][data-revealed] [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.8s var(--ease-out-soft),
+      transform 0.8s var(--ease-out-soft);
+  }
+  [data-pricing] [data-billing][aria-pressed="true"] {
+    background: var(--fg);
+    color: var(--bg);
+  }
+  [data-pricing] [data-billing][aria-pressed="false"] {
+    background: transparent;
+    color: var(--muted);
+  }
+  [data-billing-inverse] [data-billing][aria-pressed="true"] {
+    background: var(--bg);
+    color: var(--fg);
+  }
+  [data-topic][aria-pressed="true"] {
+    background: var(--fg);
+    color: var(--bg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-motion="true"] [data-reveal] {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@keyframes bm-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

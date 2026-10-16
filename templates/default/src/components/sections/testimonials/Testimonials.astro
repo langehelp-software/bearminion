@@ -1,0 +1,172 @@
+---
+import type { Section } from '../definitions'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+import MediaFrame from '../../molecules/MediaFrame.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'testimonials' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const featured = props.items[0]
+const rest = props.items.slice(1)
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  {
+    section.variant === 'grid' && (
+      <div class="section-container">
+        <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} field={field} />
+        <ul class="mt-12 grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-4">
+          {props.items.map((item, itemIndex) => (
+            <li class="flex flex-col justify-between gap-8 rounded-card-lg bg-surface p-7 ring-line">
+              <Typography as="blockquote" class="text-[1.125rem] leading-[1.45] tracking-[-0.02em]" data-field={field(`items.${itemIndex}.quote`)} markdown={item.quote} />
+              <div class="flex items-center gap-3">
+                {item.image && !item.image.hidden ? (
+                  <MediaFrame src={item.image.src} alt={item.image.alt} aspectClass="size-10 shrink-0" roundedClass="rounded-full" class="p-0" fit={item.image?.fit} position={item.image?.position} data-field={field(`items.${itemIndex}.image.alt`)} />
+                ) : (
+                  <span class="inline-flex size-10 items-center justify-center rounded-full bg-fg font-mono text-[0.75rem] text-bg">
+                    {item.name.slice(0, 1)}
+                  </span>
+                )}
+                <div>
+                  <p class="text-[0.9375rem] font-medium" data-field={field(`items.${itemIndex}.name`)}>{item.name}</p>
+                  {item.role && (
+                    <p class="text-[0.8125rem] text-muted" data-field={field(`items.${itemIndex}.role`)}>{item.role}</p>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+  {
+    section.variant === 'featured' && featured && (
+      <div class="section-container">
+        <figure class="mx-auto max-w-4xl text-center">
+          <Typography as="blockquote" class="font-serif text-[clamp(1.75rem,1rem+2.4cqi,3rem)] leading-[1.2] font-normal tracking-[-0.03em] italic" data-field={field('items.0.quote')} markdown={featured.quote} />
+          <figcaption class="mt-6 text-[0.9375rem]">
+            <span data-field={field('items.0.name')}>{featured.name}</span>
+            {featured.role && (
+              <span class="text-muted">
+                {' '}
+                · <span data-field={field('items.0.role')}>{featured.role}</span>
+              </span>
+            )}
+          </figcaption>
+        </figure>
+        {rest.length > 0 && (
+          <ul class="mt-14 grid grid-cols-1 border-t border-[var(--line)] @min-[700px]:grid-cols-2">
+            {rest.map((item, offset) => {
+              const itemIndex = offset + 1
+              return (
+                <li class="border-t border-[var(--line)] py-8 @min-[700px]:border-t-0 @min-[700px]:border-l @min-[700px]:px-8 @min-[700px]:first:border-l-0 @min-[700px]:first:pl-0">
+                  <Typography as="blockquote" class="text-[1.0625rem] leading-[1.5]" data-field={field(`items.${itemIndex}.quote`)} markdown={item.quote} />
+                  <p class="mt-4 text-[0.875rem]">
+                    <span data-field={field(`items.${itemIndex}.name`)}>{item.name}</span>
+                    {item.role && (
+                      <span class="text-muted">
+                        {' '}
+                        · <span data-field={field(`items.${itemIndex}.role`)}>{item.role}</span>
+                      </span>
+                    )}
+                  </p>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+    )
+  }
+  {
+    section.variant === 'carousel' && (
+      <div class="section-container" data-carousel>
+        <div class="flex flex-wrap items-end justify-between gap-6">
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} field={field} />
+          <div class="flex items-center gap-3">
+            <p class="font-mono text-[0.75rem] tracking-[0.08em] text-muted" data-carousel-counter>
+              01 / {String(props.items.length).padStart(2, '0')}
+            </p>
+            <button type="button" data-carousel-prev class="inline-flex size-11 items-center justify-center rounded-full shadow-[inset_0_0_0_1px_var(--line)]" aria-label="Previous testimonial">
+              ←
+            </button>
+            <button type="button" data-carousel-next class="inline-flex size-11 items-center justify-center rounded-full shadow-[inset_0_0_0_1px_var(--line)]" aria-label="Next testimonial">
+              →
+            </button>
+          </div>
+        </div>
+        <div class="mt-10 overflow-hidden">
+          <div data-carousel-track class="flex transition-transform duration-[600ms] ease-[cubic-bezier(.2,.7,.2,1)]">
+            {props.items.map((item, itemIndex) => (
+              <article class="grid w-full shrink-0 items-center gap-8 @min-[760px]:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.2fr)]">
+                {!item.image?.hidden && (
+<MediaFrame
+                  src={item.image?.src}
+                  alt={item.image?.alt ?? item.name}
+                  aspectClass="aspect-square"
+                  roundedClass="rounded-[clamp(1rem,2cqi,1.75rem)]"
+                  fit={item.image?.fit} position={item.image?.position} data-field={field(`items.${itemIndex}.image.alt`)}
+                />
+)}
+                <div>
+                  <Typography as="blockquote" class="font-serif text-[clamp(1.75rem,1rem+2cqi,2.75rem)] leading-[1.2] italic tracking-[-0.03em]" data-field={field(`items.${itemIndex}.quote`)} markdown={item.quote} />
+                  <p class="mt-6 text-[0.9375rem]">
+                    <span data-field={field(`items.${itemIndex}.name`)}>{item.name}</span>
+                    {item.role && (
+                      <span class="text-muted">
+                        {' '}
+                        · <span data-field={field(`items.${itemIndex}.role`)}>{item.role}</span>
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+</SectionShell>
+
+<script>
+  function bindTestimonials() {
+  document.querySelectorAll('[data-carousel]').forEach((root) => {
+    if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') return
+    root.dataset.bound = 'true'
+    const track = root.querySelector('[data-carousel-track]')
+    const counter = root.querySelector('[data-carousel-counter]')
+    const prev = root.querySelector('[data-carousel-prev]')
+    const next = root.querySelector('[data-carousel-next]')
+    if (!(track instanceof HTMLElement) || !(prev instanceof HTMLButtonElement) || !(next instanceof HTMLButtonElement)) return
+    const total = track.children.length
+    let index = 0
+    const render = () => {
+      track.style.transform = `translateX(-${index * 100}%)`
+      if (counter) {
+        counter.textContent = `${String(index + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`
+      }
+    }
+    prev.addEventListener('click', () => {
+      index = (index - 1 + total) % total
+      render()
+    })
+    next.addEventListener('click', () => {
+      index = (index + 1) % total
+      render()
+    })
+  })
+  }
+  bindTestimonials()
+  document.addEventListener('bearminion:preview', bindTestimonials)
+</script>

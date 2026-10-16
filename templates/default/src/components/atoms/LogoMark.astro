@@ -1,0 +1,53 @@
+---
+import { markClass, marksFromEmphasis, splitMarkedText, type TextMark } from 'bearminion/marks'
+import { cn } from '../../lib/cn'
+import Image from './Image.astro'
+
+interface Props {
+  name: string
+  /** Image shown instead of the name. `height` is in px at the default size. */
+  logo?: { src: string; alt: string; height?: number }
+  /** Inline marks for the wordmark. */
+  marks?: TextMark[]
+  /** Legacy substring of `name` set in Instrument Serif italic. */
+  em?: string
+  href?: string
+  size?: 'sm' | 'md' | 'lg'
+  stacked?: boolean
+  'data-field'?: string
+  class?: string
+}
+
+const { name, logo, marks, em, href = '/', size = 'md', stacked = false, 'data-field': dataField, class: className } = Astro.props
+const showLogo = Boolean(logo && logo.src !== '' && logo.src !== 'placeholder')
+const scale = { sm: 0.85, md: 1, lg: 1.15 }[size]
+const logoHeight = `${Math.round((logo?.height ?? 28) * scale)}px`
+const runs = splitMarkedText(name, marks ?? marksFromEmphasis(name, em))
+const word = {
+  sm: 'text-[1.0625rem]',
+  md: 'text-[1.125rem]',
+  lg: 'text-[1.25rem] leading-none',
+}[size]
+---
+
+<a
+  href={href}
+  aria-label={`${name} home`}
+  class={cn('inline-flex items-center gap-2.5', stacked && 'flex-col gap-1.5', className)}
+  style={showLogo ? `--bm-logo-h:${logoHeight}` : undefined}
+>
+  {
+    showLogo && logo ? (
+      <Image src={logo.src} alt={logo.alt} fit="contain" rounded="none" priority sizes="256px" widths={[128, 256, 512]} class="h-[var(--bm-logo-h)] w-auto max-w-[16rem]" data-field="brandLogo.alt" />
+    ) : (
+      <span class={cn('font-semibold tracking-[-0.035em]', word)} style="font-weight: 650" data-field={dataField}>
+        {
+          runs.map((run) => {
+            const cls = markClass(run)
+            return cls ? <span class={cls}>{run.text}</span> : run.text
+          })
+        }
+      </span>
+    )
+  }
+</a>

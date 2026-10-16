@@ -1,0 +1,61 @@
+---
+import type { Link } from 'bearminion'
+import { anchorAttrs } from '../../lib/link-attrs'
+import NavBranch from './NavBranch.astro'
+
+interface Props {
+  link: Link
+  fieldPath: string
+  depth: number
+  pathname: string
+  pills?: boolean
+}
+
+const { link, fieldPath, depth, pathname, pills = false } = Astro.props
+const children = link.children ?? []
+
+function isCurrent(href: string): boolean {
+  if (href.startsWith('#')) return false
+  const path = href.split('#')[0] || '/'
+  const current = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+  return path === current
+}
+---
+
+<div class:list={[depth === 1 ? 'group/nav' : 'group/sub', 'relative', depth > 1 && 'w-full']}>
+  <a
+    {...anchorAttrs(link)}
+    data-field={`${fieldPath}.label`}
+    aria-current={isCurrent(link.href) ? 'page' : undefined}
+    aria-haspopup={children.length > 0 ? 'true' : undefined}
+    class:list={[
+      'text-muted transition-colors hover:text-fg',
+      depth === 1
+        ? ['text-[0.9375rem]', pills && 'inline-flex h-9 items-center rounded-full px-3.5 hover:bg-line']
+        : 'flex rounded-lg px-3 py-2 text-[0.875rem] hover:bg-line hover:text-fg',
+    ]}
+  >
+    {link.label}
+  </a>
+  {
+    children.length > 0 && (
+      <div
+        class:list={[
+          'absolute z-50 hidden min-w-48',
+          depth === 1 ? 'top-full left-0 pt-2 group-hover/nav:block group-focus-within/nav:block' : 'top-0 left-full pl-2 group-hover/sub:block group-focus-within/sub:block',
+        ]}
+      >
+        <div class="flex flex-col rounded-xl bg-surface p-2 shadow-[0_16px_40px_-24px_oklch(0.2_0.02_255/0.45)] ring-line">
+          {children.map((child, index) => (
+            <NavBranch
+              link={child}
+              fieldPath={`${fieldPath}.children.${index}`}
+              depth={depth + 1}
+              pathname={pathname}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
+</div>

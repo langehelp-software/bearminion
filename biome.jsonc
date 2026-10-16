@@ -1,0 +1,64 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    // .astro files are checked by `astro check`; Biome's Astro support is partial.
+    // Content JSON is written by the editor in its own stable layout (sorted keys), so Biome must not reformat it.
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/.astro",
+      "!**/storybook-static",
+      "!**/pnpm-lock.yaml",
+      "!**/*.astro",
+      "!**/test/fixtures/invalid",
+      "!templates/*/content"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 140
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "css": { "parser": { "tailwindDirectives": true } },
+  "assist": { "enabled": true, "actions": { "source": { "organizeImports": "off" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "complexity": {
+        // The overlay must win over any site stylesheet, and the template's tone utilities override Tailwind on purpose.
+        "noImportantStyles": "off"
+      },
+      "style": {
+        // Stylesheets are ordered by component, not by specificity.
+        "noDescendingSpecificity": "off"
+      },
+      "a11y": {
+        // ARIA widget roles (radiogroup, listbox, switch on a native checkbox) are deliberate and covered by the e2e suite.
+        "useSemanticElements": "off",
+        "useAriaPropsForRole": "off",
+        "noStaticElementInteractions": "off",
+        // Flags decorative <kbd aria-hidden> inside buttons and controls composed in a variable inside <label>.
+        "noAriaHiddenOnFocusable": "off",
+        "noLabelWithoutControl": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/test/**", "tests/**"],
+      "linter": { "rules": { "style": { "noNonNullAssertion": "off" }, "suspicious": { "noExportsInTest": "off" } } }
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+---
+import type { Link } from 'bearminion'
+import { anchorAttrs } from '../../lib/link-attrs'
+import FooterLinks from './FooterLinks.astro'
+
+interface Props {
+  links: Link[]
+  fieldPath: string
+  class?: string
+}
+
+const { links, fieldPath, class: className = 'flex flex-col gap-2' } = Astro.props
+---
+
+<ul class={className}>
+  {
+    links.map((link, index) => (
+      <li>
+        <a
+          {...anchorAttrs(link)}
+          class="text-[0.9375rem] text-muted transition-colors hover:text-fg"
+          data-field={`${fieldPath}.${index}.label`}
+        >
+          {link.label}
+        </a>
+        {link.children?.length ? (
+          <FooterLinks links={link.children} fieldPath={`${fieldPath}.${index}.children`} class="mt-2 flex flex-col gap-2 pl-3" />
+        ) : null}
+      </li>
+    ))
+  }
+</ul>

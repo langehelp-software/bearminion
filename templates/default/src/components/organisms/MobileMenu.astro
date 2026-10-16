@@ -1,0 +1,110 @@
+---
+import type { Site } from './site-definition'
+import Button from '../atoms/Button.astro'
+import { buttonLinkProps } from '../../lib/link-attrs'
+import MobileBranch from './MobileBranch.astro'
+
+interface Props {
+  site: Site
+  floating?: boolean
+}
+
+const { site, floating = false } = Astro.props
+const { actions } = site.header
+---
+
+<div data-menu-root class="contents">
+  <button
+    type="button"
+    data-nav-toggle
+    aria-expanded="false"
+    aria-controls="mobile-nav"
+    class="inline-flex h-11 items-center gap-2.5 rounded-full bg-transparent px-4 text-[0.9375rem] font-medium shadow-[inset_0_0_0_1px_var(--line)]"
+  >
+    <span class="flex w-3.5 flex-col gap-1" aria-hidden="true">
+      <span class="menu-bar menu-bar-1"></span>
+      <span class="menu-bar menu-bar-2"></span>
+    </span>
+    <span data-menu-label>Menu</span>
+  </button>
+  <div
+    id="mobile-nav"
+    data-open="false"
+    hidden
+    class:list={[
+      'absolute z-50',
+      floating
+        ? 'inset-x-5 top-full rounded-card-lg bg-surface px-5 pt-2 pb-5 shadow-[inset_0_0_0_1px_var(--line),0_24px_48px_-24px_oklch(0.2_0.02_255/0.4)]'
+        : 'inset-x-0 top-full border-b border-[var(--line)] bg-bg px-5 pt-2 pb-6 shadow-[0_24px_48px_-24px_oklch(0.2_0.02_255/0.35)]',
+    ]}
+  >
+    <nav aria-label="Primary" class="flex flex-col">
+      {
+        site.header.links.map((link, index) => (
+          <MobileBranch link={link} fieldPath={`header.links.${index}`} depth={1} />
+        ))
+      }
+    </nav>
+    {
+      actions.length > 0 && (
+        <div class:list={['mt-6 grid gap-2', actions.length > 1 ? 'grid-cols-2' : 'grid-cols-1']}>
+          {actions.map((action, index) => (
+            <Button
+              {...buttonLinkProps(action)}
+              variant={index === actions.length - 1 ? 'primary' : 'secondary'}
+              data-field={`header.actions.${index}.label`}
+              data-menu-link
+            >
+              {action.label}
+            </Button>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</div>
+
+<script>
+  function bindMenus() {
+    document.querySelectorAll('[data-menu-root]').forEach((root) => {
+      if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') return
+      root.dataset.bound = 'true'
+      const toggle = root.querySelector('[data-nav-toggle]')
+      const nav = root.querySelector('#mobile-nav')
+      const label = root.querySelector('[data-menu-label]')
+      if (!(toggle instanceof HTMLButtonElement) || !(nav instanceof HTMLElement)) return
+
+      const setOpen = (open: boolean) => {
+        nav.hidden = !open
+        nav.setAttribute('data-open', String(open))
+        toggle.setAttribute('aria-expanded', String(open))
+        toggle.setAttribute('data-open', String(open))
+        if (label) label.textContent = open ? 'Close' : 'Menu'
+      }
+
+      toggle.addEventListener('click', () => setOpen(nav.hidden))
+      nav.addEventListener('click', (event) => {
+        const target = event.target
+        if (target instanceof Element && target.closest('[data-menu-link]')) setOpen(false)
+      })
+    })
+
+    document.querySelectorAll('[data-accordion]').forEach((button) => {
+      if (!(button instanceof HTMLButtonElement) || button.dataset.bound === 'true') return
+      button.dataset.bound = 'true'
+      const item = button.closest('[data-accordion-item]')
+      const panel = item?.querySelector(':scope > [data-accordion-panel]')
+      if (!(panel instanceof HTMLElement)) return
+      button.addEventListener('click', () => {
+        const open = panel.hidden
+        panel.hidden = !open
+        button.setAttribute('aria-expanded', String(open))
+        const icon = button.querySelector('span')
+        if (icon) icon.textContent = open ? '–' : '+'
+      })
+    })
+  }
+
+  bindMenus()
+  document.addEventListener('bearminion:preview', bindMenus)
+</script>

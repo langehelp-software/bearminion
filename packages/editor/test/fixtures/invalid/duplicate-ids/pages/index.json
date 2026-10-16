@@ -1,0 +1,32 @@
+{
+  "slug": "index",
+  "title": "Home",
+  "seo": {
+    "title": "Home",
+    "description": ""
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "type": "hero",
+      "props": {
+        "eyebrow": "Eyebrow",
+        "heading": "First",
+        "sub": "One",
+        "primary": { "label": "Go", "href": "#cta" },
+        "secondary": { "label": "More", "href": "#features" }
+      }
+    },
+    {
+      "id": "hero",
+      "type": "hero",
+      "props": {
+        "eyebrow": "Eyebrow",
+        "heading": "Second",
+        "sub": "Two",
+        "primary": { "label": "Go", "href": "#cta" },
+        "secondary": { "label": "More", "href": "#features" }
+      }
+    }
+  ]
+}

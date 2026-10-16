@@ -1,0 +1,8 @@
+@import "../src/styles/global.css";
+
+body,
+.sb-show-main {
+  background: var(--t-base-bg);
+  color: var(--t-base-fg);
+  font-family: var(--font-sans);
+}

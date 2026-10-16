@@ -1,0 +1,20 @@
+{
+  "name": "Fixture",
+  "url": "https://fixture.example",
+  "seo": {
+    "titleTemplate": "%s · Fixture",
+    "description": "Fixture default description."
+  },
+  "logo": {
+    "src": "/logo.svg",
+    "alt": "Fixture"
+  },
+  "header": {
+    "links": [{ "label": "Home", "href": "/" }],
+    "cta": { "label": "Go", "href": "/#cta" }
+  },
+  "footer": {
+    "text": "Footer",
+    "columns": [{ "title": "Product", "links": [{ "label": "Home", "href": "/" }] }]
+  }
+}

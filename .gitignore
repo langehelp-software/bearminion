@@ -1,0 +1,12 @@
+node_modules/
+dist/
+storybook-static/
+.astro/
+coverage/
+*.tsbuildinfo
+.DS_Store
+.editor/
+templates/default/src/assets/e2e-uploads/
+*.log
+.pnpm-store/
+.transfer/

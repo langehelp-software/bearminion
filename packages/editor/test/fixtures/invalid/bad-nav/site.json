@@ -1,0 +1,10 @@
+{
+  "name": "Fixture",
+  "url": "https://fixture.example",
+  "seo": { "description": "Fixture" },
+  "header": {
+    "links": [{ "label": "Home" }],
+    "cta": { "label": "Go", "href": "/" }
+  },
+  "footer": { "columns": [] }
+}

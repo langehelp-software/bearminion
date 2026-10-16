@@ -1,0 +1,181 @@
+---
+import type { Section } from '../definitions'
+import { renderRichText } from 'bearminion/rich-text'
+import Button from '../../atoms/Button.astro'
+import { buttonLinkProps, buttonVariant, onAccentClass } from '../../../lib/link-attrs'
+import Emphasis from '../../atoms/Emphasis.astro'
+import Typography from '../../atoms/Typography.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'cta' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const bodyHtml = props.body ? renderRichText(props.body) : ''
+const hasActions = Boolean(props.primary || props.secondary)
+// The band is an accent surface: the default primary there is the inverted button, the secondary an outline.
+const bandPrimary = props.primary ? buttonVariant(props.primary, 'strong', true) : 'strong'
+const bandSecondary = props.secondary ? buttonVariant(props.secondary, 'secondary', true) : 'secondary'
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  {
+    section.variant === 'band' && (
+      <div class="section-container" data-cta>
+        <div class="flex flex-wrap items-center justify-between gap-8 rounded-panel bg-accent px-8 py-10 text-on @min-[900px]:px-12">
+          {
+            (props.heading || props.body) && (
+              <div class="min-w-0 flex-[1_1_24rem]">
+                {props.heading && (
+                  <h2 class="text-[clamp(2.25rem,1.2rem+4.4cqi,4.75rem)] leading-[0.95] font-semibold tracking-[-0.05em]">
+                    <Emphasis heading={props.heading} marks={props.marks} data-field={field('heading')} />
+                  </h2>
+                )}
+                {props.body && (
+                  <div class="mt-4 max-w-xl text-[1.0625rem] leading-[1.55] text-on/80" data-field={field('body')} data-field-kind="rich" set:html={bodyHtml} />
+                )}
+              </div>
+            )
+          }
+          {(props.command || hasActions) && (
+          <div class="flex min-w-[16rem] flex-[0_1_24rem] flex-col items-stretch gap-3">
+            {props.command && (
+              <button type="button" data-copy class="flex h-12 items-center justify-between gap-3 rounded-full bg-on/10 px-4 font-mono text-[0.8125rem] text-on" data-command={props.command}>
+                <span class="truncate" data-field={field('command')}>{props.command}</span>
+                <span data-copy-label>Copy</span>
+              </button>
+            )}
+            {hasActions && (
+              <div class="flex flex-wrap gap-2.5">
+                {props.primary && (
+                  <Button {...buttonLinkProps(props.primary)} variant={bandPrimary} class={onAccentClass(bandPrimary)} data-field={field('primary.label')}>
+                    {props.primary.label}
+                  </Button>
+                )}
+                {props.secondary && (
+                  <Button {...buttonLinkProps(props.secondary)} variant={bandSecondary} class={onAccentClass(bandSecondary)} data-field={field('secondary.label')}>
+                    {props.secondary.label}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+  {
+    section.variant === 'centered' && (
+      <div class="section-container text-center" data-cta>
+        {
+          props.heading && (
+            <h2 class="mx-auto max-w-[14ch] text-[clamp(2.75rem,1rem+6cqi,7rem)] leading-[0.92] font-semibold tracking-[-0.05em]">
+              <Emphasis heading={props.heading} marks={props.marks} data-field={field('heading')} />
+            </h2>
+          )
+        }
+        {props.body && <Typography as="p" size="lead" color="muted" class="mx-auto mt-5 max-w-xl" data-field={field('body')} markdown={props.body} />}
+        {
+          hasActions && (
+            <div class="mt-8 flex flex-wrap justify-center gap-2.5">
+              {props.primary && (
+                <Button {...buttonLinkProps(props.primary)} variant={buttonVariant(props.primary, 'primary')} size="lg" arrow data-field={field('primary.label')}>
+                  {props.primary.label}
+                </Button>
+              )}
+              {props.secondary && (
+                <Button {...buttonLinkProps(props.secondary)} variant={buttonVariant(props.secondary, 'secondary')} size="lg" data-field={field('secondary.label')}>
+                  {props.secondary.label}
+                </Button>
+              )}
+            </div>
+          )
+        }
+        {props.command && (
+          <button type="button" data-copy class="mt-6 font-mono text-[0.8125rem] tracking-[0.04em] text-muted" data-command={props.command}>
+            <span data-field={field('command')}>{props.command}</span>
+            <span data-copy-label> · Copy</span>
+          </button>
+        )}
+      </div>
+    )
+  }
+  {
+    section.variant === 'terminal' && (
+      <div class="section-container grid items-center gap-10 @min-[880px]:grid-cols-[minmax(22rem,1fr)_minmax(0,1fr)]" data-cta>
+        {
+          (props.heading || props.body || hasActions) && (
+            <div class="flex flex-col items-start gap-6">
+              {props.heading && (
+                <h2 class="text-[clamp(2.25rem,1.2rem+4.4cqi,4.75rem)] leading-[0.95] font-semibold tracking-[-0.05em]">
+                  <Emphasis heading={props.heading} marks={props.marks} data-field={field('heading')} />
+                </h2>
+              )}
+              {props.body && <Typography as="p" size="lead" color="muted" data-field={field('body')} markdown={props.body} />}
+              {hasActions && (
+                <div class="flex flex-wrap gap-2.5">
+                  {props.primary && (
+                    <Button {...buttonLinkProps(props.primary)} variant={buttonVariant(props.primary, 'primary')} arrow data-field={field('primary.label')}>
+                      {props.primary.label}
+                    </Button>
+                  )}
+                  {props.secondary && (
+                    <Button {...buttonLinkProps(props.secondary)} variant={buttonVariant(props.secondary, 'secondary')} data-field={field('secondary.label')}>
+                      {props.secondary.label}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        }
+        <div class="rounded-panel bg-fg p-6 text-bg">
+          <div class="mb-4 flex items-center justify-between">
+            <span class="font-mono text-[0.6875rem] tracking-[0.08em] text-bg/60 uppercase">terminal</span>
+            {props.command && (
+              <button type="button" data-copy class="font-mono text-[0.75rem] text-accent" data-command={props.command}>
+                <span data-copy-label>Copy</span>
+              </button>
+            )}
+          </div>
+          <pre class="font-mono text-[0.8125rem] leading-[1.7] whitespace-pre-wrap text-bg/90"><code>{`$ ${props.command ?? ''}
+# pages live in content/pages
+# site chrome lives in content/site.json
+# production is the static build`}</code></pre>
+        </div>
+      </div>
+    )
+  }
+</SectionShell>
+
+<script>
+  function bindCta() {
+  document.querySelectorAll('[data-cta] [data-copy]').forEach((button) => {
+    if (!(button instanceof HTMLButtonElement) || button.dataset.bound === 'true') return
+    button.dataset.bound = 'true'
+    const label = button.querySelector('[data-copy-label]')
+    const original = label?.textContent ?? 'Copy'
+    button.addEventListener('click', async () => {
+      const command = button.dataset.command ?? ''
+      try {
+        await navigator.clipboard.writeText(command)
+      } catch {
+        return
+      }
+      if (label) label.textContent = 'Copied'
+      window.setTimeout(() => {
+        if (label) label.textContent = original
+      }, 1600)
+    })
+  })
+  }
+  bindCta()
+  document.addEventListener('bearminion:preview', bindCta)
+</script>

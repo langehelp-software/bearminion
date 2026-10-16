@@ -1,0 +1,32 @@
+---
+import type { Site } from './site-definition'
+import { cn } from '../../lib/cn'
+import NavBranch from './NavBranch.astro'
+
+interface Props {
+  site: Site
+  pathname: string
+  /** Slice of `site.header.links`. Omit `count` to take the rest. */
+  start?: number
+  count?: number
+  pills?: boolean
+  class?: string
+}
+
+const { site, pathname, start = 0, count, pills = false, class: className } = Astro.props
+const links = site.header.links.slice(start, count === undefined ? undefined : start + count)
+---
+
+<nav aria-label="Primary" class={cn('flex items-center', pills ? 'gap-1' : 'gap-8', className)}>
+  {
+    links.map((link, offset) => (
+      <NavBranch
+        link={link}
+        fieldPath={`header.links.${start + offset}`}
+        depth={1}
+        pathname={pathname}
+        pills={pills}
+      />
+    ))
+  }
+</nav>

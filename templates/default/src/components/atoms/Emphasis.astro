@@ -1,0 +1,24 @@
+---
+import { markClass, marksFromEmphasis, splitMarkedText, type TextMark } from 'bearminion/marks'
+
+interface Props {
+  heading: string
+  marks?: TextMark[]
+  /** Legacy substring. Used when `marks` is omitted. */
+  em?: string
+  /** Field path for the full heading string. */
+  'data-field'?: string
+}
+
+const { heading, marks, em, 'data-field': dataField } = Astro.props
+const runs = splitMarkedText(heading, marks ?? marksFromEmphasis(heading, em))
+---
+
+<span data-field={dataField}>
+  {
+    runs.map((run) => {
+      const cls = markClass(run)
+      return cls ? <span class={cls}>{run.text}</span> : run.text
+    })
+  }
+</span>

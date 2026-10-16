@@ -1,0 +1,63 @@
+---
+import type { TextMark } from 'bearminion/marks'
+import Emphasis from '../atoms/Emphasis.astro'
+import Typography from '../atoms/Typography.astro'
+
+interface Props {
+  eyebrow?: string
+  heading?: string
+  marks?: TextMark[]
+  em?: string
+  intro?: string
+  align?: 'left' | 'center'
+  headingAs?: 'h1' | 'h2'
+  size?: 'h2' | 'h2-lg' | 'display' | 'display-center' | 'display-editorial'
+  field?: (path: string) => string
+  /** Prop name used for the intro `data-field` path. */
+  introField?: string
+  headingClass?: string
+  class?: string
+}
+
+const {
+  eyebrow,
+  heading,
+  marks,
+  em,
+  intro,
+  align = 'left',
+  headingAs = 'h2',
+  size = 'h2',
+  field = (path: string) => path,
+  introField = 'intro',
+  headingClass,
+  class: className,
+} = Astro.props
+const hasContent = Boolean(eyebrow || heading || intro)
+---
+
+{
+  hasContent && (
+<div class:list={['flex flex-col gap-4', align === 'center' && 'items-center text-center', className]}>
+  {
+    eyebrow && (
+      <Typography as="p" size="eyebrow" color="muted" data-field={field('eyebrow')}>
+        {eyebrow}
+      </Typography>
+    )
+  }
+  {
+    heading && (
+      <Typography as={headingAs} size={size} align={align} class={headingClass}>
+        <Emphasis heading={heading} marks={marks} em={em} data-field={field('heading')} />
+      </Typography>
+    )
+  }
+  {
+    intro && (
+        <Typography as="p" size="lead" color="muted" data-field={field(introField)} class="max-w-xl" markdown={intro} />
+    )
+  }
+</div>
+  )
+}

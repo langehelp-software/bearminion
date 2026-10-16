@@ -1,0 +1,32 @@
+---
+import type { Site } from '../components/organisms/site-definition'
+import type { Page } from '../components/sections/definitions'
+import SectionList from '../components/sections/SectionList.astro'
+import Base from '../layouts/Base.astro'
+import { getPages, getSite } from '../lib/content'
+
+export async function getStaticPaths() {
+  const site = await getSite()
+  // 404.json is rendered by src/pages/404.astro, so Astro emits /404.html instead of /404/index.html.
+  const pages = await getPages(['404'])
+
+  return pages.map((page) => ({
+    params: {
+      // The home page is stored as slug "index" and published at `/`.
+      slug: page.slug === 'index' ? undefined : page.slug,
+    },
+    props: { site, page },
+  }))
+}
+
+interface Props {
+  site: Site
+  page: Page
+}
+
+const { site, page } = Astro.props
+---
+
+<Base site={site} page={page}>
+  <SectionList sections={page.sections} motion={site.theme.motion} />
+</Base>

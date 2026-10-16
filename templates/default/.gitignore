@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+storybook-static/
+
+# generated types
+.astro/
+
+# editor version history (local only)
+.editor/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# logs and OS files
+*.log
+.DS_Store

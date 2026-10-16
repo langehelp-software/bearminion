@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, types, unit tests, build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Check the published package
+        working-directory: packages/editor
+        run: |
+          pnpm dlx publint@0.3.25
+          pnpm dlx @arethetypeswrong/cli@0.18.5 --pack . --profile esm-only
+
+  e2e:
+    name: Editor end-to-end
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @bearminion/tests exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+
+  template:
+    name: Template outside the monorepo
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pack the library
+        run: pnpm --filter bearminion pack --pack-destination "$RUNNER_TEMP"
+      - name: Install and build a copy of the template with npm
+        run: |
+          cp -r templates/default "$RUNNER_TEMP/site"
+          cd "$RUNNER_TEMP/site"
+          npm pkg set "dependencies.bearminion=file:$(ls "$RUNNER_TEMP"/bearminion-*.tgz)"
+          npm install --no-audit --no-fund
+          npx astro check
+          npx astro build

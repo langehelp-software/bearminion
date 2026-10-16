@@ -1,0 +1,110 @@
+---
+import type { Section } from '../definitions'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'stats' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const value =
+  'font-sans font-semibold leading-[0.9] tracking-[-0.05em] text-fg'
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  {
+    section.variant === 'row' && (
+      <div class="section-container">
+        <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} field={field} headingClass="max-w-[18ch]" />
+        <dl class="mt-[clamp(2.5rem,5cqi,4.5rem)] grid grid-cols-1 gap-x-[clamp(1.5rem,3cqi,2.5rem)] gap-y-8 @min-[36rem]:grid-cols-2 @min-[68rem]:grid-cols-4">
+          {props.items.map((item, itemIndex) => (
+            <div class="flex flex-col gap-3 border-t border-line pt-5">
+              {item.label && (
+                <dt class="order-2 max-w-64 text-[0.9375rem] leading-[1.5] text-muted" data-field={field(`items.${itemIndex}.label`)}>
+                  {item.label}
+                </dt>
+              )}
+              <dd class:list={[value, 'order-1 text-[clamp(3rem,2rem+4cqi,5.5rem)]']} data-field={field(`items.${itemIndex}.value`)}>
+                {item.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+  {
+    section.variant === 'cards' && (
+      <div class="section-container">
+        <SectionHeader
+          eyebrow={props.eyebrow}
+          heading={props.heading}
+          marks={props.marks}
+          align="center"
+          field={field}
+          headingClass="max-w-[18ch]"
+          class="mx-auto max-w-3xl"
+        />
+        <dl class="mt-[clamp(2.5rem,4cqi,4rem)] grid grid-cols-1 gap-4 @min-[36rem]:grid-cols-2 @min-[68rem]:grid-cols-4">
+          {props.items.map((item, itemIndex) => (
+            <div
+              class:list={[
+                'flex min-h-52 flex-col justify-between gap-10 rounded-card-lg bg-surface p-6 ring-line',
+                reveal && 'transition-transform duration-300 ease-out-soft hover:-translate-y-1',
+              ]}
+            >
+              <dd class:list={[value, 'text-[clamp(2.75rem,2rem+2.5cqi,4rem)]']} data-field={field(`items.${itemIndex}.value`)}>
+                {item.value}
+              </dd>
+              {item.label && (
+                <dt class="text-[0.9375rem] leading-[1.5] text-muted" data-field={field(`items.${itemIndex}.label`)}>
+                  {item.label}
+                </dt>
+              )}
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+  {
+    section.variant === 'split' && (
+      <div class="section-container grid items-center gap-[clamp(2.5rem,6cqi,6rem)] @min-[44rem]:grid-cols-2">
+        <div class="flex flex-col gap-5">
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} field={field} />
+          {props.body && (
+            <Typography
+              as="p"
+              size="body"
+              color="muted"
+              class="max-w-[30rem] text-[clamp(1rem,0.95rem+0.3cqi,1.125rem)] leading-[1.6]"
+              data-field={field('body')}
+              markdown={props.body}
+            />
+          )}
+        </div>
+        <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-card-lg bg-line shadow-[0_0_0_1px_var(--line)]">
+          {props.items.map((item, itemIndex) => (
+            <div class="flex flex-col gap-3 bg-bg p-[clamp(1.25rem,3cqi,2rem)]">
+              <dd class:list={[value, 'text-[clamp(2.25rem,1.5rem+2.5cqi,3.75rem)]']} data-field={field(`items.${itemIndex}.value`)}>
+                {item.value}
+              </dd>
+              {item.label && (
+                <dt class="text-[0.875rem] leading-[1.5] text-muted" data-field={field(`items.${itemIndex}.label`)}>
+                  {item.label}
+                </dt>
+              )}
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+</SectionShell>

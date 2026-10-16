@@ -1,0 +1,63 @@
+---
+import type { Page } from 'bearminion'
+import type { Site } from '../organisms/site-definition'
+import { isRemote, resolveLocalAsset } from '../../lib/assets'
+
+interface Props {
+  site: Site
+  page: Page
+  pathname: string
+}
+
+const { site, page, pathname } = Astro.props
+
+function resolveAgainstSite(value: string): string {
+  if (/^https?:\/\//i.test(value)) return value
+  return new URL(value, site.url).href
+}
+
+function absoluteImage(src: string): string {
+  if (isRemote(src)) return src
+  const asset = resolveLocalAsset(src)
+  if (!asset) throw new Error(`No file in src/assets for image path "${src}". Restore the file, or choose another image in the editor and save.`)
+  return new URL(asset.src, site.url).href
+}
+
+const title = site.seo.titleTemplate ? site.seo.titleTemplate.replaceAll('%s', page.seo.title) : page.seo.title
+const description = page.seo.description || site.seo.description || ''
+const path = pathname.startsWith('/') ? pathname : `/${pathname}`
+const canonical = page.seo.canonical ? resolveAgainstSite(page.seo.canonical) : new URL(path, site.url).href
+const robots = [page.seo.noindex ? 'noindex' : 'index', page.seo.nofollow ? 'nofollow' : 'follow'].join(', ')
+const ogImageSrc = page.seo.ogImage ?? site.seo.ogImage
+const ogImage = ogImageSrc ? absoluteImage(ogImageSrc) : undefined
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: title,
+  description,
+  url: canonical,
+  ...(ogImage ? { image: ogImage } : {}),
+  isPartOf: {
+    '@type': 'WebSite',
+    name: site.name,
+    url: site.url,
+  },
+}
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<meta name="robots" content={robots} />
+<meta property="og:site_name" content={site.name} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content="website" />
+<meta property="og:url" content={canonical} />
+{ogImage && <meta property="og:image" content={ogImage} />}
+<meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+{ogImage && <meta name="twitter:image" content={ogImage} />}
+<script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')} />

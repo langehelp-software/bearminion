@@ -1,0 +1,50 @@
+---
+import { renderRichText } from 'bearminion/rich-text'
+import { cn } from '../../lib/cn'
+import { typography, type TypographyVariants } from './typography'
+
+type TagName = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'blockquote' | 'div' | 'li' | 'figcaption'
+
+const PHRASING_ONLY = new Set<string>(['p', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+
+interface Props {
+  as?: TagName
+  size?: NonNullable<TypographyVariants['size']>
+  color?: NonNullable<TypographyVariants['color']>
+  weight?: NonNullable<TypographyVariants['weight']>
+  font?: NonNullable<TypographyVariants['font']>
+  align?: NonNullable<TypographyVariants['align']>
+  class?: string
+  id?: string
+  /** Markdown subset (bold, italic, links, lists, paragraphs). Renders sanitized HTML. */
+  markdown?: string
+  'data-field'?: string
+}
+
+const {
+  as: TagName = 'p',
+  size,
+  color,
+  weight,
+  font,
+  align,
+  class: className,
+  markdown,
+  ...rest
+} = Astro.props
+
+const html = markdown !== undefined ? renderRichText(markdown) : undefined
+// Rich text is `<p>`s and lists, which a `<p>`, `<span>` or heading cannot hold. A `blockquote`, `li` or `figcaption` can.
+const Tag = html !== undefined && PHRASING_ONLY.has(TagName) ? 'div' : TagName
+const classes = cn(typography({ size, color, weight, font, align }), className)
+---
+
+{
+  html !== undefined ? (
+    <Tag class={classes} data-field-kind="rich" set:html={html} {...rest} />
+  ) : (
+    <TagName class={classes} {...rest}>
+      <slot />
+    </TagName>
+  )
+}

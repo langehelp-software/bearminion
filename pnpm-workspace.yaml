@@ -1,0 +1,13 @@
+packages:
+  - "packages/*"
+  - "templates/*"
+  - "tests"
+
+# Templates depend on a published range (`bearminion: ^1.0.0`) so they also install outside this repo.
+# This setting links that range to packages/editor while the versions match.
+linkWorkspacePackages: true
+
+# pnpm skips dependency build scripts unless they are allowed here.
+allowBuilds:
+  esbuild: true
+  sharp: true

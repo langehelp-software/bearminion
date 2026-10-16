@@ -1,0 +1,24 @@
+---
+import { cn } from '../../lib/cn'
+
+interface Props {
+  class?: string
+  'data-field'?: string
+}
+
+const { class: className, 'data-field': dataField } = Astro.props
+---
+
+<span
+  class={cn(
+    'inline-flex items-center gap-2 rounded-full py-1.5 pr-3 pl-2.5 font-mono text-[0.75rem] tracking-[0.04em] text-muted ring-line',
+    className,
+  )}
+  data-field={dataField}
+>
+  <span
+    class="size-2 rounded-full bg-accent shadow-[0_0_0_3px_color-mix(in_oklch,var(--accent)_30%,transparent)]"
+    aria-hidden="true"
+  ></span>
+  <slot />
+</span>

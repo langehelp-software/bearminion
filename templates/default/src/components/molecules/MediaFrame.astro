@@ -1,0 +1,71 @@
+---
+import Image from '../atoms/Image.astro'
+import { isRemote, resolveLocalAsset } from '../../lib/assets'
+import { cn } from '../../lib/cn'
+
+interface Props {
+  src?: string
+  alt: string
+  aspectClass: string
+  /** `auto` lets the image keep its own aspect ratio. It needs an `aspect-*` class on the frame to replace, otherwise it falls back to `contain`. */
+  fit?: 'cover' | 'contain' | 'auto'
+  position?: string
+  roundedClass?: string
+  class?: string
+  priority?: boolean
+  'data-field'?: string
+}
+
+const {
+  src,
+  alt,
+  aspectClass,
+  fit = 'cover',
+  position,
+  roundedClass = 'rounded-card-lg',
+  class: className,
+  priority = false,
+  'data-field': dataField,
+} = Astro.props
+
+const looksLocal = Boolean(src && src.replace(/^\//, '').startsWith('src/assets/'))
+const asset = src && !isRemote(src) ? resolveLocalAsset(src) : undefined
+let devSrc: string | undefined
+if (import.meta.env.DEV && looksLocal && !asset && src) {
+  devSrc = `/__bearminion/assets?src=${encodeURIComponent(src.replace(/^\//, ''))}`
+}
+if (looksLocal && !asset && !devSrc) {
+  throw new Error(`No file in src/assets for image path "${src}". Restore the file, or choose another image in the editor and save.`)
+}
+const showImage = Boolean(src && src !== 'placeholder' && (isRemote(src) || asset || devSrc))
+// Natural size: drop the forced ratio (and its min height) so the frame wraps the image.
+const natural = fit === 'auto' && showImage && /(^|\s)aspect-/.test(aspectClass)
+const frameClass = natural ? aspectClass.split(/\s+/).filter((token) => !/^(aspect-|min-h-)/.test(token)).join(' ') : aspectClass
+const objectFit = fit === 'auto' ? 'contain' : fit
+// `data-field` goes on the frame, not the <img>: the frame is the image slot, so hovering or clicking anywhere on it
+// (image, padding or placeholder stripes) edits the image.
+---
+
+<div
+  class={cn('relative flex items-end overflow-hidden p-4', !showImage && 'placeholder-stripes', frameClass, natural && 'p-0', roundedClass, className)}
+  data-field={dataField}
+>
+  {
+    showImage && src ? (
+      <Image
+        src={src}
+        alt={alt}
+        fit={objectFit}
+        position={position}
+        rounded="none"
+        priority={priority}
+        class={natural ? 'block h-auto w-full' : 'absolute inset-0 size-full'}
+        sizes="(min-width: 1024px) 50vw, 100vw"
+      />
+    ) : (
+      <span class="font-mono text-[0.6875rem] tracking-[0.04em] text-muted">
+        {alt}
+      </span>
+    )
+  }
+</div>

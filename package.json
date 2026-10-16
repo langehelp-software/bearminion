@@ -1,0 +1,25 @@
+{
+  "name": "bearminion-workspace",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "scripts": {
+    "dev": "pnpm build:lib && pnpm --parallel --filter bearminion --filter bearminion-site dev",
+    "build": "pnpm build:lib && pnpm --filter bearminion-site build",
+    "build:lib": "pnpm --filter bearminion build",
+    "dev:lib": "pnpm --filter bearminion dev",
+    "test": "pnpm build:lib && pnpm -r --if-present test",
+    "test:e2e": "pnpm build:lib && pnpm --filter @bearminion/tests test:e2e",
+    "e2e:setup": "pnpm --filter @bearminion/tests exec playwright install chromium",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "postinstall": "pnpm build:lib",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "changeset": "changeset",
+    "release": "pnpm build:lib && changeset publish"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@changesets/cli": "3.0.3"
+  }
+}

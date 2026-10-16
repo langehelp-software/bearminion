@@ -1,0 +1,133 @@
+---
+import type { Site } from './site-definition'
+import { markClass, splitMarkedText } from 'bearminion/marks'
+import { anchorAttrs } from '../../lib/link-attrs'
+import LogoMark from '../atoms/LogoMark.astro'
+import Typography from '../atoms/Typography.astro'
+import FooterLinks from './FooterLinks.astro'
+
+interface Props {
+  site: Site
+}
+
+const { site } = Astro.props
+const { variant, tone, text, legal, badge, columns } = site.footer
+const flatLinks = columns
+  .flatMap((column, columnIndex) => column.links.map((link, linkIndex) => ({ link, columnIndex, linkIndex })))
+  .slice(0, 6)
+const wordmark = splitMarkedText(site.name, site.nameMarks)
+---
+
+<footer data-organism="footer" data-variant={variant} data-tone={tone} class="overflow-clip">
+  {
+    variant === 'simple' && (
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(2.5rem,2rem+2cqi,4rem)] pb-8">
+        <div class="flex flex-wrap items-start justify-between gap-8">
+          <div class="flex max-w-xs flex-col gap-4">
+            <LogoMark name={site.name} logo={site.brandLogo} marks={site.nameMarks} size="sm" data-field="name" />
+            {text && (
+              <Typography as="p" size="small" color="muted" data-field="footer.text">
+                {text}
+              </Typography>
+            )}
+          </div>
+          <ul class="flex flex-wrap gap-x-7 gap-y-3">
+            {flatLinks.map(({ link, columnIndex, linkIndex }) => (
+              <li>
+                <a {...anchorAttrs(link)} class="text-[0.9375rem] text-muted transition-colors hover:text-fg" data-field={`footer.columns.${columnIndex}.links.${linkIndex}.label`}>
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {legal && (
+          <p class="mt-10 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted" data-field="footer.legal">
+            {legal}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  {
+    variant === 'columns' && (
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(3rem,2rem+4cqi,5.5rem)] pb-8">
+        <div class="flex flex-wrap gap-x-8 gap-y-10">
+          <div class="mr-auto flex max-w-md min-w-0 flex-[2_1_18rem] flex-col items-start gap-4">
+            <LogoMark name={site.name} logo={site.brandLogo} marks={site.nameMarks} data-field="name" />
+            {text && (
+              <Typography as="p" size="small" color="muted" data-field="footer.text" class="max-w-xs">
+                {text}
+              </Typography>
+            )}
+            {badge && (
+              <span class="mt-2 inline-flex items-center gap-2 rounded-full py-1.5 pr-3 pl-2.5 font-mono text-[0.6875rem] text-muted ring-line" data-field="footer.badge">
+                <span class="size-[0.4375rem] rounded-full bg-accent" aria-hidden="true"></span>
+                {badge}
+              </span>
+            )}
+          </div>
+          <div class="flex flex-wrap justify-end gap-x-8 gap-y-10 @min-[40rem]:ml-auto">
+            {columns.map((column, columnIndex) => (
+              <div class="flex w-40 min-w-32 flex-col gap-3.5">
+                <p class="font-mono text-[0.6875rem] tracking-[0.08em] text-muted uppercase" data-field={`footer.columns.${columnIndex}.title`}>
+                  {column.title}
+                </p>
+                <FooterLinks links={column.links} fieldPath={`footer.columns.${columnIndex}.links`} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {legal && (
+          <p class="mt-12 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted" data-field="footer.legal">
+            {legal}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  {
+    variant === 'wordmark' && (
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(3rem,2rem+4cqi,5.5rem)] pb-0">
+        <div class="flex flex-wrap gap-x-8 gap-y-10">
+          <div class="mr-auto max-w-md flex-[2_1_18rem]">
+            {text && (
+              <Typography as="p" size="lead" color="muted" data-field="footer.text" class="max-w-sm">
+                {text}
+              </Typography>
+            )}
+          </div>
+          <div class="flex flex-wrap justify-end gap-x-8 gap-y-8 @min-[40rem]:ml-auto">
+            {columns.map((column, columnIndex) => (
+              <div class="flex min-w-32 flex-col gap-3.5">
+                <p class="font-mono text-[0.6875rem] tracking-[0.08em] text-muted uppercase" data-field={`footer.columns.${columnIndex}.title`}>
+                  {column.title}
+                </p>
+                <FooterLinks links={column.links} fieldPath={`footer.columns.${columnIndex}.links`} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div class="mt-[clamp(3rem,6cqi,5rem)] flex flex-wrap justify-between gap-x-8 gap-y-2 text-[0.8125rem] text-muted">
+          {legal && <p data-field="footer.legal">{legal}</p>}
+          <a href="#content" class="transition-colors hover:text-fg">
+            Back to top ↑
+          </a>
+        </div>
+        <p
+          aria-hidden="true"
+          class="mt-4 text-[clamp(4rem,0.5rem+18.2cqi,15.5rem)] leading-[0.78] font-bold tracking-[-0.07em] whitespace-nowrap translate-y-[0.12em]"
+        >
+          {
+            wordmark.map((run) => {
+              const cls = markClass(run)
+              return cls ? <span class={cls}>{run.text}</span> : run.text
+            })
+          }
+        </p>
+      </div>
+    )
+  }
+</footer>

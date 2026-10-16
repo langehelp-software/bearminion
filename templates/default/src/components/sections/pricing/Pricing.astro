@@ -1,0 +1,210 @@
+---
+import type { Section } from '../definitions'
+import Button from '../../atoms/Button.astro'
+import { buttonLinkProps, buttonVariant } from '../../../lib/link-attrs'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'pricing' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const discount = props.yearlyDiscount
+const featured = props.plans.find((plan) => plan.featured) ?? props.plans[0]
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  {
+    section.variant === 'tiers' && (
+      <div class="section-container" data-pricing data-discount={discount}>
+        <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} intro={props.intro} align="center" field={field} class="mx-auto max-w-3xl" />
+        <div class="mt-8 flex justify-center">
+          <div class="inline-flex rounded-full p-1 ring-line" role="group" aria-label="Billing period">
+            <button type="button" data-billing="monthly" aria-pressed="true" class="h-10 rounded-full px-4 text-[0.875rem] font-medium">
+              Monthly
+            </button>
+            <button type="button" data-billing="yearly" aria-pressed="false" class="h-10 rounded-full px-4 text-[0.875rem] font-medium">
+              Yearly
+            </button>
+          </div>
+        </div>
+        <ul class="mt-10 grid grid-cols-1 gap-4 @min-[52rem]:grid-cols-3">
+          {props.plans.map((plan, planIndex) => (
+            <li
+              class:list={[
+                'flex flex-col rounded-card-lg p-7 ring-line',
+                plan.featured ? 'bg-fg text-bg' : 'bg-surface',
+              ]}
+              data-monthly={plan.monthly}
+            >
+              <div class="flex items-center justify-between gap-3">
+                <h3 class="text-[1.25rem] font-semibold tracking-[-0.02em]" data-field={field(`plans.${planIndex}.name`)}>
+                  {plan.name}
+                </h3>
+                {plan.featured && <span class="rounded-full bg-accent px-2.5 py-1 font-mono text-[0.6875rem] tracking-[0.06em] text-on uppercase">Popular</span>}
+              </div>
+              {plan.blurb && (
+                <p class:list={['mt-2 text-[0.9375rem] leading-[1.5]', plan.featured ? 'text-bg/70' : 'text-muted']} data-field={field(`plans.${planIndex}.blurb`)}>
+                  {plan.blurb}
+                </p>
+              )}
+              <p class="mt-6">
+                <span class="text-[clamp(2.5rem,2rem+1cqi,3.25rem)] leading-none font-semibold tracking-[-0.04em]" data-amount>
+                  {plan.monthly === 0 ? '$0' : `$${plan.monthly}`}
+                </span>
+              </p>
+              <p class:list={['mt-1 text-[0.8125rem]', plan.featured ? 'text-bg/70' : 'text-muted']} data-period>
+                {plan.monthly === 0 ? 'forever' : 'per month'}
+              </p>
+              {plan.cta && (
+                <Button {...buttonLinkProps(plan.cta)} variant={buttonVariant(plan.cta, plan.featured ? 'primary' : 'secondary')} class="mt-6" data-field={field(`plans.${planIndex}.cta.label`)}>
+                  {plan.cta.label}
+                </Button>
+              )}
+              {plan.features.length > 0 && (
+                <ul class="mt-6 flex flex-col gap-2.5 border-t border-current/15 pt-6">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li class="text-[0.9375rem]" data-field={field(`plans.${planIndex}.features.${featureIndex}`)}>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+  {
+    section.variant === 'table' && (
+      <div class="section-container">
+        <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} intro={props.intro} field={field} />
+        <div class="mt-10 overflow-x-auto">
+          <table class="w-full min-w-[40rem] border-collapse text-left">
+            <thead>
+              <tr>
+                <th class="p-4"></th>
+                {props.plans.map((plan, planIndex) => (
+                  <th class:list={['p-4 text-[0.9375rem] font-semibold', plan.featured && 'bg-accent/16']} data-field={field(`plans.${planIndex}.name`)}>
+                    {plan.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(props.rows ?? []).map((row, rowIndex) => (
+                <tr class="border-t border-[var(--line)]">
+                  {row.map((cell, cellIndex) => (
+                    <td class:list={['p-4 text-[0.9375rem]', cellIndex > 0 && props.plans[cellIndex - 1]?.featured && 'bg-accent/16']} data-field={field(`rows.${rowIndex}.${cellIndex}`)}>
+                      {cell === true ? '✓' : cell === false ? '—' : cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+  {
+    section.variant === 'single' && featured && (
+      <div class="section-container" data-pricing data-discount={discount}>
+        <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} intro={props.intro} field={field} />
+        <div class="mt-10 grid items-stretch gap-4 @min-[880px]:grid-cols-[minmax(22rem,1fr)_minmax(0,1fr)]">
+          <div class="flex flex-col justify-between rounded-panel bg-fg p-8 text-bg" data-monthly={featured.monthly}>
+            <div>
+              <p class="font-mono text-[0.75rem] tracking-[0.08em] uppercase text-bg/70" data-field={field('singleHeading')}>
+                {props.singleHeading ?? featured.name}
+              </p>
+              <p class="mt-6 text-[clamp(3rem,2rem+3cqi,4.5rem)] leading-none font-semibold tracking-[-0.05em]" data-amount>
+                {featured.monthly === 0 ? '$0' : `$${featured.monthly}`}
+              </p>
+              <p class="mt-2 text-[0.875rem] text-bg/70" data-period>
+                {featured.monthly === 0 ? 'forever' : 'per month'}
+              </p>
+            </div>
+            <div class="mt-8 flex flex-wrap gap-2.5">
+              {featured.cta && (
+                <Button {...buttonLinkProps(featured.cta)} variant={buttonVariant(featured.cta, 'primary')} data-field={field(`plans.${props.plans.indexOf(featured)}.cta.label`)}>
+                  {featured.cta.label}
+                </Button>
+              )}
+              <div class="inline-flex rounded-full p-1 shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--bg)_30%,transparent)]" role="group" aria-label="Billing period" data-billing-inverse>
+                <button type="button" data-billing="monthly" aria-pressed="true" class="h-10 rounded-full px-4 text-[0.875rem]">
+                  Monthly
+                </button>
+                <button type="button" data-billing="yearly" aria-pressed="false" class="h-10 rounded-full px-4 text-[0.875rem]">
+                  Yearly
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="rounded-panel bg-surface p-8 ring-line">
+            <h3 class="text-[1.25rem] font-semibold tracking-[-0.02em]" data-field={field(`plans.${props.plans.indexOf(featured)}.name`)}>
+              {featured.name}
+            </h3>
+            {featured.blurb && (
+              <p class="mt-2 text-muted" data-field={field(`plans.${props.plans.indexOf(featured)}.blurb`)}>
+                {featured.blurb}
+              </p>
+            )}
+            {featured.features.length > 0 && (
+              <ul class="mt-6 flex flex-col gap-3">
+                {featured.features.map((feature, featureIndex) => (
+                  <li class="text-[0.9375rem]" data-field={field(`plans.${props.plans.indexOf(featured)}.features.${featureIndex}`)}>
+                    ✓ {feature}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+</SectionShell>
+
+<script>
+  function bindPricing() {
+  document.querySelectorAll('[data-pricing]').forEach((root) => {
+    if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') return
+    root.dataset.bound = 'true'
+    const discount = Number(root.dataset.discount ?? '0.2')
+    const cards = [...root.querySelectorAll('[data-monthly]')]
+    const buttons = [...root.querySelectorAll('[data-billing]')]
+
+    const apply = (billing: string) => {
+      buttons.forEach((button) => {
+        if (button instanceof HTMLButtonElement) button.setAttribute('aria-pressed', String(button.dataset.billing === billing))
+      })
+      cards.forEach((card) => {
+        if (!(card instanceof HTMLElement)) return
+        const monthly = Number(card.dataset.monthly ?? '0')
+        const amount = billing === 'yearly' ? Math.round(monthly * (1 - discount)) : monthly
+        const value = card.querySelector('[data-amount]')
+        const period = card.querySelector('[data-period]')
+        if (value) value.textContent = amount === 0 ? '$0' : `$${amount}`
+        if (period) {
+          period.textContent = amount === 0 ? 'forever' : billing === 'yearly' ? 'per month, billed yearly' : 'per month'
+        }
+      })
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        if (button instanceof HTMLButtonElement && button.dataset.billing) apply(button.dataset.billing)
+      })
+    })
+  })
+  }
+  bindPricing()
+  document.addEventListener('bearminion:preview', bindPricing)
+</script>

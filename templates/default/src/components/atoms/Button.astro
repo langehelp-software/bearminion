@@ -1,0 +1,64 @@
+---
+import type { ButtonSize, ButtonVariant } from './options'
+import { cn } from '../../lib/cn'
+import { button } from './button'
+
+interface Props {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  href?: string
+  type?: 'button' | 'submit' | 'reset'
+  arrow?: boolean
+  class?: string
+  id?: string
+  /** When true, the link opens in a new window. External http(s) links do too unless this is false. */
+  newTab?: boolean
+  target?: string
+  rel?: string
+  'data-analytics'?: string
+  'data-field'?: string
+  'data-nav-toggle'?: boolean
+  'data-copy'?: boolean
+  'aria-expanded'?: 'true' | 'false' | boolean
+  'aria-controls'?: string
+  'aria-pressed'?: 'true' | 'false' | boolean
+  'aria-current'?: 'page' | 'true' | 'false' | boolean
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  href,
+  type = 'button',
+  arrow = false,
+  class: className,
+  newTab,
+  target,
+  rel,
+  ...rest
+} = Astro.props
+
+const external = typeof href === 'string' && /^https?:\/\//i.test(href)
+const blank = newTab === true || (newTab !== false && external)
+const classes = cn(button({ variant, size }), className)
+---
+
+{
+  href ? (
+    <a
+      href={href}
+      class={classes}
+      target={target ?? (blank ? '_blank' : undefined)}
+      rel={rel ?? (blank ? 'noopener noreferrer' : undefined)}
+      {...rest}
+    >
+      <slot />
+      {arrow && <span aria-hidden="true">→</span>}
+    </a>
+  ) : (
+    <button type={type} class={classes} {...rest}>
+      <slot />
+      {arrow && <span aria-hidden="true">→</span>}
+    </button>
+  )
+}

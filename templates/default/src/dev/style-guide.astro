@@ -1,0 +1,124 @@
+---
+import type { Page } from 'bearminion'
+import Button from '../components/atoms/Button.astro'
+import LogoMark from '../components/atoms/LogoMark.astro'
+import Typography from '../components/atoms/Typography.astro'
+import Pill from '../components/molecules/Pill.astro'
+import Base from '../layouts/Base.astro'
+import { getSite } from '../lib/content'
+
+const site = await getSite()
+
+const page = {
+  slug: 'style-guide',
+  title: 'Style guide',
+  seo: {
+    title: 'Style guide',
+    description: 'BearMinion design system v2: type, colour, buttons, tones, and every section variant.',
+    noindex: true,
+    nofollow: true,
+  },
+  sections: [],
+} satisfies Page
+
+const roles = [
+  ['display', 'Display'],
+  ['h2', 'Heading 2'],
+  ['h3', 'Heading 3'],
+  ['lead', 'Lead'],
+  ['body', 'Body'],
+  ['small', 'Small'],
+  ['eyebrow', 'Eyebrow'],
+  ['mono', 'Mono'],
+] as const
+
+const variants = ['primary', 'secondary', 'strong', 'ghost', 'text'] as const
+const sizes = ['sm', 'md', 'lg'] as const
+const tones = ['base', 'subtle', 'inverse', 'brand'] as const
+---
+
+<Base site={site} page={page}>
+  <div data-tone="base" class="section-container">
+    <Pill>Design system v2</Pill>
+    <Typography as="h1" size="display" class="mt-6 max-w-4xl">
+      Type, colour, and the parts a section is built from.
+    </Typography>
+    <Typography as="p" size="lead" color="muted" class="mt-5 max-w-2xl">
+      Bricolage Grotesque, Instrument Serif, and JetBrains Mono. Every section paints itself from eight tone variables.
+      The <a href="/variants" class="text-link underline">variant gallery</a> renders each section in every layout.
+    </Typography>
+
+    <div class="mt-16 flex items-center gap-8">
+      <LogoMark name={site.name} marks={site.nameMarks} />
+      <LogoMark name={site.name} marks={site.nameMarks} stacked size="lg" />
+    </div>
+
+    <div class="mt-16 flex flex-col gap-8">
+      <Typography as="h2" size="h2">Typography</Typography>
+      {
+        roles.map(([size, label]) => (
+          <div>
+            <p class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">
+              {label} · {size}
+            </p>
+            <Typography as={size === 'display' || size === 'h2' ? 'h2' : 'p'} size={size} color={size === 'eyebrow' || size === 'lead' ? 'muted' : 'default'} class="mt-2">
+              Content lives in <em class="bm-em">git</em>.
+            </Typography>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="mt-16">
+      <Typography as="h2" size="h2">Buttons</Typography>
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        {variants.map((variant) => (
+          <Button href="#content" variant={variant} arrow={variant === 'primary' || variant === 'text'}>
+            {variant}
+          </Button>
+        ))}
+      </div>
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        {sizes.map((size) => (
+          <Button href="#content" size={size} arrow>
+            {size}
+          </Button>
+        ))}
+      </div>
+    </div>
+
+    <div class="mt-16">
+      <Typography as="h2" size="h2">Fields</Typography>
+      <form class="mt-8 grid max-w-xl gap-4">
+        <label class="flex flex-col gap-2 text-[0.8125rem]">
+          Name
+          <input class="bm-field" name="name" placeholder="Ada" />
+        </label>
+        <label class="flex flex-col gap-2">
+          <span class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">Email</span>
+          <input class="bm-underline" type="email" name="email" placeholder="ada@example.com" />
+        </label>
+      </form>
+    </div>
+  </div>
+
+  <div class="grid @min-[800px]:grid-cols-2">
+    {
+      tones.map((tone) => (
+        <section data-tone={tone} class="section-container">
+          <p class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">{tone}</p>
+          <h2 class="mt-4 text-[clamp(2rem,1.2rem+3.4cqi,3.75rem)] leading-none font-semibold tracking-[-0.04em]">
+            Tone <em class="bm-em">{tone}</em>
+          </h2>
+          <p class="mt-4 max-w-md text-[0.9375rem] leading-[1.6] text-muted">
+            Background, foreground, muted text, line, surface, accent, and link all come from this tone.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <span class="inline-flex h-12 items-center rounded-full bg-accent px-5 text-[0.9375rem] font-medium text-on">Accent</span>
+            <span class="inline-flex h-12 items-center rounded-card bg-surface px-5 text-[0.9375rem] ring-line">Surface</span>
+          </div>
+        </section>
+      ))
+    }
+  </div>
+</Base>

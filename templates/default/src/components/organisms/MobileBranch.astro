@@ -1,0 +1,52 @@
+---
+import type { Link } from 'bearminion'
+import { anchorAttrs } from '../../lib/link-attrs'
+import MobileBranch from './MobileBranch.astro'
+
+interface Props {
+  link: Link
+  fieldPath: string
+  depth: number
+}
+
+const { link, fieldPath, depth } = Astro.props
+const children = link.children ?? []
+---
+
+<div data-accordion-item class="border-b border-[var(--line)]" style={`padding-left: ${(depth - 1) * 0.75}rem`}>
+  <div class="flex min-h-14 items-center gap-2">
+    <a
+      {...anchorAttrs(link)}
+      data-menu-link
+      data-field={`${fieldPath}.label`}
+      class:list={[
+        'flex flex-1 items-center',
+        depth === 1 ? 'text-[1.5rem] font-medium tracking-[-0.03em]' : 'min-h-10 text-[1rem] text-muted',
+      ]}
+    >
+      {link.label}
+    </a>
+    {
+      children.length > 0 && (
+        <button
+          type="button"
+          data-accordion
+          aria-expanded="false"
+          aria-label={`Show links under ${link.label}`}
+          class="inline-flex size-10 items-center justify-center rounded-full text-lg"
+        >
+          <span aria-hidden="true">+</span>
+        </button>
+      )
+    }
+  </div>
+  {
+    children.length > 0 && (
+      <div hidden data-accordion-panel class="pb-2">
+        {children.map((child, index) => (
+          <MobileBranch link={child} fieldPath={`${fieldPath}.children.${index}`} depth={depth + 1} />
+        ))}
+      </div>
+    )
+  }
+</div>

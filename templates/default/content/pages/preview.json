@@ -1,0 +1,40 @@
+{
+  "sections": [
+    {
+      "anchor": "hero",
+      "id": "hero",
+      "props": {
+        "eyebrow": "Draft",
+        "heading": "This page is hidden from search.",
+        "marks": [
+          {
+            "end": 32,
+            "font": "serif",
+            "italic": true,
+            "start": 13
+          }
+        ],
+        "primary": {
+          "href": "/",
+          "label": "Back home"
+        },
+        "secondary": {
+          "href": "/about",
+          "label": "About"
+        },
+        "sub": "Turn on noindex in the page settings to keep a page out of search results and the sitemap while it is a draft."
+      },
+      "tone": "base",
+      "type": "hero",
+      "variant": "centered"
+    }
+  ],
+  "seo": {
+    "description": "A draft page kept out of search results.",
+    "nofollow": true,
+    "noindex": true,
+    "title": "Preview"
+  },
+  "slug": "preview",
+  "title": "Preview"
+}

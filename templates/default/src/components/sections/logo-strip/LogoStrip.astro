@@ -1,0 +1,107 @@
+---
+import type { Section } from '../definitions'
+import Image from '../../atoms/Image.astro'
+import { isRemote, resolveLocalAsset } from '../../../lib/assets'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'logoStrip' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+
+function showImage(src: string) {
+  if (src === 'placeholder') return false
+  if (isRemote(src)) return true
+  if (src.replace(/^\//, '').startsWith('src/assets/') && !resolveLocalAsset(src)) {
+    throw new Error(`No file in src/assets for image path "${src}". Restore the file, or choose another image in the editor and save.`)
+  }
+  return Boolean(resolveLocalAsset(src))
+}
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} reveal="16">
+  {
+    section.variant === 'row' && (
+      <div class="mx-auto flex max-w-[80rem] flex-wrap items-center gap-8 px-[clamp(1.25rem,4cqi,3rem)] py-10">
+        {props.label && (
+          <p class="max-w-[13rem] flex-[0_1_13rem] font-mono text-[0.75rem] tracking-[0.04em] text-muted uppercase" data-field={field('label')}>
+            {props.label}
+          </p>
+        )}
+        <ul class="flex min-w-[min(100%,30rem)] flex-[1_1_30rem] flex-wrap items-center justify-between gap-x-6 gap-y-4">
+          {props.logos.map((logo, logoIndex) => (
+            <li class="flex h-9 min-w-[7.5rem] items-center justify-center" data-field={field(`logos.${logoIndex}.alt`)}>
+              {showImage(logo.src) ? (
+                <Image src={logo.src} alt={logo.alt} class="h-9 w-auto" widths={[120, 240]} sizes="120px" />
+              ) : (
+                <span class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">
+                  {logo.alt}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+  {
+    section.variant === 'grid' && (
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] py-12">
+        {props.label && (
+          <p class="mb-8 text-center font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase" data-field={field('label')}>
+            {props.label}
+          </p>
+        )}
+        <ul class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-px bg-[var(--line)] ring-line">
+          {props.logos.map((logo, logoIndex) => (
+            <li class="flex h-20 items-center justify-center bg-bg transition-colors hover:bg-surface" data-field={field(`logos.${logoIndex}.alt`)}>
+              {showImage(logo.src) ? (
+                <Image src={logo.src} alt={logo.alt} class="h-9 w-auto" widths={[120, 240]} sizes="120px" />
+              ) : (
+                <span class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">
+                  {logo.alt}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+  {
+    section.variant === 'marquee' && (
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] py-12">
+        {props.label && (
+          <p class="mb-8 text-center font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase" data-field={field('label')}>
+            {props.label}
+          </p>
+        )}
+        <div class="bm-marquee-mask overflow-hidden">
+          <ul class="bm-marquee flex w-max items-center">
+            {[...props.logos, ...props.logos].map((logo, logoIndex) => (
+              <li
+                class="flex h-9 w-40 shrink-0 items-center justify-center"
+                aria-hidden={logoIndex >= props.logos.length ? 'true' : undefined}
+                data-field={field(`logos.${logoIndex % props.logos.length}.alt`)}
+              >
+                {showImage(logo.src) ? (
+                  <Image src={logo.src} alt={logoIndex >= props.logos.length ? '' : logo.alt} class="h-9 w-auto" widths={[120, 240]} sizes="120px" />
+                ) : (
+                  <span class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">
+                    {logo.alt}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )
+  }
+</SectionShell>

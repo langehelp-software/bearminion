@@ -1,0 +1,78 @@
+---
+import { Image as AssetImage } from 'astro:assets'
+import { isRemote, resolveLocalAsset } from '../../lib/assets'
+import { cn } from '../../lib/cn'
+import { image, type ImageVariants } from './image'
+
+interface Props {
+  src: string
+  alt: string
+  aspect?: NonNullable<ImageVariants['aspect']>
+  fit?: NonNullable<ImageVariants['fit']>
+  /** CSS object-position keywords, for example `top left`. Omitted means center. */
+  position?: string
+  rounded?: NonNullable<ImageVariants['rounded']>
+  loading?: 'eager' | 'lazy'
+  priority?: boolean
+  sizes?: string
+  widths?: number[]
+  class?: string
+  'data-field'?: string
+}
+
+const {
+  src,
+  alt,
+  aspect,
+  fit,
+  position,
+  rounded,
+  loading = 'lazy',
+  priority = false,
+  sizes = '(min-width: 1024px) 40vw, 100vw',
+  widths = [480, 800, 1200],
+  class: className,
+  'data-field': dataField,
+} = Astro.props
+
+const remote = isRemote(src)
+const asset = remote ? undefined : resolveLocalAsset(src)
+const looksLocal = src.replace(/^\//, '').startsWith('src/assets/')
+let devSrc: string | undefined
+if (import.meta.env.DEV && looksLocal && !asset) {
+  devSrc = `/__bearminion/assets?src=${encodeURIComponent(src.replace(/^\//, ''))}`
+}
+
+if (looksLocal && !asset && !devSrc) {
+  throw new Error(`No file in src/assets for image path "${src}". Restore the file, or choose another image in the editor and save.`)
+}
+
+const classes = cn(image({ aspect, fit, rounded }), className)
+const style = position ? `object-position:${position}` : undefined
+---
+
+{
+  asset ? (
+    <AssetImage
+      src={asset}
+      alt={alt}
+      class={classes}
+      style={style}
+      widths={widths}
+      sizes={sizes}
+      loading={priority ? 'eager' : loading}
+      priority={priority}
+      data-field={dataField}
+    />
+  ) : (
+    <img
+      src={devSrc ?? src}
+      alt={alt}
+      class={classes}
+      style={style}
+      loading={priority ? 'eager' : loading}
+      fetchpriority={priority ? 'high' : undefined}
+      data-field={dataField}
+    />
+  )
+}

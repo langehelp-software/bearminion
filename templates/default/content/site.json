@@ -1,0 +1,117 @@
+{
+  "brandLogo": {
+    "alt": "BearMinion",
+    "height": 32,
+    "src": "src/assets/uploads/logo.png"
+  },
+  "favicon": {
+    "alt": "",
+    "src": "src/assets/uploads/favicon.png"
+  },
+  "footer": {
+    "badge": "Built with BearMinion",
+    "columns": [
+      {
+        "links": [
+          {
+            "href": "/#features",
+            "label": "Features"
+          },
+          {
+            "href": "/#pricing",
+            "label": "Pricing"
+          },
+          {
+            "href": "/#faq",
+            "label": "FAQ"
+          }
+        ],
+        "title": "Product"
+      },
+      {
+        "links": [
+          {
+            "href": "/about",
+            "label": "About"
+          },
+          {
+            "href": "/#contact",
+            "label": "Contact"
+          }
+        ],
+        "title": "Company"
+      },
+      {
+        "links": [
+          {
+            "href": "#",
+            "label": "Privacy"
+          },
+          {
+            "href": "#",
+            "label": "Terms"
+          }
+        ],
+        "title": "Legal"
+      }
+    ],
+    "legal": "© 2026 Your Company. All rights reserved.",
+    "text": "One or two sentences about your company, so people know who is behind the site.",
+    "tone": "base",
+    "variant": "wordmark"
+  },
+  "header": {
+    "actions": [
+      {
+        "href": "/#contact",
+        "label": "Get started"
+      }
+    ],
+    "links": [
+      {
+        "children": [
+          {
+            "href": "/#workflow",
+            "label": "How it works"
+          }
+        ],
+        "href": "/#features",
+        "label": "Features"
+      },
+      {
+        "href": "/#pricing",
+        "label": "Pricing"
+      },
+      {
+        "href": "/#faq",
+        "label": "FAQ"
+      },
+      {
+        "href": "/about",
+        "label": "About"
+      }
+    ],
+    "sticky": true,
+    "tone": "subtle",
+    "variant": "floating"
+  },
+  "name": "BearMinion",
+  "nameMarks": [
+    {
+      "end": 10,
+      "font": "serif",
+      "italic": true,
+      "start": 4
+    }
+  ],
+  "seo": {
+    "description": "A site built with BearMinion. Replace this description in the Site settings.",
+    "ogImage": "src/assets/uploads/og.png",
+    "titleTemplate": "%s · BearMinion"
+  },
+  "theme": {
+    "mode": "light",
+    "motion": true
+  },
+  "url": "https://example.com"
+}

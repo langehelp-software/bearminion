@@ -1,0 +1,33 @@
+---
+import type { Tone } from 'bearminion'
+import { cn } from '../../lib/cn'
+
+interface Props {
+  id: string
+  /** Optional page anchor. Rendered as the element id. `data-section-id` stays the section id. */
+  anchor?: string
+  type: string
+  variant: string
+  tone: Tone
+  motion: boolean
+  /** Logo strip reveals 16px; everything else 28px. */
+  reveal?: '16' | '28'
+  class?: string
+}
+
+const { id, anchor, type, variant, tone, motion, reveal = '28', class: className } = Astro.props
+---
+
+<section
+  id={anchor || undefined}
+  data-section-id={id}
+  data-section-type={type}
+  data-variant={variant}
+  data-tone={tone}
+  data-motion={motion ? 'true' : 'false'}
+  class={cn('relative overflow-clip', className)}
+>
+  <div data-reveal={reveal}>
+    <slot />
+  </div>
+</section>

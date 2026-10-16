@@ -1,0 +1,74 @@
+---
+import { themeCss, type Page } from 'bearminion'
+import type { Site } from '../components/organisms/site-definition'
+import Footer from '../components/organisms/Footer.astro'
+import Header from '../components/organisms/Header.astro'
+import Seo from '../components/seo/Seo.astro'
+import { resolveLocalAsset } from '../lib/assets'
+import '../styles/global.css'
+
+interface Props {
+  site: Site
+  page: Page
+}
+
+const { site, page } = Astro.props
+const icon = site.favicon ? resolveLocalAsset(site.favicon.src) : undefined
+const ICON_TYPES: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', avif: 'image/avif' }
+const iconType = icon ? ICON_TYPES[icon.format] : undefined
+const paletteCss = themeCss(site.theme.colors)
+const themeColor = site.theme.mode === 'dark' ? '#1c1e24' : '#f7f8f8'
+---
+
+<!doctype html>
+<html lang={site.lang ?? 'en'} data-theme={site.theme.mode} data-motion={site.theme.motion ? 'true' : 'false'}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <Seo site={site} page={page} pathname={Astro.url.pathname} />
+    <meta name="theme-color" content={themeColor} />
+    {/* Always present so the editor can update the palette live. */}
+    <style id="bm-theme" is:inline set:html={paletteCss}></style>
+    {icon && <link rel="icon" type={iconType} href={icon.src} />}
+  </head>
+  <body class="min-h-screen font-sans antialiased">
+    <a
+      href="#content"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-fg focus:px-4 focus:py-2 focus:text-bg"
+    >
+      Skip to content
+    </a>
+    <Header site={site} pathname={Astro.url.pathname} />
+    <main id="content">
+      <slot />
+    </main>
+    <Footer site={site} />
+    <script>
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const observer =
+        reduce || !('IntersectionObserver' in window)
+          ? null
+          : new IntersectionObserver(
+              (entries) => {
+                for (const entry of entries) {
+                  if (!entry.isIntersecting) continue
+                  entry.target.setAttribute('data-revealed', 'true')
+                  observer?.unobserve(entry.target)
+                }
+              },
+              { threshold: 0.1 },
+            )
+      function revealMotion() {
+        document.querySelectorAll('[data-motion="true"]:not([data-revealed])').forEach((node) => {
+          if (!observer) {
+            node.setAttribute('data-revealed', 'true')
+            return
+          }
+          observer.observe(node)
+        })
+      }
+      revealMotion()
+      document.addEventListener('bearminion:preview', revealMotion)
+    </script>
+  </body>
+</html>

@@ -1,0 +1,227 @@
+---
+import type { Section } from '../definitions'
+import Button from '../../atoms/Button.astro'
+import Emphasis from '../../atoms/Emphasis.astro'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'contact' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const formId = `contact-form-${section.id}`
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  {
+    section.variant === 'split' && (
+      <div class="section-container grid items-start gap-12 @min-[880px]:grid-cols-[minmax(22rem,0.85fr)_minmax(0,1.15fr)]" data-contact>
+        <div>
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} field={field} />
+          {props.body && <Typography as="p" size="lead" color="muted" class="mt-5" data-field={field('body')} markdown={props.body} />}
+          {
+            props.details.length > 0 && (
+              <dl class="mt-8 flex flex-col">
+                {props.details.map((detail, detailIndex) => (
+                  <div class="grid grid-cols-[7rem_1fr] gap-4 border-t border-[var(--line)] py-4">
+                    <dt class="font-mono text-[0.75rem] tracking-[0.06em] text-muted uppercase" data-field={field(`details.${detailIndex}.label`)}>
+                      {detail.label}
+                    </dt>
+                    <dd data-field={field(`details.${detailIndex}.value`)}>{detail.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )
+          }
+        </div>
+        <div class="rounded-panel bg-surface p-6 ring-line @min-[700px]:p-8">
+          <form id={formId} class="grid gap-4 @min-[700px]:grid-cols-2" data-contact-form action={props.action} method="post" novalidate>
+            <label class="flex flex-col gap-2 text-[0.8125rem]">
+              Name
+              <input class="bm-field" name="name" required autocomplete="name" />
+            </label>
+            <label class="flex flex-col gap-2 text-[0.8125rem]">
+              Email
+              <input class="bm-field" type="email" name="email" required autocomplete="email" />
+            </label>
+            {
+              props.topics.length > 0 && (
+                <label class="flex flex-col gap-2 text-[0.8125rem] @min-[700px]:col-span-2">
+                  Topic
+                  <select class="bm-field" name="topic" required>
+                    {props.topics.map((topic) => (
+                      <option value={topic}>{topic}</option>
+                    ))}
+                  </select>
+                </label>
+              )
+            }
+            <label class="flex flex-col gap-2 text-[0.8125rem] @min-[700px]:col-span-2">
+              Message
+              <textarea class="bm-field h-32 py-3" name="message" required></textarea>
+            </label>
+            <div class="@min-[700px]:col-span-2">
+              <Button type="submit">Send message</Button>
+              {props.note && <Typography as="p" size="small" color="muted" class="mt-3" data-field={field('note')} markdown={props.note} />}
+            </div>
+          </form>
+          <div data-contact-success hidden>
+            <p class="text-[1.5rem] font-semibold tracking-[-0.03em]">Message sent.</p>
+            {props.thanks && <Typography as="p" size="body" color="muted" class="mt-3" data-field={field('thanks')} markdown={props.thanks} />}
+            <Button type="button" variant="secondary" class="mt-6" data-contact-reset>
+              Send another
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  {
+    section.variant === 'card' && (
+      <div class="section-container" data-contact>
+        <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} intro={props.body} introField="body" align="center" field={field} class="mx-auto max-w-2xl" />
+        <div class="mx-auto mt-10 max-w-[42rem] rounded-panel bg-surface p-6 ring-line @min-[700px]:p-8">
+          <form id={formId} class="grid gap-4 @min-[700px]:grid-cols-2" data-contact-form action={props.action} method="post" novalidate>
+            <label class="flex flex-col gap-2 text-[0.8125rem]">
+              Name
+              <input class="bm-field" name="name" required autocomplete="name" />
+            </label>
+            <label class="flex flex-col gap-2 text-[0.8125rem]">
+              Email
+              <input class="bm-field" type="email" name="email" required autocomplete="email" />
+            </label>
+            {
+              props.topics.length > 0 && (
+                <div class="@min-[700px]:col-span-2">
+                  <p class="mb-2 text-[0.8125rem]">Topic</p>
+                  <div class="flex flex-wrap gap-2" data-topics>
+                    {props.topics.map((topic, topicIndex) => (
+                      <button type="button" class="h-10 rounded-full px-4 text-[0.875rem] ring-line" data-topic aria-pressed={topicIndex === 0 ? 'true' : 'false'}>
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+                  <input type="hidden" name="topic" value={props.topics[0]} data-topic-input required />
+                </div>
+              )
+            }
+            <label class="flex flex-col gap-2 text-[0.8125rem] @min-[700px]:col-span-2">
+              Message
+              <textarea class="bm-field h-32 py-3" name="message" required></textarea>
+            </label>
+            <div class="@min-[700px]:col-span-2">
+              <Button type="submit" class="w-full">Send message</Button>
+              {props.note && <Typography as="p" size="small" color="muted" class="mt-3 text-center" data-field={field('note')} markdown={props.note} />}
+            </div>
+          </form>
+          <div data-contact-success hidden>
+            <p class="text-[1.5rem] font-semibold tracking-[-0.03em]">Message sent.</p>
+            {props.thanks && <Typography as="p" size="body" color="muted" class="mt-3" data-field={field('thanks')} markdown={props.thanks} />}
+            <Button type="button" variant="secondary" class="mt-6" data-contact-reset>
+              Send another
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  {
+    section.variant === 'minimal' && (
+      <div class="section-container" data-contact>
+        {
+          props.heading && (
+            <h2 class="max-w-[12ch] text-[clamp(2.75rem,1rem+6cqi,7rem)] leading-[0.92] font-semibold tracking-[-0.05em]">
+              <Emphasis heading={props.heading} marks={props.marks} data-field={field('heading')} />
+            </h2>
+          )
+        }
+        <form id={formId} class="mt-10 grid gap-8 @min-[760px]:grid-cols-2" data-contact-form action={props.action} method="post" novalidate>
+          <label class="flex flex-col gap-2">
+            <span class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">Name</span>
+            <input class="bm-underline" name="name" required autocomplete="name" />
+          </label>
+          <label class="flex flex-col gap-2">
+            <span class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">Email</span>
+            <input class="bm-underline" type="email" name="email" required autocomplete="email" />
+          </label>
+          <label class="flex flex-col gap-2 @min-[760px]:col-span-2">
+            <span class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">Message</span>
+            <textarea class="bm-underline" name="message" required rows="3"></textarea>
+          </label>
+          <div class="flex flex-wrap items-end justify-between gap-6 @min-[760px]:col-span-2">
+            {
+              props.details.length > 0 && (
+                <dl class="flex flex-wrap gap-x-8 gap-y-3">
+                  {props.details.map((detail, detailIndex) => (
+                    <div>
+                      <dt class="font-mono text-[0.6875rem] tracking-[0.08em] text-muted uppercase" data-field={field(`details.${detailIndex}.label`)}>{detail.label}</dt>
+                      <dd class="mt-1" data-field={field(`details.${detailIndex}.value`)}>{detail.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )
+            }
+            <Button type="submit">Send</Button>
+          </div>
+        </form>
+        <div data-contact-success hidden>
+          <p class="text-[clamp(2rem,1rem+3cqi,3.5rem)] leading-[0.95] font-semibold tracking-[-0.04em]">Message sent.</p>
+          {props.thanks && <Typography as="p" size="body" color="muted" class="mt-4" data-field={field('thanks')} markdown={props.thanks} />}
+          <Button type="button" variant="secondary" class="mt-6" data-contact-reset>
+            Send another
+          </Button>
+        </div>
+      </div>
+    )
+  }
+</SectionShell>
+
+<script>
+  function bindContact() {
+  document.querySelectorAll('[data-contact]').forEach((root) => {
+    if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') return
+    root.dataset.bound = 'true'
+    const form = root.querySelector('[data-contact-form]')
+    const success = root.querySelector('[data-contact-success]')
+    const reset = root.querySelector('[data-contact-reset]')
+    const topicInput = root.querySelector('[data-topic-input]')
+    if (!(form instanceof HTMLFormElement) || !(success instanceof HTMLElement)) return
+
+    root.querySelectorAll('[data-topic]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        root.querySelectorAll('[data-topic]').forEach((item) => {
+          if (item instanceof HTMLButtonElement) item.setAttribute('aria-pressed', 'false')
+        })
+        if (chip instanceof HTMLButtonElement) chip.setAttribute('aria-pressed', 'true')
+        if (topicInput instanceof HTMLInputElement) topicInput.value = chip.textContent?.trim() ?? ''
+      })
+    })
+
+    form.addEventListener('submit', (event) => {
+      if (!form.reportValidity()) {
+        event.preventDefault()
+        return
+      }
+      if (form.getAttribute('action')) return
+      event.preventDefault()
+      form.hidden = true
+      success.hidden = false
+    })
+
+    reset?.addEventListener('click', () => {
+      form.reset()
+      form.hidden = false
+      success.hidden = true
+    })
+  })
+  }
+  bindContact()
+  document.addEventListener('bearminion:preview', bindContact)
+</script>

@@ -1,0 +1,94 @@
+---
+import type { Site } from './site-definition'
+import Button from '../atoms/Button.astro'
+import { buttonLinkProps } from '../../lib/link-attrs'
+import LogoMark from '../atoms/LogoMark.astro'
+import MobileMenu from './MobileMenu.astro'
+import Navigation from './Navigation.astro'
+
+interface Props {
+  site: Site
+  pathname: string
+}
+
+const { site, pathname } = Astro.props
+const { variant, tone, sticky } = site.header
+const { actions } = site.header
+const last = actions.length - 1
+const midpoint = Math.ceil(site.header.links.length / 2)
+const floating = variant === 'floating'
+---
+
+<header
+  data-organism="header"
+  data-variant={variant}
+  data-tone={tone}
+  class:list={['z-40', sticky && 'sticky top-0']}
+>
+  <div class:list={[floating ? 'hidden px-[clamp(1.25rem,4cqi,3rem)] py-3 @min-[880px]:block' : 'hidden @min-[880px]:block']}>
+    {
+      variant === 'bar' && (
+        <div class="mx-auto flex max-w-[80rem] items-center justify-between gap-8 border-b border-[var(--line)] px-[clamp(1.25rem,4cqi,3rem)] py-3.5">
+          <LogoMark name={site.name} logo={site.brandLogo} marks={site.nameMarks} data-field="name" />
+          <Navigation site={site} pathname={pathname} class="ml-auto" />
+          {actions.length > 0 && (
+            <div class="flex items-center gap-2">
+              {actions.map((action, index) => (
+                <Button {...buttonLinkProps(action)} variant={index === last ? 'primary' : 'ghost'} size="sm" data-field={`header.actions.${index}.label`}>
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    }
+    {
+      variant === 'centered' && (
+        <div class="mx-auto grid max-w-[80rem] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-8 border-b border-[var(--line)] px-[clamp(1.25rem,4cqi,3rem)] py-4">
+          <Navigation site={site} pathname={pathname} count={midpoint} class="gap-7" />
+          <LogoMark name={site.name} logo={site.brandLogo} marks={site.nameMarks} size="lg" stacked data-field="name" />
+          <div class="flex items-center justify-end gap-7">
+            <Navigation site={site} pathname={pathname} start={midpoint} class="gap-7" />
+            {actions.map((action, index) => (
+              <Button {...buttonLinkProps(action)} variant={index === last ? 'strong' : 'ghost'} size="sm" data-field={`header.actions.${index}.label`}>
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )
+    }
+    {
+      variant === 'floating' && (
+        <div class="mx-auto flex max-w-[80rem] items-center gap-8 rounded-full bg-[color-mix(in_oklch,var(--surface)_82%,transparent)] py-1.5 pr-1.5 pl-[1.125rem] shadow-[inset_0_0_0_1px_var(--line),0_12px_32px_-20px_oklch(0.2_0.02_255/0.35)] backdrop-blur-[16px]">
+          <LogoMark name={site.name} logo={site.brandLogo} marks={site.nameMarks} size="sm" data-field="name" />
+          <Navigation site={site} pathname={pathname} pills class="mx-auto gap-1" />
+          {actions.length > 0 && (
+            <div class="flex items-center gap-1">
+              {actions.map((action, index) => (
+                <Button {...buttonLinkProps(action)} variant={index === last ? 'primary' : 'ghost'} size="sm" data-field={`header.actions.${index}.label`}>
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    }
+  </div>
+
+  <div class:list={['@min-[880px]:hidden', floating ? 'relative px-5 py-2.5' : 'relative border-b border-[var(--line)]']}>
+    <div
+      class:list={[
+        'flex items-center justify-between',
+        floating
+          ? 'rounded-full bg-[color-mix(in_oklch,var(--surface)_82%,transparent)] py-1.5 pr-1.5 pl-4 shadow-[inset_0_0_0_1px_var(--line)] backdrop-blur-[16px]'
+          : 'px-5 py-2.5',
+      ]}
+    >
+      <LogoMark name={site.name} logo={site.brandLogo} marks={site.nameMarks} size="sm" data-field="name" />
+      <MobileMenu site={site} floating={floating} />
+    </div>
+  </div>
+</header>

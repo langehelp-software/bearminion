@@ -1,0 +1,96 @@
+{
+  "name": "bearminion",
+  "version": "1.0.0",
+  "description": "A git-based, no-database CMS for Astro: JSON content in your repo, edited inline during astro dev.",
+  "license": "MIT",
+  "author": "Jakub Lange",
+  "homepage": "https://github.com/langehelp-software/bearminion#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/langehelp-software/bearminion.git",
+    "directory": "packages/editor"
+  },
+  "bugs": {
+    "url": "https://github.com/langehelp-software/bearminion/issues"
+  },
+  "keywords": [
+    "astro",
+    "astro-integration",
+    "withastro",
+    "cms",
+    "git-cms",
+    "headless-cms",
+    "visual-editor",
+    "static-site"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./astro": {
+      "types": "./dist/astro.d.ts",
+      "import": "./dist/astro.js"
+    },
+    "./content": {
+      "types": "./dist/content.d.ts",
+      "import": "./dist/content.js"
+    },
+    "./rich-text": {
+      "types": "./dist/rich-text.d.ts",
+      "import": "./dist/rich-text.js"
+    },
+    "./marks": {
+      "types": "./dist/marks.d.ts",
+      "import": "./dist/marks.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsdown --watch --no-clean"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "preact": "^11.0.1"
+  },
+  "peerDependencies": {
+    "astro": "^7.3.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@preact/signals": "2.11.3",
+    "@types/node": "^22.19.0",
+    "astro": "^7.3.8",
+    "happy-dom": "^21.0.1",
+    "prosemirror-commands": "^1.7.2",
+    "prosemirror-history": "^1.5.1",
+    "prosemirror-keymap": "^1.2.3",
+    "prosemirror-model": "^1.25.12",
+    "prosemirror-schema-list": "^1.5.1",
+    "prosemirror-state": "^1.4.4",
+    "prosemirror-view": "^1.42.6",
+    "tsdown": "0.23.1",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.4",
+    "zod": "^4.1.11"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "slug": "index",
+  "title": "Home",
+  "seo": {
+    "title": "Home",
+    "description": "Valid fixture page."
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "type": "hero",
+      "props": {
+        "eyebrow": "Eyebrow",
+        "heading": "Hello",
+        "sub": "A valid fixture hero.",
+        "primary": { "label": "Go", "href": "#cta" },
+        "secondary": { "label": "More", "href": "#features" }
+      }
+    }
+  ]
+}

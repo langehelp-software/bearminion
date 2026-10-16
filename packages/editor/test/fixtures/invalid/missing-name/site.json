@@ -1,0 +1,10 @@
+{
+  "logo": {
+    "src": "/logo.svg",
+    "alt": "Fixture"
+  },
+  "navigation": [],
+  "footer": {
+    "links": []
+  }
+}

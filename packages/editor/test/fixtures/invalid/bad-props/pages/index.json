@@ -1,0 +1,26 @@
+{
+  "slug": "index",
+  "title": "Home",
+  "seo": {
+    "title": "Home",
+    "description": ""
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "type": "hero",
+      "props": {}
+    },
+    {
+      "id": "features",
+      "type": "features",
+      "props": {
+        "items": [
+          {
+            "description": "Missing a title."
+          }
+        ]
+      }
+    }
+  ]
+}

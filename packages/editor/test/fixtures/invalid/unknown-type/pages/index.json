@@ -1,0 +1,17 @@
+{
+  "slug": "index",
+  "title": "Home",
+  "seo": {
+    "title": "Home",
+    "description": ""
+  },
+  "sections": [
+    {
+      "id": "banner",
+      "type": "banner",
+      "props": {
+        "heading": "Nope"
+      }
+    }
+  ]
+}

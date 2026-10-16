@@ -1,0 +1,117 @@
+---
+import { footerVariants, headerVariants, type Site } from '../components/organisms/site-definition'
+import {
+  sectionDefinitions,
+  sectionOptions,
+  sectionSchema,
+  sectionTypes,
+  type Page,
+  type Section,
+} from '../components/sections/definitions'
+import Footer from '../components/organisms/Footer.astro'
+import Header from '../components/organisms/Header.astro'
+import SectionList from '../components/sections/SectionList.astro'
+import Base from '../layouts/Base.astro'
+import { getSite } from '../lib/content'
+import home from '../../content/pages/index.json'
+
+const site = await getSite()
+
+const page = {
+  slug: 'variants',
+  title: 'Variants',
+  seo: {
+    title: 'Variants',
+    description: 'Every BearMinion section rendered in every layout variant.',
+    noindex: true,
+    nofollow: true,
+  },
+  sections: [],
+} satisfies Page
+
+const samples = home.sections as Section[]
+const toneCycle = ['base', 'subtle', 'inverse', 'brand'] as const
+
+const blocks = sectionTypes.flatMap((type) => {
+  const variantOption = sectionOptions[type].find((option) => option.name === 'variant')
+  const choices = variantOption?.type === 'enum' ? variantOption.choices : []
+  const props = samples.find((item) => item.type === type)?.props ?? sectionDefinitions[type].defaults
+  return choices.map((variant, index) => {
+    const parsed = sectionSchema.safeParse({
+      id: `${type}-${variant}`,
+      type,
+      variant,
+      tone: toneCycle[index % toneCycle.length],
+      motion: false,
+      props,
+    })
+    if (!parsed.success) {
+      throw new Error(`Variant gallery could not build ${type}/${variant}: ${parsed.error.message}`)
+    }
+    return {
+      id: `${type}-${variant}`,
+      label: `${sectionDefinitions[type].label} · ${variant} · ${parsed.data.tone}`,
+      section: parsed.data,
+    }
+  })
+})
+
+function withHeader(variant: Site['header']['variant'], index: number): Site {
+  return {
+    ...site,
+    header: { ...site.header, variant, tone: toneCycle[index % toneCycle.length] },
+  }
+}
+
+function withFooter(variant: Site['footer']['variant'], index: number): Site {
+  return {
+    ...site,
+    footer: { ...site.footer, variant, tone: toneCycle[index % toneCycle.length] },
+  }
+}
+---
+
+<Base site={site} page={page}>
+  <div data-tone="base" class="section-container">
+    <p class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">Variant gallery</p>
+    <h1 class="mt-4 max-w-4xl text-[clamp(2.75rem,1.4rem+5.6cqi,5.75rem)] leading-[0.95] font-semibold tracking-[-0.045em]">
+      Every layout the design system defines.
+    </h1>
+    <p class="mt-5 max-w-2xl text-[clamp(1.0625rem,1rem+0.35cqi,1.25rem)] leading-[1.55] text-muted">
+      Each section type is shown in its three variants. Tones cycle through base, subtle, inverse, and brand. Motion is off so the copy stays visible. This page is <code>noindex</code>.
+    </p>
+  </div>
+
+  {
+    headerVariants.map((variant, index) => (
+      <div id={`header-${variant}`}>
+        <p data-tone="base" class="px-[clamp(1.25rem,4cqi,3rem)] py-3 font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">
+          Header · {variant} · {toneCycle[index % toneCycle.length]}
+        </p>
+        <Header site={withHeader(variant, index)} pathname="/" />
+      </div>
+    ))
+  }
+
+  {
+    blocks.map((block) => (
+      <div id={block.id}>
+        <p data-tone="base" class="px-[clamp(1.25rem,4cqi,3rem)] py-3 font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">
+          {block.label}
+        </p>
+        <SectionList sections={[block.section]} motion={false} />
+      </div>
+    ))
+  }
+
+  {
+    footerVariants.map((variant, index) => (
+      <div id={`footer-${variant}`}>
+        <p data-tone="base" class="px-[clamp(1.25rem,4cqi,3rem)] py-3 font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">
+          Footer · {variant} · {toneCycle[index % toneCycle.length]}
+        </p>
+        <Footer site={withFooter(variant, index)} />
+      </div>
+    ))
+  }
+</Base>

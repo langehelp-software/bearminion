@@ -1,0 +1,155 @@
+---
+import type { Section } from '../definitions'
+import Button from '../../atoms/Button.astro'
+import { buttonLinkProps, buttonVariant } from '../../../lib/link-attrs'
+import Emphasis from '../../atoms/Emphasis.astro'
+import Typography from '../../atoms/Typography.astro'
+import MediaFrame from '../../molecules/MediaFrame.astro'
+import Pill from '../../molecules/Pill.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'hero' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const hasActions = Boolean(props.primary || props.secondary)
+const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor beside live page preview' }
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  {
+    section.variant === 'split' && (
+      <div class="mx-auto grid max-w-[80rem] grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] items-center gap-[clamp(2.5rem,5cqi,5rem)] px-[clamp(1.25rem,4cqi,3rem)] py-[clamp(3.5rem,2rem+5cqi,7rem)]">
+        <div class="flex flex-col items-start gap-6">
+          {props.eyebrow && <Pill data-field={field('eyebrow')}>{props.eyebrow}</Pill>}
+          {
+            props.heading && (
+              <Typography as="h1" size="display">
+                <Emphasis heading={props.heading} marks={props.marks} data-field={field('heading')} />
+              </Typography>
+            )
+          }
+          {props.sub && <Typography as="p" size="lead" color="muted" data-field={field('sub')} class="max-w-[34rem]" markdown={props.sub} />}
+          {
+            hasActions && (
+              <div class="mt-2 flex flex-wrap gap-2.5">
+                {props.primary && (
+                  <Button {...buttonLinkProps(props.primary)} variant={buttonVariant(props.primary, 'primary')} arrow data-field={field('primary.label')}>
+                    {props.primary.label}
+                  </Button>
+                )}
+                {props.secondary && (
+                  <Button {...buttonLinkProps(props.secondary)} variant={buttonVariant(props.secondary, 'secondary')} data-field={field('secondary.label')}>
+                    {props.secondary.label}
+                  </Button>
+                )}
+              </div>
+            )
+          }
+        </div>
+        {!props.image?.hidden && (
+<MediaFrame src={media.src} alt={media.alt} aspectClass="aspect-[4/3.4]" fit={media?.fit} position={media?.position} data-field={field('image.alt')} priority />
+)}
+      </div>
+    )
+  }
+  {
+    section.variant === 'centered' && (
+      <div class="mx-auto flex max-w-[80rem] flex-col items-center gap-6 px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(4rem,2rem+6cqi,8rem)] pb-[clamp(3rem,2rem+4cqi,6rem)] text-center">
+        {props.eyebrow && <Pill data-field={field('eyebrow')}>{props.eyebrow}</Pill>}
+        {
+          props.heading && (
+            <Typography as="h1" size="display-center">
+              <Emphasis heading={props.heading} marks={props.marks} data-field={field('heading')} />
+            </Typography>
+          )
+        }
+        {props.sub && <Typography as="p" size="lead" color="muted" data-field={field('sub')} class="max-w-[38rem]" markdown={props.sub} />}
+        {
+          hasActions && (
+            <div class="mt-2 flex flex-wrap justify-center gap-2.5">
+              {props.primary && (
+                <Button {...buttonLinkProps(props.primary)} variant={buttonVariant(props.primary, 'primary')} arrow data-field={field('primary.label')}>
+                  {props.primary.label}
+                </Button>
+              )}
+              {props.secondary && (
+                <Button {...buttonLinkProps(props.secondary)} variant={buttonVariant(props.secondary, 'secondary')} data-field={field('secondary.label')}>
+                  {props.secondary.label}
+                </Button>
+              )}
+            </div>
+          )
+        }
+        {!props.image?.hidden && (
+<MediaFrame
+          src={media.src}
+          alt={media.alt}
+          aspectClass="mt-[clamp(2rem,4cqi,4rem)] aspect-video min-h-52 w-full"
+          roundedClass="rounded-[clamp(1rem,2cqi,1.75rem)]"
+          class="text-left shadow-[0_40px_80px_-48px_oklch(0.2_0.02_255/0.45)]"
+          fit={media?.fit} position={media?.position} data-field={field('image.alt')}
+          priority
+        />
+)}
+      </div>
+    )
+  }
+  {
+    section.variant === 'editorial' && (
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(3.5rem,2rem+5cqi,7rem)] pb-[clamp(2.5rem,2rem+3cqi,5rem)]">
+        {
+          props.eyebrow && (
+            <Typography as="p" size="eyebrow" color="muted" data-field={field('eyebrow')}>
+              {props.eyebrow}
+            </Typography>
+          )
+        }
+        {
+          props.heading && (
+            <Typography as="h1" size="display-editorial" class="mt-5">
+              <Emphasis heading={props.heading} marks={props.marks} data-field={field('heading')} />
+            </Typography>
+          )
+        }
+        {
+          (props.sub || hasActions) && (
+            <div class="mt-[clamp(2rem,4cqi,3.5rem)] flex flex-wrap items-end justify-between gap-x-12 gap-y-6 border-t border-[var(--line)] pt-6">
+              {props.sub && <Typography as="p" size="lead" color="muted" data-field={field('sub')} class="max-w-xl flex-[1_1_22rem]" markdown={props.sub} />}
+              {hasActions && (
+                <div class="flex flex-wrap gap-2.5">
+                  {props.secondary && (
+                    <Button {...buttonLinkProps(props.secondary)} variant={buttonVariant(props.secondary, 'secondary')} data-field={field('secondary.label')}>
+                      {props.secondary.label}
+                    </Button>
+                  )}
+                  {props.primary && (
+                    <Button {...buttonLinkProps(props.primary)} variant={buttonVariant(props.primary, 'primary')} arrow data-field={field('primary.label')}>
+                      {props.primary.label}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        }
+        {!props.image?.hidden && (
+<MediaFrame
+          src={media.src}
+          alt={media.alt}
+          aspectClass="mt-[clamp(2rem,4cqi,3.5rem)] aspect-[21/9] min-h-48"
+          roundedClass="rounded-[clamp(1rem,2cqi,1.75rem)]"
+          fit={media?.fit} position={media?.position} data-field={field('image.alt')}
+          priority
+        />
+)}
+      </div>
+    )
+  }
+</SectionShell>
