@@ -26,7 +26,8 @@ jobs:
       # Publishing uses npm trusted publishing (OIDC from `id-token: write`), so there is no npm token in this repository.
       - uses: changesets/action@v2
         with:
-          version-script: pnpm changeset version
+          # Also refreshes pnpm-lock.yaml: a release raises the template's `bearminion` range, and CI installs frozen.
+          version-script: pnpm version-packages
           publish-script: pnpm release
         env:
           # pnpm reads PNPM_CONFIG_PROVENANCE, not NPM_CONFIG_PROVENANCE or publishConfig.provenance.
