@@ -518,12 +518,19 @@ describe('editor overlay', () => {
     await waitForDraft(page, heading)
     const indexPath = path.join(contentDir, 'pages', 'index.json')
     const disk = JSON.parse(fs.readFileSync(indexPath, 'utf8')) as {
-      sections: { props: { heading?: string } }[]
+      sections: { props: { heading?: string; marks?: unknown } }[]
     }
-    disk.sections[0]!.props.heading = `On disk ${Date.now()}`
+    // Another writer changes the heading. Its marks style ranges of the old heading and would fall outside the new
+    // one, which the schema rejects, so they go with it; otherwise the dev server refuses the file.
+    const diskHeading = `On disk ${Date.now()}`
+    disk.sections[0]!.props.heading = diskHeading
+    delete disk.sections[0]!.props.marks
     fs.writeFileSync(indexPath, `${JSON.stringify(disk, null, 2)}\n`)
     const state = await context.storageState()
     await page.close()
+    // The dev server reloads open pages once it has synced the changed file. Wait until it serves the new heading,
+    // so that reload cannot land after Restore and replace the restored draft.
+    await waitForServed('/', diskHeading)
     const next = await browser.newContext({ storageState: state, viewport: { width: 1280, height: 900 } })
     const restored = await next.newPage()
     await restored.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load' })
@@ -1099,6 +1106,19 @@ function probeStatus(url: string): Promise<string> {
     })
     req.on('error', (error) => resolve(`error ${error.message}`))
   })
+}
+
+/** Polls the dev server until `pathname` serves HTML that contains `text`. */
+async function waitForServed(pathname: string, text: string): Promise<void> {
+  const started = Date.now()
+  while (Date.now() - started < 20_000) {
+    const html = await fetch(`http://127.0.0.1:${port}${pathname}`)
+      .then((response) => response.text())
+      .catch(() => '')
+    if (html.includes(text)) return
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+  throw new Error(`the dev server never served "${text}" at ${pathname}`)
 }
 
 async function waitFor(check: () => boolean, label: string): Promise<void> {
