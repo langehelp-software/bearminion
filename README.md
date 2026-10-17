@@ -20,10 +20,12 @@ You need [Node.js](https://nodejs.org) 22.12 or newer.
 **1. Create your site**
 
 ```bash
-npm create astro@latest -- --template langehelp-software/bearminion/templates/default my-site
+npm create bearminion@latest my-site
 cd my-site
 npm run dev
 ```
+
+It asks for the site's name and web address, then installs everything and makes the first git commit. Add `--storybook` for a component workshop, or see [all options](packages/create-bearminion/README.md#options).
 
 **2. Edit it**
 

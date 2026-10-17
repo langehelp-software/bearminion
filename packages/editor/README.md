@@ -13,19 +13,19 @@
   <a href="https://github.com/langehelp-software/bearminion/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-169717" alt="MIT license" /></a>
 </p>
 
-This package is the engine behind BearMinion. You don't install it on its own: create a site from the template and it comes included.
+This package is the engine behind BearMinion. You don't install it on its own: [`npm create bearminion`](https://www.npmjs.com/package/create-bearminion) makes a site with it included.
 
 ## Quick start
 
 You need [Node.js](https://nodejs.org) 22.12 or newer.
 
 ```bash
-npm create astro@latest -- --template langehelp-software/bearminion/templates/default my-site
+npm create bearminion@latest my-site
 cd my-site
 npm run dev
 ```
 
-Open the address it prints, press **Ctrl+E** (**Cmd+E** on a Mac), click any text to change it, and press **Ctrl/Cmd+S** to save. Push the folder to GitHub and import it in Vercel, Netlify or Cloudflare Pages to put it online.
+It asks for the site's name and web address. Open the address `npm run dev` prints, press **Ctrl+E** (**Cmd+E** on a Mac), click any text to change it, and press **Ctrl/Cmd+S** to save. Push the folder to GitHub and import it in Vercel, Netlify or Cloudflare Pages to put it online.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the Pages tab in the sidebar" width="100%" />

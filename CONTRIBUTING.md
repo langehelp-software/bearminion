@@ -23,6 +23,7 @@ Open http://localhost:4321 and press Ctrl+E (Cmd+E) for the editor.
     - `ui/controllers/` connects an editor to the page: page editing, pointer tracking, shortcuts, the reload guard and signal reactions. Each `attach…(editor)` returns its own cleanup, and `attachEditor` runs them all once.
     - `ui/overlay/`, `ui/sidebar/` and `ui/dialogs/` are components that read the editor through `useEditor()`. `ui/forms/` and `ui/chrome/` are the sidebar forms and the page bars. Overlay positions come from pure functions in `state/overlay.ts`; render never measures the DOM.
     - `ui/assets/` holds the overlay's own images. The editor ships its assets and never uses the site's.
+- `packages/create-bearminion` is the published `npm create bearminion` CLI. Its build copies `templates/default` into `template/` (ignored by git) and fails when the template's `bearminion` range does not match the package version.
 - `templates/default` is the site people create. Treat it as user code: plain Astro, no imports from the monorepo, and `bearminion` by version range.
 - `tests` holds the template's unit tests and the editor's end-to-end suite.
 - `docs` is the reference documentation. A change to the content format, the editor, the API or the theme contract updates the matching page in the same pull request.
@@ -44,13 +45,13 @@ CI runs the same checks, plus `publint` and `@arethetypeswrong/cli` on the packe
 
 ## Changesets and releases
 
-A pull request that changes the published package adds a changeset:
+A pull request that changes a published package (`bearminion`, `create-bearminion`, or the template that `create-bearminion` ships) adds a changeset:
 
 ```bash
 pnpm changeset
 ```
 
-`bearminion` follows semver: `major` for a breaking change (including a content schema change that needs a migration), `minor` for a new feature, `patch` for a fix. The release workflow collects pending changesets into a "Version packages" pull request. That pull request also raises the template's `bearminion` range when needed. Merging it publishes to npm with provenance.
+`bearminion` follows semver: `major` for a breaking change (including a content schema change that needs a migration), `minor` for a new feature, `patch` for a fix. The release workflow collects pending changesets into a "Version packages" pull request. That pull request also raises the template's `bearminion` range and refreshes the lockfile. Merging it publishes to npm through trusted publishing, with provenance. `bearminion` and `create-bearminion` are one fixed group, so they always release together with the same version, and a CLI always creates sites on the matching editor.
 
 ## Reporting bugs and security issues
 

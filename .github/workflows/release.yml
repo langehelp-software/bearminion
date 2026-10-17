@@ -22,19 +22,28 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Asks npm, the same way pnpm does, whether this workflow is the package's trusted publisher. A mismatch in the
-      # npm settings (repository, workflow file, environment, "Allow npm publish") fails here with npm's own message,
-      # instead of as an anonymous 404 at publish time. The exchanged token is short-lived and never printed.
+      # Asks npm, the same way pnpm does, whether this workflow is each package's trusted publisher, before a run that
+      # publishes. A mismatch in the npm settings (repository, workflow file, environment, "Allow npm publish") fails
+      # here with npm's own message and nothing is published, instead of an anonymous 404 halfway through a release.
+      # The exchanged tokens are short-lived and never printed.
       - name: Check npm trusted publishing
         run: |
+          if find .changeset -name '*.md' ! -name README.md | grep -q .; then
+            echo "Pending changesets: this run opens the version pull request and publishes nothing."
+            exit 0
+          fi
           id_token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r .value)
-          status=$(curl -sS -o "$RUNNER_TEMP/oidc.json" -w '%{http_code}' -X POST \
-            -H "Authorization: Bearer $id_token" \
-            https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/bearminion)
-          echo "npm OIDC token exchange: HTTP $status"
-          if [ "$status" != "201" ]; then jq . "$RUNNER_TEMP/oidc.json" || cat "$RUNNER_TEMP/oidc.json"; exit 1; fi
-          rm -f "$RUNNER_TEMP/oidc.json"
+          failed=0
+          for package in bearminion create-bearminion; do
+            status=$(curl -sS -o "$RUNNER_TEMP/oidc.json" -w '%{http_code}' -X POST \
+              -H "Authorization: Bearer $id_token" \
+              "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/$package")
+            echo "$package: npm OIDC token exchange HTTP $status"
+            if [ "$status" != "201" ]; then jq . "$RUNNER_TEMP/oidc.json" || cat "$RUNNER_TEMP/oidc.json"; failed=1; fi
+            rm -f "$RUNNER_TEMP/oidc.json"
+          done
+          exit $failed
       # With pending changesets: opens the "Version packages" pull request. Without: publishes what is not on npm yet.
       # Publishing uses npm trusted publishing (OIDC from `id-token: write`), so there is no npm token in this repository.
       - uses: changesets/action@v2

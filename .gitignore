@@ -10,3 +10,4 @@ templates/default/src/assets/e2e-uploads/
 *.log
 .pnpm-store/
 .transfer/
+packages/create-bearminion/template/

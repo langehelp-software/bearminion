@@ -1,0 +1,57 @@
+{
+  "name": "create-bearminion",
+  "version": "1.0.1",
+  "description": "Create a BearMinion site: an Astro website you edit by clicking on it.",
+  "license": "MIT",
+  "author": "Jakub Lange",
+  "homepage": "https://github.com/langehelp-software/bearminion#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/langehelp-software/bearminion.git",
+    "directory": "packages/create-bearminion"
+  },
+  "bugs": {
+    "url": "https://github.com/langehelp-software/bearminion/issues"
+  },
+  "keywords": [
+    "astro",
+    "withastro",
+    "cms",
+    "git-cms",
+    "create",
+    "starter",
+    "template",
+    "bearminion"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "bin": {
+    "create-bearminion": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "template",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "devDependencies": {
+    "@clack/prompts": "^1.8.1",
+    "@types/node": "^22.19.0",
+    "tsdown": "0.23.1",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

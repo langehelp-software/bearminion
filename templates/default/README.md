@@ -1,10 +1,9 @@
 # BearMinion site
 
-The default BearMinion template. Astro and Tailwind render the JSON in `content/`, and while `npm run dev` runs, an inline editor writes that JSON back. `npm run build` writes a static site with no editor in it.
+The default BearMinion template, created with `npm create bearminion`. Astro and Tailwind render the JSON in `content/`, and while `npm run dev` runs, an inline editor writes that JSON back. `npm run build` writes a static site with no editor in it.
 
 ```bash
-npm create astro@latest -- --template langehelp-software/bearminion/templates/default
-cd my-site
+npm install    # if it was created with --no-install
 npm run dev
 ```
 
@@ -16,7 +15,6 @@ Open the site, press Ctrl+E (Cmd+E on a Mac) for the sidebar, click any text to 
 | `npm run build` | Static site in `dist/`, no editor |
 | `npm run preview` | Serves `dist/` |
 | `npm run typecheck` | `astro check` |
-| `npm run storybook` | Component workshop on port 6006 |
 
 This template is yours to change: it is the theme. `bearminion` is the only runtime package from this project, and it reads your section definitions, site definition and theme from `src/lib/content-model.ts`.
 
@@ -213,10 +211,11 @@ curl -s http://127.0.0.1:4321/__bearminion/api/pages
 
 Nothing in this folder points outside it. `package.json` asks for `bearminion` by version range, not `workspace:*`, so a copy installs with a plain `npm install`, `pnpm install` or `yarn`. In the BearMinion monorepo pnpm links that range to `packages/editor`.
 
-To try unreleased changes from the monorepo, build a tarball with `pnpm --filter bearminion pack` and point the copy at it: `"bearminion": "file:/path/to/bearminion-1.0.0.tgz"`. CI does exactly this on every pull request.
+To try unreleased changes from the monorepo, build a tarball with `pnpm --filter bearminion pack` and point the copy at it: `"bearminion": "file:/path/to/bearminion-1.0.0.tgz"`. CI does the same with the packed `create-bearminion` on every pull request.
 
 The editor's end-to-end tests and this template's unit tests live in the monorepo's `tests/` package, not here.
 
+<!-- storybook:start -->
 ## Storybook
 
 Storybook uses `@storybook-astro/framework` (Storybook 10). It renders the `.astro` files on the server with Astro’s container API, so the components stay Astro. Tailwind and the design tokens come from `src/styles/global.css`, imported in `.storybook/preview.css`. The Tailwind Vite plugin is the one already set in `astro.config.ts`.
@@ -249,3 +248,4 @@ export const Playground = {
 ```
 
 A few limits of this renderer: Astro `<script>` tags are not run, so the mobile menu toggle works on the built site and the canvas shows the menu markup. Local images use Vite `/@fs` URLs, which resolve while `storybook dev` is running. Astro’s image optimizer still runs in `astro build`. The static Storybook output keeps those `/@fs` URLs, so image stories in `storybook-static` do not load the files on their own.
+<!-- storybook:end -->
