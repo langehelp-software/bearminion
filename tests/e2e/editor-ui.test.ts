@@ -73,10 +73,12 @@ describe('editor overlay', () => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     // The upload at the end leaves the draft dirty, and a Vite reload can then raise a beforeunload prompt that
-    // `page.close()` dismisses before `accept()` lands. That race is not a failure; anything else still is.
+    // `page.close()` dismisses, or closes with the page, before `accept()` lands. That race is not a failure;
+    // anything else still is.
     page.on('dialog', (dialog) => {
       dialog.accept().catch((error: unknown) => {
-        if (!(error instanceof Error && error.message.includes('already handled'))) throw error
+        const closed = error instanceof Error && /already handled|has been closed/.test(error.message)
+        if (!closed && !page.isClosed()) throw error
       })
     })
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' })

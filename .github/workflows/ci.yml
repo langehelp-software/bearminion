@@ -33,9 +33,12 @@ jobs:
         run: |
           pnpm dlx publint@0.3.25
           pnpm dlx @arethetypeswrong/cli@0.18.5 --pack . --profile esm-only
+      # publint packs without running prepack, so build the CLI (and copy its template) first.
       - name: Check the published CLI
         working-directory: packages/create-bearminion
-        run: pnpm dlx publint@0.3.25
+        run: |
+          pnpm build
+          pnpm dlx publint@0.3.25
 
   e2e:
     name: Editor end-to-end
