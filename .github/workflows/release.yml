@@ -22,6 +22,19 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Asks npm, the same way pnpm does, whether this workflow is the package's trusted publisher. A mismatch in the
+      # npm settings (repository, workflow file, environment, "Allow npm publish") fails here with npm's own message,
+      # instead of as an anonymous 404 at publish time. The exchanged token is short-lived and never printed.
+      - name: Check npm trusted publishing
+        run: |
+          id_token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=npm:registry.npmjs.org" | jq -r .value)
+          status=$(curl -sS -o "$RUNNER_TEMP/oidc.json" -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $id_token" \
+            https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/bearminion)
+          echo "npm OIDC token exchange: HTTP $status"
+          if [ "$status" != "201" ]; then jq . "$RUNNER_TEMP/oidc.json" || cat "$RUNNER_TEMP/oidc.json"; exit 1; fi
+          rm -f "$RUNNER_TEMP/oidc.json"
       # With pending changesets: opens the "Version packages" pull request. Without: publishes what is not on npm yet.
       # Publishing uses npm trusted publishing (OIDC from `id-token: write`), so there is no npm token in this repository.
       - uses: changesets/action@v2

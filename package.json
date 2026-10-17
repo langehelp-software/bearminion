@@ -2,7 +2,7 @@
   "name": "bearminion-workspace",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.11.2",
+  "packageManager": "pnpm@12.14.0",
   "scripts": {
     "dev": "pnpm build:lib && pnpm --parallel --filter bearminion --filter bearminion-site dev",
     "build": "pnpm build:lib && pnpm --filter bearminion-site build",
