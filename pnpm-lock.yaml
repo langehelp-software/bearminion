@@ -249,7 +249,7 @@ importers:
         specifier: ^7.3.8
         version: 7.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       bearminion:
-        specifier: ^1.0.0
+        specifier: ^1.0.1
         version: link:../../packages/editor
       class-variance-authority:
         specifier: ^0.7.1

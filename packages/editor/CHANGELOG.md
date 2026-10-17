@@ -1,5 +1,11 @@
 # bearminion
 
+## 1.0.1
+
+### Patch Changes
+
+- 0fb0cc9: Published through npm trusted publishing, with a provenance attestation that links the package to its source commit and build. No code changes.
+
 ## 1.0.0
 
 First public release.
