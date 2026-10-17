@@ -72,7 +72,13 @@ describe('editor overlay', () => {
     const page = await browser.newPage({ viewport: { width: 1700, height: 900 } })
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
-    page.on('dialog', (dialog) => void dialog.accept())
+    // The upload at the end leaves the draft dirty, and a Vite reload can then raise a beforeunload prompt that
+    // `page.close()` dismisses before `accept()` lands. That race is not a failure; anything else still is.
+    page.on('dialog', (dialog) => {
+      dialog.accept().catch((error: unknown) => {
+        if (!(error instanceof Error && error.message.includes('already handled'))) throw error
+      })
+    })
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' })
     const editorButton = page.getByRole('button', { name: 'Editor', exact: true })
     await editorButton.waitFor()
@@ -388,6 +394,8 @@ describe('editor overlay', () => {
       await hero.locator('[data-field="sections.0.props.primary.label"]').waitFor({ state: 'detached' })
       await hero.locator('[data-field="sections.0.props.eyebrow"]').waitFor({ state: 'detached' })
       await page.getByRole('button', { name: 'Add primary' }).waitFor()
+      // A save reloads the page. Wait for that reload, or the next clicks land on the page it replaces.
+      const reloaded = page.waitForEvent('load')
       await page.keyboard.press('Control+s')
       await waitFor(() => {
         const hero0 = (JSON.parse(fs.readFileSync(indexPath, 'utf8')) as { sections: { props: Record<string, unknown> }[] }).sections[0]
@@ -396,6 +404,13 @@ describe('editor overlay', () => {
       const saved = JSON.parse(fs.readFileSync(indexPath, 'utf8')) as { sections: { props: Record<string, unknown> }[] }
       expect(saved.sections[0]?.props.eyebrow).toBeUndefined()
       expect(saved.sections[0]?.props.secondary).toBeDefined()
+      await reloaded
+      await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
+      // The sidebar can come back open on the Section tab; select the hero and open it either way.
+      await hero.click({ position: { x: 24, y: 80 } })
+      const sectionTab = page.getByRole('tab', { name: 'Section' })
+      if (!(await sectionTab.isVisible())) await page.getByRole('button', { name: 'Editor', exact: true }).click()
+      await sectionTab.click()
       await page.getByRole('button', { name: 'Add primary' }).click()
       await hero.locator('[data-field="sections.0.props.primary.label"]').waitFor()
     } finally {
