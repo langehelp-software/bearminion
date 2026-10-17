@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  A git-based, no-database CMS for <a href="https://astro.build">Astro</a>.<br />
-  Edit your site inline while <code>astro dev</code> runs. Ship a plain static build.
+  A website you edit by clicking on it. No database, no admin panel, no server.<br />
+  Built on <a href="https://astro.build">Astro</a>.
 </p>
 
 <p align="center">
@@ -13,74 +13,52 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-169717" alt="MIT license" /></a>
 </p>
 
-Pages and site settings are JSON files in your repository. In development, click any text on the page to change it, rearrange sections, upload images and adjust the palette; BearMinion validates the change and writes the JSON back to disk. `astro build` produces a static site with no editor, no server and no database in it.
+## Quick start
 
-## Install
+You need [Node.js](https://nodejs.org) 22.12 or newer.
 
-Requires Node 22.12 or newer.
+**1. Create your site**
 
 ```bash
 npm create astro@latest -- --template langehelp-software/bearminion/templates/default my-site
-```
-
-This creates `my-site` from the default template: an Astro and Tailwind site with ten section types, wired to the `bearminion` package. The site is yours from here on; the template is the theme.
-
-## Quick start
-
-```bash
 cd my-site
 npm run dev
 ```
 
-1. Open the URL Astro prints and press **Ctrl+E** (**Cmd+E** on a Mac) to open the editor.
-2. Click any text to edit it, hover a section for its toolbar, and use the sidebar for pages, navigation, footer, design and SEO.
-3. Press **Ctrl/Cmd+S** to save. The changes land in `content/` and `src/assets/uploads/`.
-4. Commit and push. Vercel, Netlify, Cloudflare Pages or any static host builds the site from the repository with `npm run build`.
+**2. Edit it**
+
+Open the address it prints (usually http://localhost:4321) and press **Ctrl+E** (**Cmd+E** on a Mac). Click any text to change it, hover a section to move, add or remove it, and use the sidebar for pages, menus, colors and images. Press **Ctrl/Cmd+S** to save.
+
+**3. Put it online**
+
+Push the folder to a GitHub repository and import it in [Vercel](https://vercel.com/new), [Netlify](https://app.netlify.com/start) or [Cloudflare Pages](https://pages.cloudflare.com). Vercel and Netlify detect Astro on their own; on Cloudflare Pages, pick the Astro preset. Before you share the link, set your address under **Site → URL** in the editor, so search engines and link previews point to it.
+
+From then on: edit, save, commit, push. The site rebuilds by itself.
 
 <p align="center">
-  <img src=".github/assets/editor.png" alt="The BearMinion editor over the default template: the section toolbar on the hero, a heading being edited, and the Pages tab in the sidebar" width="100%" />
+  <img src=".github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the Pages tab in the sidebar" width="100%" />
 </p>
 
-## What else it can do
+## What you can change
 
-The editor is built from your site's own schemas, so it can only write content that your theme renders and that passes validation. Beyond inline text, it handles rich text (bold, italic, links and lists, stored as a small markdown subset), section variants, tones and reordering, an image library with fit and position controls, a palette derived from three seed colors with WCAG contrast checks, per-page SEO and social images, and multi-level navigation. Every save is kept in `.editor/history/` with undo and redo across the draft, and with `bearminion({ git: true })` the Save menu can commit the changed content files for you (it never pushes).
+- **Text** right on the page, with bold, italic, links and lists
+- **Sections**: ten ready-made types (hero, features, pricing, FAQ, contact and more), each with three layouts
+- **Pages**: create, rename, choose the home page, set titles and descriptions for search and sharing
+- **Menus and footer**: drag to reorder and nest
+- **Images**: upload, choose how they fill their frame and which part stays in view
+- **Colors**: pick three, and the editor builds a full light and dark palette that stays readable
 
-To build your own look, change the template's components and styles, or add a section type: one directory with a Zod schema, defaults and a component, and the editor picks it up. See [Add a section type](templates/default/README.md#add-a-section-type).
+<p align="center">
+  <img src=".github/assets/design.png" alt="The Design tab: color mode, brand, neutral and link colors, and a preview of every section tone in light and dark mode" width="100%" />
+</p>
 
-## Documentation
+Your content is plain files in your project, so every change is in your git history and nothing can lock you in. The editor only exists on your computer: the published site is fast, static HTML.
 
-| Read | For |
-| --- | --- |
-| [`templates/default/README.md`](templates/default/README.md) | The template: components, sections, SEO, Storybook, adding a section type |
-| [`packages/editor/README.md`](packages/editor/README.md) | The `bearminion` package: content files, the Astro integration, the editor, the dev API and the [theme contract](packages/editor/README.md#theme-contract) |
+## Learn more
 
-## Directory
-
-| Folder | What it is | Published |
-| --- | --- | --- |
-| [`packages/editor`](packages/editor) | `bearminion`: the content model, the Astro integration and the editor overlay | [npm](https://www.npmjs.com/package/bearminion) |
-| [`templates/default`](templates/default) | The default site and theme, created with `npm create astro` | as a template |
-| [`tests`](tests) | The template's unit tests and the editor's end-to-end suite (Playwright) | no |
-
-## Security
-
-The editor and its API exist only in `astro dev`. The API answers loopback connections with a local `Host` and `Origin` and, from a browser, `Sec-Fetch-Site: same-origin`, so other sites open in your browser and other machines on your network cannot write to your content. Report a vulnerability as described in [SECURITY.md](SECURITY.md).
-
-## Contributing
-
-Requires Node 22.12+ and pnpm (the version in `packageManager`; `corepack enable` picks it up).
-
-```bash
-pnpm install          # also builds packages/editor
-pnpm dev              # library in watch mode + the template's astro dev
-pnpm test             # unit tests (library and template)
-pnpm e2e:setup        # once, and after a Playwright upgrade: downloads its Chromium
-pnpm test:e2e         # editor end-to-end tests in Chromium
-pnpm lint             # Biome
-pnpm typecheck        # tsc and astro check
-```
-
-The template depends on `bearminion` by version range, not `workspace:*`, so the same folder installs outside this repository; pnpm links the range to `packages/editor` here. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow, changesets and releases, and the [Code of Conduct](CODE_OF_CONDUCT.md).
+- [Documentation](docs/README.md): the content files, the editor, building your own theme, and the API
+- [Template guide](templates/default/README.md): the components that come with your site
+- [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## License
 

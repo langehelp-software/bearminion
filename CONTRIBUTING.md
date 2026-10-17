@@ -25,6 +25,7 @@ Open http://localhost:4321 and press Ctrl+E (Cmd+E) for the editor.
     - `ui/assets/` holds the overlay's own images. The editor ships its assets and never uses the site's.
 - `templates/default` is the site people create. Treat it as user code: plain Astro, no imports from the monorepo, and `bearminion` by version range.
 - `tests` holds the template's unit tests and the editor's end-to-end suite.
+- `docs` is the reference documentation. A change to the content format, the editor, the API or the theme contract updates the matching page in the same pull request.
 
 ## Before you open a pull request
 
@@ -38,7 +39,7 @@ pnpm test:e2e         # needs Playwright's Chromium: run pnpm e2e:setup once (an
 CI runs the same checks, plus `publint` and `@arethetypeswrong/cli` on the packed library, and installs a copy of the template with npm outside the monorepo.
 
 - Keep pull requests focused, and add or update tests with behaviour changes. The e2e suite covers the editor UI; prefer a unit test when the logic can live outside a component.
-- A change to the content schemas that would reject existing files needs a content migration (see "Content versions" in `packages/editor/README.md`).
+- A change to the content schemas that would reject existing files needs a content migration (see [Content versions](docs/content.md#content-versions)).
 - Every write the dev API accepts goes through Zod validation. Keep it that way, and keep the localhost checks in `src/security.ts` in front of every route.
 
 ## Changesets and releases
