@@ -368,6 +368,10 @@
             "q": "How do I get help?"
           }
         ],
+        "link": {
+          "href": "#contact",
+          "label": "Contact us"
+        },
         "marks": [
           {
             "end": 28,

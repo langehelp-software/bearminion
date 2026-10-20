@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { defineSection, richTextSchema, textSchema, withEmphasis, type CountRule } from 'bearminion'
-import { accent, eyebrow, heading } from '../shared'
+import { defineSection, linkSchema, richTextSchema, textSchema, withEmphasis, type CountRule } from 'bearminion'
+import { DEFAULT_CONTACT_ANCHOR, accent, eyebrow, heading } from '../shared'
 import { faqWireframe } from './wireframe'
 
 export const faqVariants = ['accordion', 'split', 'grid'] as const
@@ -21,6 +21,8 @@ export const faqSchema = withEmphasis({
   eyebrow,
   heading,
   more: textSchema.optional(),
+  /** The link under the heading in the split layout, such as one to the contact section. */
+  link: linkSchema.optional(),
   items: z.array(faqItemSchema).min(faqCounts.items.min).max(faqCounts.items.max),
 })
 
@@ -36,6 +38,7 @@ export const faq = defineSection({
     eyebrow: 'FAQ',
     heading: 'Questions, answered plainly.',
     marks: accent('Questions, answered plainly.', 'plainly.'),
+    link: { label: 'Contact us', href: `#${DEFAULT_CONTACT_ANCHOR}` },
     items: [
       { q: 'What is included?', a: 'Answer the question people ask most before they buy, in two or three sentences.' },
       { q: 'How long does it take to get started?', a: 'Give a realistic time frame and say what the reader needs to have ready.' },
@@ -45,7 +48,7 @@ export const faq = defineSection({
   },
   variants: faqVariants,
   defaultVariant: 'accordion',
-  optional: { props: ['eyebrow', 'heading', 'more'] },
+  optional: { props: ['eyebrow', 'heading', 'more', 'link'] },
   counts: faqCounts,
   wireframe: faqWireframe,
 })

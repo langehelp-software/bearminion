@@ -14,16 +14,16 @@
       {
         "links": [
           {
-            "href": "/#features",
-            "label": "Features"
+            "href": "https://docs.bearminion.com/getting-started/",
+            "label": "Getting started"
           },
           {
-            "href": "/#pricing",
-            "label": "Pricing"
+            "href": "https://docs.bearminion.com/",
+            "label": "Docs"
           },
           {
-            "href": "/#faq",
-            "label": "FAQ"
+            "href": "https://docs.bearminion.com/editor/",
+            "label": "Using the editor"
           }
         ],
         "title": "Product"
@@ -31,64 +31,66 @@
       {
         "links": [
           {
-            "href": "/about",
-            "label": "About"
+            "href": "https://github.com/langehelp-software/bearminion",
+            "label": "GitHub"
           },
           {
-            "href": "/#contact",
-            "label": "Contact"
+            "href": "https://www.npmjs.com/package/bearminion",
+            "label": "npm"
+          },
+          {
+            "href": "https://github.com/langehelp-software/bearminion/releases",
+            "label": "Releases"
           }
         ],
-        "title": "Company"
+        "title": "Project"
       },
       {
         "links": [
           {
-            "href": "#",
-            "label": "Privacy"
+            "href": "https://github.com/langehelp-software/bearminion/blob/main/LICENSE",
+            "label": "MIT license"
           },
           {
-            "href": "#",
-            "label": "Terms"
+            "href": "https://github.com/langehelp-software/bearminion/blob/main/SECURITY.md",
+            "label": "Security"
           }
         ],
         "title": "Legal"
       }
     ],
-    "legal": "\u00a9 2026 Your Company. All rights reserved.",
-    "text": "One or two sentences about your company, so people know who is behind the site.",
+    "legal": "© 2026 Jakub Lange. Released under the MIT license.",
+    "text": "A git-based, no-database CMS for Astro. Edit your site by clicking on it, and ship a plain static build.",
     "tone": "base",
     "variant": "wordmark"
   },
   "header": {
     "actions": [
       {
-        "href": "/#contact",
+        "href": "https://github.com/langehelp-software/bearminion",
+        "label": "GitHub"
+      },
+      {
+        "href": "https://docs.bearminion.com/getting-started/",
         "label": "Get started"
       }
     ],
     "links": [
       {
-        "children": [
-          {
-            "href": "/#workflow",
-            "label": "How it works"
-          }
-        ],
         "href": "/#features",
         "label": "Features"
       },
       {
-        "href": "/#pricing",
-        "label": "Pricing"
+        "href": "/#workflow",
+        "label": "How it works"
       },
       {
         "href": "/#faq",
         "label": "FAQ"
       },
       {
-        "href": "/about",
-        "label": "About"
+        "href": "https://docs.bearminion.com/",
+        "label": "Docs"
       }
     ],
     "sticky": true,
@@ -106,9 +108,9 @@
   ],
   "schemaVersion": 1,
   "seo": {
-    "description": "BearMinion is a website you edit by clicking on it: a git-based CMS for Astro with no database, no admin panel and no server.",
+    "description": "BearMinion is an open-source, git-based CMS for Astro: edit your site by clicking on it, with no database, no admin panel and no server.",
     "ogImage": "src/assets/uploads/og.png",
-    "titleTemplate": "%s \u00b7 BearMinion"
+    "titleTemplate": "%s · BearMinion"
   },
   "theme": {
     "mode": "light",
