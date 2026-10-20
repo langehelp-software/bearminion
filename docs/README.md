@@ -1,4 +1,7 @@
-# BearMinion documentation
+---
+title: BearMinion documentation
+description: "What BearMinion is made of, and where to read about each part: the editor, content files, themes, the Astro integration and the dev API."
+---
 
 BearMinion is three things: the [`bearminion`](https://www.npmjs.com/package/bearminion) package (the content model, the Astro integration and the dev-only editor), the [default template](../templates/default), a complete site you own after creating it, and [`create-bearminion`](../packages/create-bearminion), which copies that template into a new folder (`npm create bearminion@latest`). Start with the [repository README](../README.md) to create a site.
 

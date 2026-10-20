@@ -1,0 +1,463 @@
+{
+  "schemaVersion": 1,
+  "sections": [
+    {
+      "anchor": "hero",
+      "id": "hero",
+      "props": {
+        "eyebrow": "Your TAGLINE",
+        "heading": "Say what you do in one line.",
+        "image": {
+          "alt": "Image",
+          "fit": "auto",
+          "src": "src/assets/uploads/hero.png"
+        },
+        "marks": [
+          {
+            "end": 28,
+            "font": "serif",
+            "italic": true,
+            "start": 19
+          }
+        ],
+        "primary": {
+          "href": "#cta",
+          "label": "Primary action"
+        },
+        "secondary": {
+          "href": "#features",
+          "label": "Secondary action",
+          "style": "tertiary"
+        },
+        "sub": "Use this *paragraph* to say who it is for and what they get. Keep it to two sentences, with **one key phrase in bold** and a [link for the curious](https://astro.build)."
+      },
+      "tone": "base",
+      "type": "hero",
+      "variant": "split"
+    },
+    {
+      "anchor": "logos",
+      "id": "logos",
+      "props": {
+        "label": "Trusted by teams like yours",
+        "logos": [
+          {
+            "alt": "Partner logo 1",
+            "src": "placeholder"
+          },
+          {
+            "alt": "Partner logo 2",
+            "src": "placeholder"
+          },
+          {
+            "alt": "Partner logo 3",
+            "src": "placeholder"
+          },
+          {
+            "alt": "Partner logo 4",
+            "src": "placeholder"
+          },
+          {
+            "alt": "Partner logo 5",
+            "src": "placeholder"
+          },
+          {
+            "alt": "Partner logo 6",
+            "src": "placeholder"
+          }
+        ]
+      },
+      "tone": "base",
+      "type": "logoStrip",
+      "variant": "marquee"
+    },
+    {
+      "anchor": "features",
+      "id": "features",
+      "props": {
+        "eyebrow": "Features",
+        "heading": "Four reasons to choose you",
+        "intro": "Introduce the list in a sentence. Each card takes a short title, a description and an optional image.",
+        "items": [
+          {
+            "description": "Describe one benefit in a sentence or two. Lead with what the reader gets.",
+            "image": {
+              "alt": "",
+              "src": "placeholder"
+            },
+            "title": "First benefit"
+          },
+          {
+            "description": "Keep each description about the same length so the cards line up.",
+            "image": {
+              "alt": "",
+              "src": "placeholder"
+            },
+            "title": "Second benefit"
+          },
+          {
+            "description": "Name a concrete outcome, a number or a time saved, not a feature list.",
+            "image": {
+              "alt": "",
+              "src": "placeholder"
+            },
+            "title": "Third benefit"
+          },
+          {
+            "description": "Close with the point that removes the last doubt before someone gets in touch.",
+            "image": {
+              "alt": "",
+              "src": "placeholder"
+            },
+            "title": "Fourth benefit"
+          }
+        ],
+        "link": {
+          "href": "#workflow",
+          "label": "See all features"
+        },
+        "marks": [
+          {
+            "end": 12,
+            "font": "serif",
+            "italic": true,
+            "start": 5
+          }
+        ]
+      },
+      "tone": "base",
+      "type": "features",
+      "variant": "bento"
+    },
+    {
+      "anchor": "workflow",
+      "id": "workflow",
+      "props": {
+        "body": "A paragraph that walks through how the product or service works, from the first contact to the result.",
+        "eyebrow": "How it works",
+        "heading": "Explain it in three steps.",
+        "image": {
+          "alt": "",
+          "src": "placeholder"
+        },
+        "link": {
+          "href": "#faq",
+          "label": "Learn more"
+        },
+        "marks": [
+          {
+            "end": 26,
+            "font": "serif",
+            "italic": true,
+            "start": 14
+          }
+        ],
+        "points": [
+          "Step one: what happens first",
+          "Step two: what you do for them",
+          "Step three: what they end up with"
+        ]
+      },
+      "tone": "subtle",
+      "type": "textImage",
+      "variant": "right"
+    },
+    {
+      "anchor": "stats",
+      "id": "stats",
+      "props": {
+        "body": "Pick three or four numbers you can stand behind, and say in a few words what each one counts.",
+        "eyebrow": "By the numbers",
+        "heading": "Figures that build trust.",
+        "items": [
+          {
+            "label": "customers since launch",
+            "value": "120+"
+          },
+          {
+            "label": "would recommend us",
+            "value": "98%"
+          },
+          {
+            "label": "average reply time",
+            "value": "24 h"
+          },
+          {
+            "label": "in business",
+            "value": "10 yrs"
+          }
+        ],
+        "marks": [
+          {
+            "end": 25,
+            "font": "serif",
+            "italic": true,
+            "start": 13
+          }
+        ]
+      },
+      "tone": "inverse",
+      "type": "stats",
+      "variant": "row"
+    },
+    {
+      "anchor": "testimonials",
+      "id": "testimonials",
+      "props": {
+        "eyebrow": "Testimonials",
+        "heading": "What people say",
+        "items": [
+          {
+            "name": "Alex Morgan",
+            "quote": "A short quote from a happy customer. One or two sentences that sound like a real person.",
+            "role": "Role, Company"
+          },
+          {
+            "name": "Sam Rivera",
+            "quote": "Quotes work best when they name a specific result, not just a compliment.",
+            "role": "Role, Company"
+          },
+          {
+            "name": "Jordan Lee",
+            "quote": "Ask for permission before you publish a name, and add a photo if you have one.",
+            "role": "Role, Company"
+          }
+        ],
+        "marks": [
+          {
+            "end": 15,
+            "font": "serif",
+            "italic": true,
+            "start": 5
+          }
+        ]
+      },
+      "tone": "base",
+      "type": "testimonials",
+      "variant": "carousel"
+    },
+    {
+      "anchor": "pricing",
+      "id": "pricing",
+      "props": {
+        "eyebrow": "Pricing",
+        "heading": "Simple plans, no surprises.",
+        "intro": "Say what every plan includes, then let the table below cover the differences.",
+        "marks": [
+          {
+            "end": 27,
+            "font": "serif",
+            "italic": true,
+            "start": 14
+          }
+        ],
+        "plans": [
+          {
+            "blurb": "For trying things out.",
+            "cta": {
+              "href": "#contact",
+              "label": "Start free"
+            },
+            "features": [
+              "Core features",
+              "One project",
+              "Community support"
+            ],
+            "monthly": 0,
+            "name": "Starter"
+          },
+          {
+            "blurb": "For growing teams.",
+            "cta": {
+              "href": "#contact",
+              "label": "Choose Pro"
+            },
+            "featured": true,
+            "features": [
+              "Everything in Starter",
+              "Unlimited projects",
+              "Priority email support",
+              "Team members"
+            ],
+            "monthly": 19,
+            "name": "Pro"
+          },
+          {
+            "blurb": "For larger organisations.",
+            "cta": {
+              "href": "#contact",
+              "label": "Contact sales"
+            },
+            "features": [
+              "Everything in Pro",
+              "Custom onboarding",
+              "Dedicated contact"
+            ],
+            "monthly": 49,
+            "name": "Business"
+          }
+        ],
+        "rows": [
+          [
+            "Core features",
+            true,
+            true,
+            true
+          ],
+          [
+            "Projects",
+            "1",
+            "Unlimited",
+            "Unlimited"
+          ],
+          [
+            "Team members",
+            false,
+            true,
+            true
+          ],
+          [
+            "Custom onboarding",
+            false,
+            false,
+            true
+          ],
+          [
+            "Support",
+            "Community",
+            "Email",
+            "Dedicated"
+          ]
+        ],
+        "singleHeading": "One plan with everything included.",
+        "yearlyDiscount": 0.2
+      },
+      "tone": "subtle",
+      "type": "pricing",
+      "variant": "tiers"
+    },
+    {
+      "anchor": "faq",
+      "id": "faq",
+      "props": {
+        "eyebrow": "FAQ",
+        "heading": "Questions, answered plainly.",
+        "items": [
+          {
+            "a": "Answer the question people ask most before they buy. Keep each answer to two or three sentences.",
+            "q": "What is included?"
+          },
+          {
+            "a": "Give a realistic time frame and say what the reader needs to have ready.",
+            "q": "How long does it take to get started?"
+          },
+          {
+            "a": "Explain how upgrades, downgrades and billing changes work.",
+            "q": "Can I change plans later?"
+          },
+          {
+            "a": "State the policy in plain words, with the time limit if there is one.",
+            "q": "Do you offer refunds?"
+          },
+          {
+            "a": "Say where data lives and who can access it. Link to the privacy policy for the details.",
+            "q": "Where is my data stored?"
+          },
+          {
+            "a": "List the ways to reach you and how quickly people can expect a reply.",
+            "q": "How do I get help?"
+          }
+        ],
+        "marks": [
+          {
+            "end": 28,
+            "font": "serif",
+            "italic": true,
+            "start": 11
+          }
+        ],
+        "more": "Still have a question? The contact section below reaches a person."
+      },
+      "tone": "base",
+      "type": "faq",
+      "variant": "split"
+    },
+    {
+      "anchor": "cta",
+      "id": "cta",
+      "props": {
+        "body": "One sentence that repeats the main benefit and tells the reader what happens next.",
+        "heading": "Ready to get started?",
+        "marks": [
+          {
+            "end": 21,
+            "font": "serif",
+            "italic": true,
+            "start": 9
+          }
+        ],
+        "primary": {
+          "href": "#contact",
+          "label": "Primary action"
+        },
+        "secondary": {
+          "href": "#features",
+          "label": "Secondary action"
+        }
+      },
+      "tone": "base",
+      "type": "cta",
+      "variant": "band"
+    },
+    {
+      "anchor": "contact",
+      "id": "contact",
+      "props": {
+        "body": "Tell people what they can contact you about and when they will hear back.",
+        "details": [
+          {
+            "label": "Email",
+            "value": "hello@example.com"
+          },
+          {
+            "label": "Phone",
+            "value": "+1 555 010 0100"
+          },
+          {
+            "label": "Hours",
+            "value": "Monday to Friday, 9:00 to 17:00"
+          }
+        ],
+        "eyebrow": "Contact",
+        "heading": "Get in touch.",
+        "marks": [
+          {
+            "end": 13,
+            "font": "serif",
+            "italic": true,
+            "start": 4
+          }
+        ],
+        "note": "We only use your details to reply to you.",
+        "thanks": "Thanks, your message is on its way. We will reply within two working days.",
+        "topics": [
+          "General",
+          "Sales",
+          "Support"
+        ]
+      },
+      "tone": "subtle",
+      "type": "contact",
+      "variant": "split"
+    }
+  ],
+  "seo": {
+    "description": "A short summary of your site for search results and link previews. Aim for one or two sentences.",
+    "nofollow": false,
+    "noindex": false,
+    "ogImage": "src/assets/uploads/og.png",
+    "title": "Home"
+  },
+  "slug": "index",
+  "title": "Home"
+}

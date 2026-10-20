@@ -1,4 +1,7 @@
-# Building a theme
+---
+title: Building a theme
+description: "What a BearMinion theme supplies: section types, the header and footer definition, the theme contract, live preview and content collections."
+---
 
 What a theme supplies to `bearminion`: section types, the header and footer definition, the fixed theme contract, the live preview renderer and content collections. The default template is a complete example; its README walks through [adding a section type](../templates/default/README.md#add-a-section-type).
 

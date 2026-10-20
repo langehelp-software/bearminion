@@ -1,6 +1,7 @@
 packages:
   - "packages/*"
   - "templates/*"
+  - "apps/*"
   - "tests"
 
 # Templates depend on a published range (`bearminion: ^1.0.0`) so they also install outside this repo.

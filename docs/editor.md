@@ -1,4 +1,7 @@
-# The editor
+---
+title: The editor
+description: "Everything the BearMinion editor does: inline editing, sections, the sidebar tabs, images, drafts, saving, history and git."
+---
 
 Everything the dev-only editor does: inline editing, sections, the sidebar tabs, drafts, saving, images, history and git.
 

@@ -1,0 +1,101 @@
+{
+  "sections": [
+    {
+      "anchor": "intro",
+      "id": "intro",
+      "props": {
+        "eyebrow": "About",
+        "heading": "The story behind the work.",
+        "marks": [
+          {
+            "end": 26,
+            "font": "serif",
+            "italic": true,
+            "start": 17
+          }
+        ],
+        "primary": {
+          "href": "/#contact",
+          "label": "Get in touch"
+        },
+        "secondary": {
+          "href": "/",
+          "label": "Back to the homepage"
+        },
+        "sub": "Open with one or two sentences about who you are and what you care about."
+      },
+      "tone": "base",
+      "type": "hero",
+      "variant": "centered"
+    },
+    {
+      "anchor": "story",
+      "id": "story",
+      "props": {
+        "body": "Tell the short version of how you got here: the problem you saw, what you did about it, and what drives you now.",
+        "eyebrow": "Our story",
+        "heading": "How it started.",
+        "image": {
+          "alt": "",
+          "src": "placeholder"
+        },
+        "link": {
+          "href": "/#features",
+          "label": "See what we offer"
+        },
+        "marks": [
+          {
+            "end": 15,
+            "font": "serif",
+            "italic": true,
+            "start": 7
+          }
+        ],
+        "points": [
+          "When and where you started",
+          "What makes your approach different",
+          "Who you work with today"
+        ]
+      },
+      "tone": "base",
+      "type": "textImage",
+      "variant": "left"
+    },
+    {
+      "anchor": "contact",
+      "id": "contact",
+      "props": {
+        "body": "Invite the reader to take the next step, and say what happens when they do.",
+        "heading": "Want to work together?",
+        "marks": [
+          {
+            "end": 22,
+            "font": "serif",
+            "italic": true,
+            "start": 13
+          }
+        ],
+        "primary": {
+          "href": "/#contact",
+          "label": "Contact us"
+        },
+        "secondary": {
+          "href": "/",
+          "label": "Back home"
+        }
+      },
+      "tone": "subtle",
+      "type": "cta",
+      "variant": "centered"
+    }
+  ],
+  "seo": {
+    "description": "Who you are, why you started, and the people behind the work.",
+    "nofollow": false,
+    "noindex": false,
+    "ogImage": "src/assets/uploads/og.png",
+    "title": "About"
+  },
+  "slug": "about",
+  "title": "About"
+}

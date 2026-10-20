@@ -1,4 +1,7 @@
-# Content files
+---
+title: Content files
+description: "Where BearMinion content lives, the shape of site.json and page files, and how content is migrated when a schema changes."
+---
 
 Where content lives, the shape of `site.json` and page files, and how schema changes are migrated. Read this to edit JSON by hand or to understand what the editor writes.
 

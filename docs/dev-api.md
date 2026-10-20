@@ -1,4 +1,7 @@
-# Dev API
+---
+title: Dev API
+description: "The localhost HTTP API the BearMinion editor uses during astro dev, with every route and curl examples."
+---
 
 The localhost HTTP API the editor talks to during `astro dev`. Every route is validated against the site's schemas and refuses non-local requests.
 

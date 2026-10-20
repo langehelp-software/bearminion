@@ -11,3 +11,5 @@ templates/default/src/assets/e2e-uploads/
 .pnpm-store/
 .transfer/
 packages/create-bearminion/template/
+# Local roadmap, kept out of the public repository
+/PLAN.md
