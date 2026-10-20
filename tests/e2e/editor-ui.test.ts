@@ -591,9 +591,13 @@ describe('editor overlay', () => {
     await page.keyboard.press('Enter')
     await page.keyboard.type('Beta')
     await expectList(sub, 'Alpha', 'Beta')
+    // A save reloads the page. Wait for that reload, or the paste below lands on the page it replaces.
+    const reloaded = page.waitForEvent('load')
     await page.keyboard.press('Control+s')
     const indexPath = path.join(contentDir, 'pages', 'index.json')
     await waitFor(() => fs.readFileSync(indexPath, 'utf8').includes('- Alpha'), 'bullet list was not saved')
+    await reloaded
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
     await page.locator('[data-section-id="hero"] ul li', { hasText: 'Alpha' }).waitFor()
     await page.locator('[data-section-id="hero"] ul li', { hasText: 'Beta' }).waitFor()
 
@@ -978,6 +982,72 @@ describe('editor overlay', () => {
     await page.close()
   }, 90_000)
 
+  it('adds a video section as an empty frame and plays the file linked in its settings', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await openClean(page)
+    const toolbar = page.getByRole('toolbar', { name: 'Section' })
+    await page.locator('[data-section-id="hero"]').click({ position: { x: 24, y: 80 } })
+    await toolbar.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Add below' }).click()
+    await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Video', exact: true }).click()
+    const section = page.locator('[data-section-id="video"]')
+    const empty = section.getByText('Add a video link in the section settings')
+    await empty.waitFor()
+    expect(await section.locator('video').count()).toBe(0)
+
+    // The frame's middle: the section's top edge can sit under the sticky header, depending on what is above it.
+    await empty.click()
+    // A click selects the section; the sidebar may already be open on it, otherwise Settings opens it.
+    const form = page.locator('[data-editor-field="section:video"]')
+    if (!(await form.isVisible())) await toolbar.getByRole('button', { name: 'Settings', exact: true }).click()
+    await form.waitFor()
+    await page.getByLabel('Video', { exact: true }).fill('/videos/demo.webm')
+    const video = section.locator('video')
+    await video.waitFor({ state: 'attached' })
+    expect(await video.getAttribute('src')).toBe('/videos/demo.webm')
+    expect(await video.getAttribute('aria-label')).toBe('Product walkthrough')
+    expect(await video.evaluate((node) => (node as HTMLVideoElement).controls)).toBe(true)
+
+    // A looping video is muted and bound by the page script, which takes its controls away while it plays. The file
+    // here does not exist, so play() fails once it is on screen and the controls come back; that is not checked.
+    await page.getByLabel('Playback').selectOption('loop')
+    await section.locator('video[data-video-loop]').waitFor({ state: 'attached' })
+    await page.waitForFunction(() => {
+      const node = document.querySelector('[data-section-id="video"] video')
+      return node instanceof HTMLVideoElement && node.muted && node.loop && node.dataset.bound === 'true'
+    })
+    expect(errors, logs).toEqual([])
+    await page.close()
+  }, 60_000)
+
+  it('shows a hero command typed in the sidebar and copies it', async () => {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+      permissions: ['clipboard-read', 'clipboard-write'],
+    })
+    const page = await context.newPage()
+    await openClean(page)
+    const hero = page.locator('[data-section-id="hero"]')
+    expect(await hero.locator('[data-command-line]').count()).toBe(0)
+    await hero.click({ position: { x: 24, y: 80 } })
+    await page.getByRole('toolbar', { name: 'Section' }).getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.locator('[data-editor-field="section:hero"]').waitFor()
+    await page.getByRole('textbox', { name: /^Command/ }).fill('npm create bearminion@latest')
+    const line = hero.locator('[data-command-line]')
+    await line.waitFor()
+    expect(await line.locator('[data-command]').innerText()).toBe('npm create bearminion@latest')
+    // While editing, a click on the page selects what is under it; in preview the button works as on the live site.
+    await page.getByRole('button', { name: 'Preview', exact: true }).click()
+    await page.getByRole('button', { name: 'Exit preview' }).waitFor()
+    await line.getByRole('button', { name: 'Copy command' }).click()
+    await line.getByText('Copied', { exact: true }).waitFor()
+    expect(await line.locator('[role="status"]').innerText()).toBe('Command copied')
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('npm create bearminion@latest')
+    await context.close()
+  }, 60_000)
+
   it('renames a page and saves its edits in one request', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await page.goto(`http://127.0.0.1:${port}/preview`, { waitUntil: 'networkidle' })
@@ -992,7 +1062,8 @@ describe('editor overlay', () => {
     await page.keyboard.press('Control+s')
     const pagesDir = path.join(contentDir, 'pages')
     await waitFor(() => fs.existsSync(path.join(pagesDir, 'preview-renamed.json')), 'renamed page file missing')
-    expect(fs.existsSync(path.join(pagesDir, 'preview.json'))).toBe(false)
+    // The new file is written before the old one is removed.
+    await waitFor(() => !fs.existsSync(path.join(pagesDir, 'preview.json')), 'old page file still there after the rename')
     expect(JSON.parse(fs.readFileSync(path.join(pagesDir, 'preview-renamed.json'), 'utf8')).title).toBe('Preview renamed')
     expect(saves.filter((pathname) => !pathname.endsWith('/preview') && !pathname.endsWith('/preview/site'))).toEqual([
       '/__bearminion/api/save',

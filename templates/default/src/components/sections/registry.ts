@@ -9,6 +9,7 @@ import Pricing from './pricing/Pricing.astro'
 import Stats from './stats/Stats.astro'
 import Testimonials from './testimonials/Testimonials.astro'
 import TextImage from './text-image/TextImage.astro'
+import Video from './video/Video.astro'
 
 /** Maps a content section `type` to the component that renders it. Definitions live in `definitions.ts`. */
 export const sectionComponents = {
@@ -19,6 +20,7 @@ export const sectionComponents = {
   stats: Stats,
   testimonials: Testimonials,
   pricing: Pricing,
+  video: Video,
   faq: Faq,
   cta: Cta,
   contact: Contact,

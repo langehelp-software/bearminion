@@ -145,10 +145,7 @@ const bandSecondary = props.secondary ? buttonVariant(props.secondary, 'secondar
               </button>
             )}
           </div>
-          <pre class="font-mono text-[0.8125rem] leading-[1.7] whitespace-pre-wrap text-bg/90"><code>{`$ ${props.command ?? ''}
-# pages live in content/pages
-# site chrome lives in content/site.json
-# production is the static build`}</code></pre>
+          <pre class="font-mono text-[0.8125rem] leading-[1.7] whitespace-pre-wrap text-bg/90"><code>{props.command && <span class="block">$ <span data-terminal-command data-field={field('command')}>{props.command}</span></span>}{(props.output ?? []).map((line, lineIndex) => <span class="block text-bg/60" data-field={field(`output.${lineIndex}`)}>{line}</span>)}</code></pre>
         </div>
       </div>
     )
@@ -163,7 +160,9 @@ const bandSecondary = props.secondary ? buttonVariant(props.secondary, 'secondar
     const label = button.querySelector('[data-copy-label]')
     const original = label?.textContent ?? 'Copy'
     button.addEventListener('click', async () => {
-      const command = button.dataset.command ?? ''
+      // The command as it is on the page now, so an edit made in the editor is what gets copied.
+      const shown = button.closest('[data-cta]')?.querySelector('[data-terminal-command]')?.textContent?.trim()
+      const command = shown || button.dataset.command || ''
       try {
         await navigator.clipboard.writeText(command)
       } catch {

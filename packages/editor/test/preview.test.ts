@@ -17,6 +17,7 @@ describe('defineThemePreview', () => {
           | 'stats'
           | 'testimonials'
           | 'pricing'
+          | 'video'
           | 'faq'
           | 'cta'
           | 'contact'

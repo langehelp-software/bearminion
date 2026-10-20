@@ -28,7 +28,18 @@ const siteDefaults = {
 }
 
 type Assert<T extends true> = T
-type SectionTypeName = 'hero' | 'logoStrip' | 'features' | 'textImage' | 'stats' | 'testimonials' | 'pricing' | 'faq' | 'cta' | 'contact'
+type SectionTypeName =
+  | 'hero'
+  | 'logoStrip'
+  | 'features'
+  | 'textImage'
+  | 'stats'
+  | 'testimonials'
+  | 'pricing'
+  | 'video'
+  | 'faq'
+  | 'cta'
+  | 'contact'
 export type _SectionTypesMatch = Assert<
   Section['type'] extends SectionTypeName ? (SectionTypeName extends Section['type'] ? true : false) : false
 >
@@ -44,6 +55,7 @@ describe('section schemas', () => {
       'stats',
       'testimonials',
       'pricing',
+      'video',
       'faq',
       'cta',
       'contact',
@@ -826,5 +838,50 @@ describe('astro integration', () => {
       })
     expect(make(true).success).toBe(true)
     expect(make('yes').success).toBe(false)
+  })
+})
+
+describe('video section', () => {
+  const props = (video: string) => ({ ...sectionRegistry.video.defaults, video })
+
+  it('accepts a file in public/, an https link to a file and the placeholder', () => {
+    for (const video of ['/videos/demo.webm', '/demo.mp4', 'https://cdn.example.com/a/demo.MP4?v=2', 'placeholder']) {
+      expect(sectionRegistry.video.schema.safeParse(props(video)).success, video).toBe(true)
+    }
+  })
+
+  it('refuses page links, other schemes and paths that are not video files', () => {
+    for (const video of [
+      'https://www.youtube.com/watch?v=abc',
+      'https://vimeo.com/123',
+      'javascript:alert(1)//.mp4',
+      '//cdn.example.com/demo.mp4',
+      'videos/demo.webm',
+      '/videos/demo.gif',
+      '/videos/my demo.webm',
+    ]) {
+      const result = sectionRegistry.video.schema.safeParse(props(video))
+      expect(result.success, video).toBe(false)
+      if (!result.success) expect(result.error.issues[0]?.message).toMatch(/\.mp4 or \.webm/)
+    }
+  })
+
+  it('defaults to controls and accepts loop playback', () => {
+    expect(sectionRegistry.video.schema.parse({ video: 'placeholder' }).playback).toBe('controls')
+    expect(sectionRegistry.video.schema.parse({ video: 'placeholder', playback: 'loop' }).playback).toBe('loop')
+    expect(sectionRegistry.video.schema.safeParse({ video: 'placeholder', playback: 'autoplay' }).success).toBe(false)
+    expect(sectionOptions.video.find((option) => option.name === 'playback')).toMatchObject({ type: 'enum', default: 'controls' })
+  })
+})
+
+describe('commands', () => {
+  it('lets the hero show a command and the CTA terminal show output lines', () => {
+    expect(sectionRegistry.hero.schema.parse({ ...sectionRegistry.hero.defaults, command: 'npm create bearminion@latest' }).command).toBe(
+      'npm create bearminion@latest',
+    )
+    const output = ['Installed 12 packages', 'Done in 3s']
+    expect(sectionRegistry.cta.schema.parse({ ...sectionRegistry.cta.defaults, output }).output).toEqual(output)
+    expect(sectionRegistry.cta.schema.safeParse({ ...sectionRegistry.cta.defaults, output: Array(9).fill('line') }).success).toBe(false)
+    expect(sectionRegistry.cta.schema.safeParse({ ...sectionRegistry.cta.defaults, output: [''] }).success).toBe(false)
   })
 })

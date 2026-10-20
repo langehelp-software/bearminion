@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import { defineSection, imageSchema, linkSchema, richTextSchema, withEmphasis } from 'bearminion'
+import { defineSection, imageSchema, linkSchema, richTextSchema, textSchema, withEmphasis } from 'bearminion'
 import { accent, eyebrow, heading } from '../shared'
 import { heroWireframe } from './wireframe'
 
@@ -11,6 +11,8 @@ export const heroSchema = withEmphasis({
   sub: richTextSchema.optional(),
   primary: linkSchema.optional(),
   secondary: linkSchema.optional(),
+  /** A shell command shown with a copy button, such as `npm create bearminion@latest`. */
+  command: textSchema.optional(),
   image: imageSchema.optional(),
 })
 
@@ -31,6 +33,6 @@ export const hero = defineSection({
   },
   variants: heroVariants,
   defaultVariant: 'split',
-  optional: { props: ['eyebrow', 'heading', 'sub', 'primary', 'secondary', 'image'] },
+  optional: { props: ['eyebrow', 'heading', 'sub', 'primary', 'secondary', 'command', 'image'] },
   wireframe: heroWireframe,
 })

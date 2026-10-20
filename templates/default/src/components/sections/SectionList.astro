@@ -16,6 +16,7 @@ const TextImage = sectionComponents.textImage
 const Stats = sectionComponents.stats
 const Testimonials = sectionComponents.testimonials
 const Pricing = sectionComponents.pricing
+const Video = sectionComponents.video
 const Faq = sectionComponents.faq
 const Cta = sectionComponents.cta
 const Contact = sectionComponents.contact
@@ -38,6 +39,8 @@ const Contact = sectionComponents.contact
         return <Testimonials section={section} index={index} motion={motion} />
       case 'pricing':
         return <Pricing section={section} index={index} motion={motion} />
+      case 'video':
+        return <Video section={section} index={index} motion={motion} />
       case 'faq':
         return <Faq section={section} index={index} motion={motion} />
       case 'cta':

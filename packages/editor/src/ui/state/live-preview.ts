@@ -15,6 +15,32 @@ export function affectsSitePreview(path: string): boolean {
   return SITE_PREVIEW_PATH.test(path)
 }
 
+/** What identifies a script: its URL, or its text when it is inline. */
+function scriptKey(script: HTMLScriptElement): string {
+  return script.src || `inline:${script.textContent ?? ''}`
+}
+
+function scriptsOnPage(): Set<string> {
+  return new Set(Array.from(document.scripts, scriptKey))
+}
+
+/**
+ * Scripts set through `innerHTML` never run. A section type that was not on the page until now (one just added, or
+ * a field that now renders a component) brings scripts the page has not loaded, so those are added again as live
+ * elements. Scripts the page already ran are left alone: their code listens for `bearminion:preview` instead.
+ */
+function runNewScripts(root: Element, ran: Set<string>) {
+  for (const inert of root.querySelectorAll('script')) {
+    const key = scriptKey(inert)
+    if (ran.has(key)) continue
+    ran.add(key)
+    const live = document.createElement('script')
+    for (const { name, value } of inert.attributes) live.setAttribute(name, value)
+    live.textContent = inert.textContent
+    inert.replaceWith(live)
+  }
+}
+
 /**
  * Re-renders the page's sections, header and footer on the dev server from the draft, without saving.
  * `onRendered` runs after new markup is in, so the overlay can re-measure.
@@ -34,7 +60,9 @@ export function createLivePreview(doc: DocumentStore, onRendered: () => void) {
     const main = document.querySelector('main#content')
     if (!main) return
     destroyRichEditors()
+    const ran = scriptsOnPage()
     main.innerHTML = result.value.html
+    runNewScripts(main, ran)
     announcePreview()
     onRendered()
   }

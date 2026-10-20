@@ -16,6 +16,7 @@ import { pricing } from './pricing/definition'
 import { stats } from './stats/definition'
 import { testimonials } from './testimonials/definition'
 import { textImage } from './text-image/definition'
+import { video } from './video/definition'
 
 /**
  * Every section type of this site. Each one is defined in its own directory:
@@ -32,6 +33,7 @@ export const sectionDefinitions = {
   stats,
   testimonials,
   pricing,
+  video,
   faq,
   cta,
   contact,

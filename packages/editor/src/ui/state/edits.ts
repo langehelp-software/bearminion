@@ -5,6 +5,14 @@ import { isRecord } from '../shared.js'
 import { type DocumentStore, isPagePath } from './document.js'
 import { affectsSitePreview, type LivePreview } from './live-preview.js'
 
+/**
+ * Text with a `data-field` on the page is updated where it is, as it is typed. A value with no such element, such as a
+ * video link, an `aria-label` or a section option, only reaches the page through a re-render.
+ */
+function shownInPlace(path: string): boolean {
+  return document.querySelector(`[data-field="${CSS.escape(path)}"]`) !== null
+}
+
 /** Every change to the drafts goes through here, so each one also gets the preview it needs. */
 export function createEdits(doc: DocumentStore, preview: LivePreview) {
   /** Edits made before the drafts finished loading. `load` applies them to what it reads. */
@@ -40,7 +48,7 @@ export function createEdits(doc: DocumentStore, preview: LivePreview) {
       return
     }
     doc.setDoc(path, editField(current, path, value))
-    if (isPagePath(path) ? isImageField(path) : affectsSitePreview(path)) previewFor(path)
+    if (isPagePath(path) ? isImageField(path) || !shownInPlace(path) : affectsSitePreview(path)) previewFor(path)
   }
 
   function updatePage(next: PageDraft, withPreview = false) {
