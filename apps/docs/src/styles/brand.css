@@ -1,0 +1,85 @@
+/*
+ * BearMinion branding for Starlight: the template's fonts and its green, adjusted so every text pair passes WCAG AA.
+ * The brand green #169717 is 3.8:1 on white, so text and buttons use #0e7a11 (5.5:1) in the light theme.
+ */
+:root {
+  --sl-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --bm-font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --bm-font-serif: "Instrument Serif", Georgia, serif;
+
+  /* Dark theme, Starlight's default. Links and buttons use the high value (14:1 on the background). */
+  --sl-color-accent-low: #0b2e0c;
+  --sl-color-accent: #2c9a2e;
+  --sl-color-accent-high: #c2f0c2;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #cdeecd;
+  --sl-color-accent: #0e7a11;
+  --sl-color-accent-high: #063d07;
+}
+
+h1#_top,
+.sl-markdown-content :is(h2, h3) {
+  font-family: var(--bm-font-display);
+  letter-spacing: -0.02em;
+}
+
+/* The wordmark in the header (components/SiteTitle.astro), matching the BearMinion logo. */
+.bm-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--sl-color-white);
+  text-decoration: none;
+}
+
+.bm-wordmark img {
+  height: 1.9rem;
+  width: auto;
+  image-rendering: pixelated;
+}
+
+.bm-word {
+  font-size: 1.45rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.bm-word-bear {
+  font-family: var(--bm-font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.bm-word-minion {
+  font-family: var(--bm-font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.16em;
+  letter-spacing: -0.01em;
+}
+
+.bm-docs-label {
+  align-self: center;
+  margin-inline-start: 0.15rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 999px;
+  color: var(--sl-color-gray-2);
+  font-family: var(--sl-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bm-home-link {
+  color: var(--sl-color-gray-2);
+  font-size: var(--sl-text-sm);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.bm-home-link:hover {
+  color: var(--sl-color-white);
+}

@@ -1,0 +1,8 @@
+<!-- The BearMinion bear, a copy of packages/editor/src/ui/assets/bear-mark.svg for the docs logo. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 19" shape-rendering="crispEdges">
+  <title>BearMinion</title>
+  <path fill="#074a08" d="M12 0h1v1h-1zM11 1h2v1h-2zM15 1h1v1h-1zM16 2h1v1h-1zM16 3h1v1h-1zM0 5h1v1h-1zM0 6h2v1h-2zM1 7h2v1h-2zM1 8h2v1h-2zM2 9h1v1h-1zM2 10h2v1h-2zM2 11h2v1h-2zM2 12h3v1h-3zM2 13h3v1h-3zM2 14h4v1h-4zM20 14h1v1h-1zM3 15h4v1h-4zM15 15h2v1h-2zM19 15h1v1h-1zM4 16h5v1h-5zM13 16h6v1h-6zM5 17h12v1h-12zM7 18h7v1h-7z"/>
+  <path fill="#169717" d="M13 0h3v1h-3zM16 1h1v1h-1zM1 2h4v1h-4zM8 2h6v1h-6zM0 3h2v1h-2zM4 3h12v1h-12zM0 4h1v1h-1zM4 4h14v1h-14zM4 5h15v1h-15zM3 6h12v1h-12zM16 6h4v1h-4zM3 7h6v1h-6zM10 7h3v1h-3zM19 7h2v1h-2zM3 8h9v1h-9zM20 8h1v1h-1zM3 9h9v1h-9zM20 9h1v1h-1zM4 10h8v1h-8zM20 10h1v1h-1zM4 11h8v1h-8zM20 11h1v1h-1zM5 12h8v1h-8zM19 12h2v1h-2zM5 13h10v1h-10zM17 13h4v1h-4zM6 14h14v1h-14zM7 15h8v1h-8zM17 15h2v1h-2zM9 16h4v1h-4z"/>
+  <path fill="#eeedf5" d="M13 1h2v1h-2zM14 2h2v1h-2zM2 3h2v1h-2zM1 4h3v1h-3zM1 5h3v1h-3zM2 6h1v1h-1zM13 7h6v1h-6zM12 8h4v1h-4zM19 8h1v1h-1zM12 9h4v1h-4zM19 9h1v1h-1zM12 10h5v1h-5zM18 10h2v1h-2zM12 11h8v1h-8zM13 12h6v1h-6zM15 13h2v1h-2z"/>
+  <path fill="#000000" d="M15 6h1v1h-1zM9 7h1v1h-1zM16 8h3v1h-3zM16 9h3v1h-3zM17 10h1v1h-1z"/>
+</svg>
