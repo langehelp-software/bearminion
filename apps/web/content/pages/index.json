@@ -313,7 +313,9 @@
         },
         "secondary": {
           "href": "https://docs.bearminion.com/",
-          "label": "Read the docs"
+          "label": "Read the docs",
+          "newTab": true,
+          "style": "tertiary"
         }
       },
       "tone": "brand",
