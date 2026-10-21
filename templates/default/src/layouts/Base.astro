@@ -59,7 +59,7 @@ const themeColor = site.theme.mode === 'dark' ? '#1c1e24' : '#f7f8f8'
               { threshold: 0.1 },
             )
       function revealMotion() {
-        document.querySelectorAll('[data-motion="true"]:not([data-revealed])').forEach((node) => {
+        document.querySelectorAll('[data-section-id][data-motion="true"]:not([data-revealed])').forEach((node) => {
           if (!observer) {
             node.setAttribute('data-revealed', 'true')
             return

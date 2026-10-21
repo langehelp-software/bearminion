@@ -29,18 +29,18 @@ This template is yours to change: it is the theme. `bearminion` is the only runt
 
 Organisms are Header, Navigation, MobileMenu, and Footer. A modal, a dialog, and a cookie banner belong in this folder too. They are the chrome around every page (or a standalone widget), and they are fed by `content/site.json`.
 
-Sections are `hero`, `logoStrip`, `features`, `textImage`, `stats`, `testimonials`, `pricing`, `faq`, `cta`, and `contact`. Each page entry is `{ id, anchor?, type, variant, tone, motion?, props }`. `anchor` is an optional lowercase slug, unique on the page, and it becomes the section element's `id`. `data-section-id` stays the section id. `[data-section-id]` sets `scroll-margin-top: 7rem` so a sticky or floating header does not cover the target. `html` uses `scroll-behavior: smooth`, and `prefers-reduced-motion: reduce` forces `scroll-behavior: auto`. Section components are built from molecules and atoms. A section may use an organism when it needs one, such as a modal. The section root carries `data-section-id`, `data-section-type`, `data-variant`, `data-tone`, and `data-motion`. Atoms accept a `class` and forward `data-*` attributes, including `data-field`, so the editor can find the text.
+Sections are `hero`, `logoStrip`, `steps`, `features`, `textImage`, `stats`, `testimonials`, `pricing`, `video`, `media`, `faq`, `cta`, and `contact`. Each page entry is `{ id, anchor?, type, variant, tone, motion?, props }`. `anchor` is an optional lowercase slug, unique on the page, and it becomes the section element's `id`. `data-section-id` stays the section id. `[data-section-id]` sets `scroll-margin-top: 7rem` so a sticky or floating header does not cover the target. `html` uses `scroll-behavior: smooth`, and `prefers-reduced-motion: reduce` forces `scroll-behavior: auto`. Section components are built from molecules and atoms. A section may use an organism when it needs one, such as a modal. The section root carries `data-section-id`, `data-section-type`, `data-variant`, `data-tone`, and `data-motion`. Atoms accept a `class` and forward `data-*` attributes, including `data-field`, so the editor can find the text.
 
-Paragraph fields (`sub`, `intro`, `body`, `description`, `quote`, `note`, `thanks`, and FAQ answers) are markdown. The template renders bold, italic, links, and paragraphs through `bearminion/rich-text`, escapes every other character, and adds `rel="noopener noreferrer"` on `http` and `https` links.
+Paragraph fields (`sub`, `intro`, `body`, `description`, `quote`, `note`, `thanks`, FAQ answers and Text + Image `points`) are markdown. The template renders bold, italic, inline `code` (a mono chip), links, and paragraphs through `bearminion/rich-text`, escapes every other character, and adds `rel="noopener noreferrer"` on `http` and `https` links.
 
 ```text
 src/components/
   atoms/        Typography, Button, Image, LogoMark, Emphasis
-  molecules/    SectionShell, SectionHeader, MediaFrame, Pill
+  molecules/    SectionShell, SectionHeader, MediaFrame, Pill, CommandLine
   organisms/    Header, Navigation, MobileMenu, Footer, plus site-definition.ts (header and footer layouts, limits)
   sections/     one directory per type, plus definitions.ts, registry.ts, shared.ts, SectionList.astro
     hero/         definition.ts (zod schema, defaults, options), wireframe.ts (picker thumbnail), Hero.astro, Hero.stories.ts
-    logo-strip/ features/ text-image/ stats/ testimonials/ pricing/ faq/ cta/ contact/
+    logo-strip/ steps/ features/ text-image/ stats/ testimonials/ pricing/ video/ media/ faq/ cta/ contact/
   seo/          Seo
 ```
 
@@ -196,7 +196,7 @@ The style guide at `/style-guide` renders every typography size and button varia
 
 The page gets a shadow-root overlay. Click text with `data-field` to edit it, and hover a section (`data-section-id`) for add, duplicate, move, and delete. The corner **Editor** button or Ctrl+E / Cmd+E opens the sidebar. Ctrl+S / Cmd+S saves. Escape leaves a field, then closes the add picker or the sidebar. Unsaved edits turn the corner dot amber and trigger a beforeunload warning.
 
-A variant change or a new, duplicated, moved, or deleted section is re-rendered by `POST /__bearminion/api/preview`. The handler validates the draft, renders `SectionList` with Astro's container API inside the Vite SSR runner, and returns HTML. The overlay replaces `main#content`. Nothing is written until save. In dev, an image path under `src/assets/` that is missing from the eager glob is served from `/__bearminion/assets` so a new upload can use a plain `<img>` immediately. When the file is gone, that route returns a Missing image placeholder instead, so the page shows the gap. Production still resolves that path with `import.meta.glob` and Astro `<Image>`, and still throws if the file is missing; the editor's save validation keeps content from pointing at a missing file.
+A variant change, a new, duplicated, moved, or deleted section, and a sidebar value with no text of its own on the page (such as a video link) are re-rendered by `POST /__bearminion/api/preview`. The handler validates the draft, renders `SectionList` with Astro's container API inside the Vite SSR runner, and returns HTML. The overlay replaces `main#content` and runs scripts the page had not loaded, so a section type added from the picker works at once. A section script binds on load and again on the `bearminion:preview` event, and marks what it bound so it never binds twice. Nothing is written until save. In dev, an image path under `src/assets/` that is missing from the eager glob is served from `/__bearminion/assets` so a new upload can use a plain `<img>` immediately. When the file is gone, that route returns a Missing image placeholder instead, so the page shows the gap. Production still resolves that path with `import.meta.glob` and Astro `<Image>`, and still throws if the file is missing; the editor's save validation keeps content from pointing at a missing file.
 
 Header links nest up to three levels (`MAX_NAV_DEPTH`). Desktop navigation uses hover and focus flyouts. The mobile menu uses an accordion. The link picker lists pages, `#anchor` on the current page, `/page#anchor` on other pages, and a custom URL.
 

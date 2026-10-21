@@ -1,4 +1,7 @@
-# Astro integration and package
+---
+title: Astro integration and package
+description: "The bearminion package entry points, the Astro integration options, custom content stores and how the package is built."
+---
 
 The package's entry points, the integration options, the storage interface and how the package is built.
 

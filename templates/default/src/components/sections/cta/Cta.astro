@@ -109,7 +109,7 @@ const bandSecondary = props.secondary ? buttonVariant(props.secondary, 'secondar
   }
   {
     section.variant === 'terminal' && (
-      <div class="section-container grid items-center gap-10 @min-[880px]:grid-cols-[minmax(22rem,1fr)_minmax(0,1fr)]" data-cta>
+      <div class="section-container grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] items-center gap-[clamp(2.5rem,6cqi,5rem)]" data-cta>
         {
           (props.heading || props.body || hasActions) && (
             <div class="flex flex-col items-start gap-6">
@@ -136,20 +136,43 @@ const bandSecondary = props.secondary ? buttonVariant(props.secondary, 'secondar
             </div>
           )
         }
-        <div class="rounded-panel bg-fg p-6 text-bg">
-          <div class="mb-4 flex items-center justify-between">
-            <span class="font-mono text-[0.6875rem] tracking-[0.08em] text-bg/60 uppercase">terminal</span>
+        {/* A dark terminal in every tone, like the one on your machine. Nothing to print, no terminal. */}
+        {(props.command || (props.output ?? []).length > 0) && (<div class="overflow-hidden rounded-[1.25rem] bg-[oklch(0.17_0.012_255)] text-[oklch(0.93_0.004_250)] shadow-[0_0_0_1px_oklch(0.97_0.004_250/0.08),0_40px_80px_-40px_oklch(0.15_0.02_255/0.6)]">
+          <div class="flex items-center justify-between border-b border-[oklch(0.97_0.004_250/0.08)] py-3 ps-4 pe-3">
+            <div class="flex gap-1.5" aria-hidden="true">
+              <span class="size-2.5 rounded-full bg-[oklch(0.97_0.004_250/0.18)]" />
+              <span class="size-2.5 rounded-full bg-[oklch(0.97_0.004_250/0.18)]" />
+              <span class="size-2.5 rounded-full bg-[oklch(0.97_0.004_250/0.18)]" />
+            </div>
             {props.command && (
-              <button type="button" data-copy class="font-mono text-[0.75rem] text-accent" data-command={props.command}>
+              <button
+                type="button"
+                data-copy
+                class="h-[1.875rem] rounded-full bg-[oklch(0.97_0.004_250/0.08)] px-3 text-[0.75rem] font-medium transition-colors hover:bg-[oklch(0.97_0.004_250/0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[oklch(0.87_0.2_145)]"
+                aria-label="Copy command"
+                data-command={props.command}
+              >
                 <span data-copy-label>Copy</span>
               </button>
             )}
           </div>
-          <pre class="font-mono text-[0.8125rem] leading-[1.7] whitespace-pre-wrap text-bg/90"><code>{`$ ${props.command ?? ''}
-# pages live in content/pages
-# site chrome lives in content/site.json
-# production is the static build`}</code></pre>
-        </div>
+          <ol class="flex flex-col gap-2.5 overflow-x-auto px-5 pt-5 pb-6 font-mono text-[clamp(0.75rem,0.7rem+0.2cqi,0.875rem)] leading-[1.6]">
+            {props.command && (
+              <li class="flex gap-3 whitespace-pre">
+                <span class="text-[oklch(0.87_0.2_145)] select-none" aria-hidden="true">$</span>
+                <span data-terminal-command data-field={field('command')}>{props.command}</span>
+              </li>
+            )}
+            {(props.output ?? []).map((line, lineIndex) => (
+              <li class="flex gap-3 whitespace-pre">
+                <span class="min-w-[1ch] text-[oklch(0.87_0.2_145)] select-none" aria-hidden={line.prompt ? undefined : 'true'} data-field={line.prompt ? field(`output.${lineIndex}.prompt`) : undefined}>
+                  {line.prompt ?? ' '}
+                </span>
+                <span class="text-[oklch(0.93_0.004_250/0.45)]" data-field={field(`output.${lineIndex}.text`)}>{line.text}</span>
+              </li>
+            ))}
+          </ol>
+        </div>)}
       </div>
     )
   }
@@ -163,7 +186,9 @@ const bandSecondary = props.secondary ? buttonVariant(props.secondary, 'secondar
     const label = button.querySelector('[data-copy-label]')
     const original = label?.textContent ?? 'Copy'
     button.addEventListener('click', async () => {
-      const command = button.dataset.command ?? ''
+      // The command as it is on the page now, so an edit made in the editor is what gets copied.
+      const shown = button.closest('[data-cta]')?.querySelector('[data-terminal-command]')?.textContent?.trim()
+      const command = shown || button.dataset.command || ''
       try {
         await navigator.clipboard.writeText(command)
       } catch {

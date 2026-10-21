@@ -4,6 +4,8 @@ import Button from '../../atoms/Button.astro'
 import { buttonLinkProps, buttonVariant } from '../../../lib/link-attrs'
 import Emphasis from '../../atoms/Emphasis.astro'
 import Typography from '../../atoms/Typography.astro'
+import CommandLine from '../../molecules/CommandLine.astro'
+import HeroBadge from './HeroBadge.astro'
 import MediaFrame from '../../molecules/MediaFrame.astro'
 import Pill from '../../molecules/Pill.astro'
 import SectionShell from '../../molecules/SectionShell.astro'
@@ -18,16 +20,34 @@ const { section, index, motion = true } = Astro.props
 const props = section.props
 const field = (path: string) => `sections.${index}.props.${path}`
 const reveal = section.motion ?? motion
-const hasActions = Boolean(props.primary || props.secondary)
+const primary = props.button ? props.primary : undefined
+const command = props.code !== 'off' ? props.command : undefined
+// `action` puts the command in the button row, in the secondary button's place.
+const action = props.code === 'action' ? command : undefined
+const secondary = action ? undefined : props.secondary
+const below = props.code === 'chip' || props.code === 'terminal' ? command : undefined
+const belowVariant = props.code === 'terminal' ? 'terminal' : 'chip'
+const hasActions = Boolean(primary || secondary || action)
 const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor beside live page preview' }
 ---
 
 <SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
   {
+    // Centred on the heading and faded out well before the edges, so it never meets the section above in a seam.
+    props.glow && (
+      <div
+        class="pointer-events-none absolute inset-0"
+        style="background: radial-gradient(ellipse 70% 60% at 50% 36%, color-mix(in oklch, var(--accent) var(--hero-glow, 20%), transparent), transparent 72%)"
+        aria-hidden="true"
+        data-hero-glow
+      />
+    )
+  }
+  {
     section.variant === 'split' && (
-      <div class="mx-auto grid max-w-[80rem] grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] items-center gap-[clamp(2.5rem,5cqi,5rem)] px-[clamp(1.25rem,4cqi,3rem)] py-[clamp(3.5rem,2rem+5cqi,7rem)]">
+      <div class="relative mx-auto grid max-w-[80rem] grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] items-center gap-[clamp(2.5rem,5cqi,5rem)] px-[clamp(1.25rem,4cqi,3rem)] py-[clamp(3.5rem,2rem+5cqi,7rem)]">
         <div class="flex flex-col items-start gap-6">
-          {props.eyebrow && <Pill data-field={field('eyebrow')}>{props.eyebrow}</Pill>}
+          {props.badge ? <HeroBadge badge={props.badge} field={field} /> : props.eyebrow && <Pill data-field={field('eyebrow')}>{props.eyebrow}</Pill>}
           {
             props.heading && (
               <Typography as="h1" size="display">
@@ -39,19 +59,21 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
           {
             hasActions && (
               <div class="mt-2 flex flex-wrap gap-2.5">
-                {props.primary && (
-                  <Button {...buttonLinkProps(props.primary)} variant={buttonVariant(props.primary, 'primary')} arrow data-field={field('primary.label')}>
-                    {props.primary.label}
+                {primary && (
+                  <Button {...buttonLinkProps(primary)} variant={buttonVariant(primary, 'primary')} arrow data-field={field('primary.label')}>
+                    {primary.label}
                   </Button>
                 )}
-                {props.secondary && (
-                  <Button {...buttonLinkProps(props.secondary)} variant={buttonVariant(props.secondary, 'secondary')} data-field={field('secondary.label')}>
-                    {props.secondary.label}
+                {secondary && (
+                  <Button {...buttonLinkProps(secondary)} variant={buttonVariant(secondary, 'secondary')} data-field={field('secondary.label')}>
+                    {secondary.label}
                   </Button>
                 )}
+                {action && <CommandLine command={action} variant="action" data-field={field('command')} />}
               </div>
             )
           }
+          {below && <CommandLine command={below} variant={belowVariant} data-field={field('command')} />}
         </div>
         {!props.image?.hidden && (
 <MediaFrame src={media.src} alt={media.alt} aspectClass="aspect-[4/3.4]" fit={media?.fit} position={media?.position} data-field={field('image.alt')} priority />
@@ -61,8 +83,8 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
   }
   {
     section.variant === 'centered' && (
-      <div class="mx-auto flex max-w-[80rem] flex-col items-center gap-6 px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(4rem,2rem+6cqi,8rem)] pb-[clamp(3rem,2rem+4cqi,6rem)] text-center">
-        {props.eyebrow && <Pill data-field={field('eyebrow')}>{props.eyebrow}</Pill>}
+      <div class="relative mx-auto flex max-w-[80rem] flex-col items-center gap-6 px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(4rem,2rem+6cqi,8rem)] pb-[clamp(5rem,3rem+7cqi,10rem)] text-center">
+        {props.badge ? <HeroBadge badge={props.badge} field={field} /> : props.eyebrow && <Pill data-field={field('eyebrow')}>{props.eyebrow}</Pill>}
         {
           props.heading && (
             <Typography as="h1" size="display-center">
@@ -74,19 +96,21 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
         {
           hasActions && (
             <div class="mt-2 flex flex-wrap justify-center gap-2.5">
-              {props.primary && (
-                <Button {...buttonLinkProps(props.primary)} variant={buttonVariant(props.primary, 'primary')} arrow data-field={field('primary.label')}>
-                  {props.primary.label}
+              {primary && (
+                <Button {...buttonLinkProps(primary)} variant={buttonVariant(primary, 'primary')} arrow data-field={field('primary.label')}>
+                  {primary.label}
                 </Button>
               )}
-              {props.secondary && (
-                <Button {...buttonLinkProps(props.secondary)} variant={buttonVariant(props.secondary, 'secondary')} data-field={field('secondary.label')}>
-                  {props.secondary.label}
+              {secondary && (
+                <Button {...buttonLinkProps(secondary)} variant={buttonVariant(secondary, 'secondary')} data-field={field('secondary.label')}>
+                  {secondary.label}
                 </Button>
               )}
+              {action && <CommandLine command={action} variant="action" data-field={field('command')} />}
             </div>
           )
         }
+        {below && <CommandLine command={below} variant={belowVariant} data-field={field('command')} class="mt-1" />}
         {!props.image?.hidden && (
 <MediaFrame
           src={media.src}
@@ -103,7 +127,7 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
   }
   {
     section.variant === 'editorial' && (
-      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(3.5rem,2rem+5cqi,7rem)] pb-[clamp(2.5rem,2rem+3cqi,5rem)]">
+      <div class="relative mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(3.5rem,2rem+5cqi,7rem)] pb-[clamp(2.5rem,2rem+3cqi,5rem)]">
         {
           props.eyebrow && (
             <Typography as="p" size="eyebrow" color="muted" data-field={field('eyebrow')}>
@@ -119,21 +143,27 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
           )
         }
         {
-          (props.sub || hasActions) && (
+          (props.sub || hasActions || below) && (
             <div class="mt-[clamp(2rem,4cqi,3.5rem)] flex flex-wrap items-end justify-between gap-x-12 gap-y-6 border-t border-[var(--line)] pt-6">
               {props.sub && <Typography as="p" size="lead" color="muted" data-field={field('sub')} class="max-w-xl flex-[1_1_22rem]" markdown={props.sub} />}
-              {hasActions && (
-                <div class="flex flex-wrap gap-2.5">
-                  {props.secondary && (
-                    <Button {...buttonLinkProps(props.secondary)} variant={buttonVariant(props.secondary, 'secondary')} data-field={field('secondary.label')}>
-                      {props.secondary.label}
-                    </Button>
+              {(hasActions || below) && (
+                <div class="flex flex-col items-start gap-4">
+                  {hasActions && (
+                    <div class="flex flex-wrap items-center gap-2.5">
+                      {action && <CommandLine command={action} variant="action" data-field={field('command')} />}
+                      {secondary && (
+                        <Button {...buttonLinkProps(secondary)} variant={buttonVariant(secondary, 'secondary')} data-field={field('secondary.label')}>
+                          {secondary.label}
+                        </Button>
+                      )}
+                      {primary && (
+                        <Button {...buttonLinkProps(primary)} variant={buttonVariant(primary, 'primary')} arrow data-field={field('primary.label')}>
+                          {primary.label}
+                        </Button>
+                      )}
+                    </div>
                   )}
-                  {props.primary && (
-                    <Button {...buttonLinkProps(props.primary)} variant={buttonVariant(props.primary, 'primary')} arrow data-field={field('primary.label')}>
-                      {props.primary.label}
-                    </Button>
-                  )}
+                  {below && <CommandLine command={below} variant={belowVariant} data-field={field('command')} />}
                 </div>
               )}
             </div>

@@ -12,7 +12,8 @@
       "!**/pnpm-lock.yaml",
       "!**/*.astro",
       "!**/test/fixtures/invalid",
-      "!templates/*/content"
+      "!templates/*/content",
+      "!apps/web/content"
     ]
   },
   "formatter": {

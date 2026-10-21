@@ -12,10 +12,13 @@ import { faq } from './faq/definition'
 import { features } from './features/definition'
 import { hero } from './hero/definition'
 import { logoStrip } from './logo-strip/definition'
+import { media } from './media/definition'
 import { pricing } from './pricing/definition'
 import { stats } from './stats/definition'
+import { steps } from './steps/definition'
 import { testimonials } from './testimonials/definition'
 import { textImage } from './text-image/definition'
+import { video } from './video/definition'
 
 /**
  * Every section type of this site. Each one is defined in its own directory:
@@ -27,11 +30,14 @@ import { textImage } from './text-image/definition'
 export const sectionDefinitions = {
   hero,
   logoStrip,
+  steps,
   features,
   textImage,
   stats,
   testimonials,
   pricing,
+  video,
+  media,
   faq,
   cta,
   contact,

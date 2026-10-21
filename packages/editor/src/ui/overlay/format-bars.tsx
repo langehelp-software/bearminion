@@ -32,7 +32,7 @@ function formatRich({ ui, richTarget }: Editor, event: MouseEvent, command: Rich
   richTarget.current?.run(command, command === 'link' ? ui.linkUrl.peek().trim() : undefined)
 }
 
-/** Bold, italic, lists and links for the rich-text field being edited. */
+/** Bold, italic, code, lists and links for the rich-text field being edited. */
 export function RichTextBar() {
   const editor = useEditor()
   const { ui } = editor
@@ -61,6 +61,16 @@ export function RichTextBar() {
         onMouseDown={run('italic')}
       >
         I
+      </button>
+      <button
+        type="button"
+        class="bm-fmt-code"
+        aria-label="Code"
+        title="Code"
+        aria-pressed={active?.code === true}
+        onMouseDown={run('code')}
+      >
+        {'</>'}
       </button>
       <button
         type="button"

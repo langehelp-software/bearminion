@@ -8,6 +8,7 @@ export type { SectionConfig, SectionDefinition } from './define-section.js'
 export { defineWireframe, wireKinds, wireframeIssues } from './wireframe.js'
 export type { WireKind, WireRect, Wireframe } from './wireframe.js'
 export type { OptionalContent } from './section-optional.js'
+export type { FieldChoices, FieldIcons, ShowCondition, ShowWhen } from './field-rules.js'
 
 export { ContentError, ContentReadError, ContentValidationError } from './errors.js'
 export type { ContentIssue } from './errors.js'

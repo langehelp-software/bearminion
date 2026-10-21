@@ -1,0 +1,115 @@
+---
+import type { Section } from '../definitions'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+import MediaPlayer from './MediaPlayer.astro'
+import { parseMediaSource } from './source'
+
+interface Props {
+  section: Extract<Section, { type: 'media' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const intro = props.intro && Boolean(props.eyebrow || props.heading || props.body)
+const filled = props.kind === 'video' ? Boolean(props.video && parseMediaSource(props.video)) : Boolean(props.image?.src && props.image.src !== 'placeholder' && !props.image.hidden)
+// A built site leaves out an empty frame, and with no heading either, the whole section.
+const showFrame = filled || import.meta.env.DEV
+const rendered = showFrame || intro
+const player = {
+  kind: props.kind,
+  aspect: props.aspect,
+  video: props.video,
+  poster: props.poster,
+  image: props.image,
+  label: props.label,
+  imageField: field('image.alt'),
+}
+---
+
+{rendered && (<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  {
+    section.variant === 'centered' && (
+      <div
+        class:list={[
+          'mx-auto flex max-w-[80rem] flex-col items-center gap-5 px-[clamp(1.25rem,4cqi,3rem)] pb-[clamp(4rem,2rem+6cqi,8rem)] text-center',
+          intro && 'pt-[clamp(4rem,2rem+6cqi,8rem)]',
+        ]}
+      >
+        {intro && (
+          <SectionHeader
+            eyebrow={props.eyebrow}
+            heading={props.heading}
+            marks={props.marks}
+            intro={props.body}
+            introField="body"
+            align="center"
+            size="h2-md"
+            field={field}
+            headingClass="max-w-[20ch]"
+            class="gap-5"
+          />
+        )}
+        {showFrame && (<figure class:list={['flex w-full flex-col gap-3', intro ? 'mt-[clamp(1.5rem,3cqi,2.5rem)] max-w-[56rem]' : 'max-w-[68rem]']}>
+          <MediaPlayer {...player} />
+          {props.caption && (
+            <Typography as="figcaption" size="small" color="muted" data-field={field('caption')}>
+              {props.caption}
+            </Typography>
+          )}
+        </figure>)}
+      </div>
+    )
+  }
+  {
+    section.variant === 'wide' && (
+      <div class="section-container flex flex-col gap-[clamp(2rem,4cqi,3.5rem)]">
+        {intro && (
+          <div class="flex flex-wrap items-end justify-between gap-x-12 gap-y-5">
+            <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} headingClass="max-w-[16ch]" class="flex-[1_1_24rem] gap-5" />
+            {props.body && <Typography as="p" size="lead" color="muted" data-field={field('body')} class="flex-[0_1_26rem]" markdown={props.body} />}
+          </div>
+        )}
+        {showFrame && (<figure class="flex flex-col gap-3">
+          <MediaPlayer {...player} />
+          {props.caption && (
+            <Typography as="figcaption" size="small" color="muted" data-field={field('caption')}>
+              {props.caption}
+            </Typography>
+          )}
+        </figure>)}
+      </div>
+    )
+  }
+  {
+    section.variant === 'split' && (
+      <div class="section-container grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] items-center gap-[clamp(2.5rem,5cqi,5rem)]">
+        {intro && (
+          <SectionHeader
+            eyebrow={props.eyebrow}
+            heading={props.heading}
+            marks={props.marks}
+            intro={props.body}
+            introField="body"
+            size="h2-md"
+            field={field}
+            class="gap-5"
+          />
+        )}
+        {showFrame && (<figure class:list={['flex flex-col gap-3', !intro && 'col-span-full']}>
+          <MediaPlayer {...player} />
+          {props.caption && (
+            <Typography as="figcaption" size="small" color="muted" data-field={field('caption')}>
+              {props.caption}
+            </Typography>
+          )}
+        </figure>)}
+      </div>
+    )
+  }
+</SectionShell>)}

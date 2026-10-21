@@ -103,8 +103,12 @@ describe('editor overlay', () => {
     await page.getByRole('menuitem', { name: 'Add below' }).click()
     await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Call to action' }).click()
     await page.locator('[data-section-id="cta-2"]').waitFor()
+    // Wait for the reload itself: the page before it already has data-bearminion-ready, so a click right after
+    // the save can land on that page and be lost when it reloads.
+    const reloadedAgain = page.waitForEvent('load')
     await page.keyboard.press('Control+s')
     await waitFor(() => fs.readFileSync(indexPath, 'utf8').includes('"id": "cta-2"'), 'added section missing from index.json')
+    await reloadedAgain
     // The sidebar can stay open across the save reload, so wait for the editor itself, not its button.
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
 
@@ -144,7 +148,7 @@ describe('editor overlay', () => {
     await page.getByRole('textbox', { name: /^Anchor/ }).fill('top')
     await page.locator('#top').waitFor()
     expect(await page.locator('#top').getAttribute('data-section-id')).toBe('hero')
-    await page.getByLabel('Variant').selectOption('centered')
+    await choose(page, 'Variant', 'Centered')
     await page.locator('[data-section-id="hero"] .text-center').waitFor()
     expect(navigated).toBe(false)
     await shot(page, 'variant_after.png')
@@ -162,6 +166,10 @@ describe('editor overlay', () => {
     // The starter's first header link has one child, "How it works".
     // Hidden until hover, so a CSS locator: getByRole skips hidden links.
     const nested = desktopNav.locator('a', { hasText: 'How it works' })
+    // Wait rather than count once: the test before this one saves, and the dev server may still be settling.
+    await nested.waitFor({ state: 'attached', timeout: 15_000 }).catch(async () => {
+      throw new Error(`No "How it works" link in the header nav. The nav was:\n${await desktopNav.innerHTML().catch(() => '(no nav)')}`)
+    })
     expect(await nested.count()).toBe(1)
     await desktopNav.getByRole('link', { name: /^Features/ }).hover()
     await nested.waitFor({ state: 'visible' })
@@ -591,9 +599,13 @@ describe('editor overlay', () => {
     await page.keyboard.press('Enter')
     await page.keyboard.type('Beta')
     await expectList(sub, 'Alpha', 'Beta')
+    // A save reloads the page. Wait for that reload, or the paste below lands on the page it replaces.
+    const reloaded = page.waitForEvent('load')
     await page.keyboard.press('Control+s')
     const indexPath = path.join(contentDir, 'pages', 'index.json')
     await waitFor(() => fs.readFileSync(indexPath, 'utf8').includes('- Alpha'), 'bullet list was not saved')
+    await reloaded
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
     await page.locator('[data-section-id="hero"] ul li', { hasText: 'Alpha' }).waitFor()
     await page.locator('[data-section-id="hero"] ul li', { hasText: 'Beta' }).waitFor()
 
@@ -978,6 +990,203 @@ describe('editor overlay', () => {
     await page.close()
   }, 90_000)
 
+  it('adds a video section as an empty frame and plays the file linked in its settings', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await openClean(page)
+    const toolbar = page.getByRole('toolbar', { name: 'Section' })
+    await page.locator('[data-section-id="hero"]').click({ position: { x: 24, y: 80 } })
+    await toolbar.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Add below' }).click()
+    await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Video', exact: true }).click()
+    const section = page.locator('[data-section-id="video"]')
+    const empty = section.getByText('Add a video link in the section settings')
+    await empty.waitFor()
+    expect(await section.locator('video').count()).toBe(0)
+
+    // The frame's middle: the section's top edge can sit under the sticky header, depending on what is above it.
+    await empty.click()
+    // A click selects the section; the sidebar may already be open on it, otherwise Settings opens it.
+    const form = page.locator('[data-editor-field="section:video"]')
+    if (!(await form.isVisible())) await toolbar.getByRole('button', { name: 'Settings', exact: true }).click()
+    await form.waitFor()
+    await page.getByLabel('Video', { exact: true }).fill('/videos/demo.webm')
+    const video = section.locator('video')
+    await video.waitFor({ state: 'attached' })
+    expect(await video.getAttribute('src')).toBe('/videos/demo.webm')
+    expect(await video.getAttribute('aria-label')).toBe('Product walkthrough')
+    expect(await video.evaluate((node) => (node as HTMLVideoElement).controls)).toBe(true)
+
+    // A looping video is muted and bound by the page script, which takes its controls away while it plays. The file
+    // here does not exist, so play() fails once it is on screen and the controls come back; that is not checked.
+    await choose(page, 'Playback', 'Loop')
+    await section.locator('video[data-video-loop]').waitFor({ state: 'attached' })
+    await page.waitForFunction(() => {
+      const node = document.querySelector('[data-section-id="video"] video')
+      return node instanceof HTMLVideoElement && node.muted && node.loop && node.dataset.bound === 'true'
+    })
+    expect(errors, logs).toEqual([])
+    await page.close()
+  }, 60_000)
+
+  it('shows the hero command in the chosen style, hides the primary button, and copies the command', async () => {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+      permissions: ['clipboard-read', 'clipboard-write'],
+    })
+    const page = await context.newPage()
+    await openClean(page)
+    const hero = page.locator('[data-section-id="hero"]')
+    expect(await hero.locator('[data-command-line]').count()).toBe(0)
+    await hero.click({ position: { x: 24, y: 80 } })
+    await page.getByRole('toolbar', { name: 'Section' }).getByRole('button', { name: 'Settings', exact: true }).click()
+    await page.locator('[data-editor-field="section:hero"]').waitFor()
+    // While the style is Off the command is not used, so its field is hidden.
+    expect(await page.getByRole('textbox', { name: /^Command/ }).count()).toBe(0)
+
+    await choose(page, 'Install command', 'Action')
+    await page.getByRole('textbox', { name: /^Command/ }).fill('npm create bearminion@latest')
+    const line = hero.locator('[data-command-line]')
+    await line.waitFor()
+    expect(await line.locator('[data-command]').innerText()).toBe('npm create bearminion@latest')
+    // `action` takes the secondary button's place in the row.
+    await hero.locator('[data-field="sections.0.props.secondary.label"]').waitFor({ state: 'detached' })
+    expect(await hero.locator('[data-field="sections.0.props.primary.label"]').count()).toBe(1)
+    expect(await page.getByRole('button', { name: /^Edit link: Primary/ }).count()).toBe(1)
+    await page.getByRole('switch', { name: 'Primary button' }).uncheck()
+    await hero.locator('[data-field="sections.0.props.primary.label"]').waitFor({ state: 'detached' })
+    expect(await page.getByRole('button', { name: /^Edit link: Primary/ }).count()).toBe(0)
+
+    await choose(page, 'Install command', 'Terminal')
+    await hero.getByText('Terminal', { exact: true }).waitFor()
+    await hero.locator('[data-field="sections.0.props.secondary.label"]').waitFor()
+
+    // While editing, a click on the page selects what is under it; in preview the button works as on the live site.
+    await page.getByRole('button', { name: 'Preview', exact: true }).click()
+    await page.getByRole('button', { name: 'Exit preview' }).waitFor()
+    await line.getByRole('button', { name: 'Copy command' }).click()
+    await line.getByText('Copied', { exact: true }).waitFor()
+    expect(await line.locator('[role="status"]').innerText()).toBe('Command copied')
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('npm create bearminion@latest')
+    await context.close()
+  }, 60_000)
+
+  it('adds a Media section and plays a YouTube link only after the visitor presses play', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    const thirdParty: string[] = []
+    // Nothing is fetched from YouTube in the test: requests are recorded and refused.
+    await page.route(/youtube|ytimg/, (route) => {
+      thirdParty.push(route.request().url())
+      return route.abort()
+    })
+    await openClean(page)
+    const toolbar = page.getByRole('toolbar', { name: 'Section' })
+    await page.locator('[data-section-id="hero"]').click({ position: { x: 24, y: 80 } })
+    await toolbar.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Add below' }).click()
+    await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Media', exact: true }).click()
+    const section = page.locator('[data-section-id="media"]')
+    const empty = section.getByText('Add a video link in the section settings')
+    await empty.waitFor()
+
+    await empty.click()
+    const form = page.locator('[data-editor-field="section:media"]')
+    if (!(await form.isVisible())) await toolbar.getByRole('button', { name: 'Settings', exact: true }).click()
+    await form.waitFor()
+    await page.getByRole('textbox', { name: /^Video/ }).fill('https://youtu.be/abcdefghijk')
+    const play = section.getByRole('button', { name: 'Play video: Product walkthrough' })
+    await play.waitFor()
+    expect(await section.locator('iframe').count()).toBe(0)
+    expect(await section.locator('img').getAttribute('src')).toBe('https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg')
+
+    await page.getByRole('button', { name: 'Preview', exact: true }).click()
+    await page.getByRole('button', { name: 'Exit preview' }).waitFor()
+    expect(thirdParty.some((url) => url.includes('youtube-nocookie'))).toBe(false)
+    await play.click()
+    const iframe = section.locator('iframe')
+    await iframe.waitFor({ state: 'attached' })
+    expect(await iframe.getAttribute('src')).toBe('https://www.youtube-nocookie.com/embed/abcdefghijk?autoplay=1&rel=0')
+    expect(await iframe.getAttribute('title')).toBe('Product walkthrough')
+    expect(errors, logs).toEqual([])
+    await page.close()
+  }, 60_000)
+
+  it('shows only the Media fields the chosen type uses', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    await openClean(page)
+    const toolbar = page.getByRole('toolbar', { name: 'Section' })
+    await page.locator('[data-section-id="hero"]').click({ position: { x: 24, y: 80 } })
+    await toolbar.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Add below' }).click()
+    await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Media', exact: true }).click()
+    const section = page.locator('[data-section-id="media"]')
+    await section.getByText('Add a video link in the section settings').click()
+    const form = page.locator('[data-editor-field="section:media"]')
+    if (!(await form.isVisible())) await toolbar.getByRole('button', { name: 'Settings', exact: true }).click()
+    await form.waitFor()
+    const videoField = page.getByRole('textbox', { name: /^Video/ })
+    await videoField.waitFor()
+    const poster = form.locator('.bm-label-text', { hasText: /^Poster$/ })
+    expect(await poster.count()).toBe(1)
+
+    await choose(page, 'Type', 'Image')
+    await videoField.waitFor({ state: 'detached' })
+    expect(await poster.count()).toBe(0)
+    await form.locator('.bm-label-text', { hasText: /^Image$/ }).waitFor()
+    await shot(page, 'media_fields_image.png')
+
+    await page.getByRole('switch', { name: 'Show heading' }).uncheck()
+    await page.getByRole('textbox', { name: /^Eyebrow/ }).waitFor({ state: 'detached' })
+    await choose(page, 'Type', 'Video')
+    await videoField.waitFor()
+    await page.close()
+  }, 60_000)
+
+  it('adds a Steps section and renders code typed in backticks as a chip', async () => {
+    // Tall enough that the new section's text, and the format bar under it, are on screen.
+    const page = await browser.newPage({ viewport: { width: 1280, height: 1400 } })
+    await openClean(page)
+    const toolbar = page.getByRole('toolbar', { name: 'Section' })
+    await page.locator('[data-section-id="hero"]').click({ position: { x: 24, y: 80 } })
+    await toolbar.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Add below' }).click()
+    await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Steps', exact: true }).click()
+    const section = page.locator('[data-section-id="steps"]')
+    await section.locator('ol > li').nth(2).waitFor()
+    expect(await section.locator('ol > li').count()).toBe(3)
+
+    const text = section.locator('[data-field="sections.1.props.steps.0.description"]')
+    await text.click()
+    // Select "reader does" at the end of "Name the first thing the reader does." and mark it as code. End does not
+    // move the caret in Chrome on macOS; Cmd+Right is the end of the line there.
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End')
+    await page.keyboard.press('ArrowLeft')
+    for (let step = 0; step < 11; step += 1) await page.keyboard.press('Shift+ArrowLeft')
+    await page.getByRole('button', { name: 'Code', exact: true }).click()
+    await text.locator('code', { hasText: 'reader does' }).waitFor()
+    await page.waitForFunction(() =>
+      Object.keys(localStorage).some(
+        (key) => key.includes(':page:') && (localStorage.getItem(key)?.includes('the `reader does`.') ?? false),
+      ),
+    )
+
+    // Step icons are picked from a grid, and the page redraws the icon.
+    await toolbar.getByRole('button', { name: 'Settings', exact: true }).click()
+    const form = page.locator('[data-editor-field="section:steps"]')
+    await form.waitFor()
+    await form.locator('details.bm-array-item summary').first().click()
+    const picker = form.getByRole('radiogroup', { name: 'Icon' }).first()
+    expect(await picker.getByRole('radio', { checked: true }).getAttribute('aria-label')).toBe('Cursor')
+    const terminal = await picker.getByRole('radio', { name: 'Terminal' }).locator('path').getAttribute('d')
+    await picker.getByRole('radio', { name: 'Terminal' }).click()
+    await section.locator(`ol > li:first-child path[d="${terminal}"]`).waitFor()
+    await shot(page, 'steps_icon_picker.png')
+    await page.close()
+  }, 60_000)
+
   it('renames a page and saves its edits in one request', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await page.goto(`http://127.0.0.1:${port}/preview`, { waitUntil: 'networkidle' })
@@ -992,7 +1201,8 @@ describe('editor overlay', () => {
     await page.keyboard.press('Control+s')
     const pagesDir = path.join(contentDir, 'pages')
     await waitFor(() => fs.existsSync(path.join(pagesDir, 'preview-renamed.json')), 'renamed page file missing')
-    expect(fs.existsSync(path.join(pagesDir, 'preview.json'))).toBe(false)
+    // The new file is written before the old one is removed.
+    await waitFor(() => !fs.existsSync(path.join(pagesDir, 'preview.json')), 'old page file still there after the rename')
     expect(JSON.parse(fs.readFileSync(path.join(pagesDir, 'preview-renamed.json'), 'utf8')).title).toBe('Preview renamed')
     expect(saves.filter((pathname) => !pathname.endsWith('/preview') && !pathname.endsWith('/preview/site'))).toEqual([
       '/__bearminion/api/save',
@@ -1023,6 +1233,11 @@ async function openClean(page: Page): Promise<void> {
 }
 
 /** The Advanced row opens by itself when the link has an ID or a non-default style; open it only if it is still shut. */
+/** Picks one option of a segmented control or icon picker in the sidebar. */
+async function choose(page: Page, group: string, option: string): Promise<void> {
+  await page.getByRole('radiogroup', { name: group, exact: true }).getByRole('radio', { name: option, exact: true }).click()
+}
+
 async function openAdvanced(dialog: ReturnType<Page['locator']>): Promise<void> {
   const toggle = dialog.getByRole('button', { name: 'Advanced' })
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()

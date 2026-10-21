@@ -1,0 +1,116 @@
+{
+  "brandLogo": {
+    "alt": "BearMinion",
+    "height": 32,
+    "src": "src/assets/uploads/logo.png"
+  },
+  "favicon": {
+    "alt": "",
+    "src": "src/assets/uploads/favicon.png"
+  },
+  "footer": {
+    "badge": "Built with BearMinion",
+    "columns": [
+      {
+        "links": [
+          {
+            "href": "https://docs.bearminion.com/getting-started/",
+            "label": "Getting started"
+          },
+          {
+            "href": "https://docs.bearminion.com/",
+            "label": "Docs"
+          },
+          {
+            "href": "https://docs.bearminion.com/editor/",
+            "label": "Using the editor"
+          }
+        ],
+        "title": "Product"
+      },
+      {
+        "links": [
+          {
+            "href": "https://github.com/langehelp-software/bearminion",
+            "label": "GitHub"
+          },
+          {
+            "href": "https://www.npmjs.com/package/bearminion",
+            "label": "npm"
+          },
+          {
+            "href": "https://github.com/langehelp-software/bearminion/releases",
+            "label": "Releases"
+          }
+        ],
+        "title": "Project"
+      },
+      {
+        "links": [
+          {
+            "href": "https://github.com/langehelp-software/bearminion/blob/main/LICENSE",
+            "label": "MIT license"
+          },
+          {
+            "href": "https://github.com/langehelp-software/bearminion/blob/main/SECURITY.md",
+            "label": "Security"
+          }
+        ],
+        "title": "Legal"
+      }
+    ],
+    "legal": "© 2026 BearMinion - Released under the MIT license.",
+    "text": "Your loyal sitekick for Astro. Edit by clicking, ship a static build, go back to sleep.",
+    "tone": "base",
+    "variant": "wordmark"
+  },
+  "header": {
+    "actions": [
+      {
+        "href": "https://docs.bearminion.com/getting-started/",
+        "label": "Get started"
+      }
+    ],
+    "links": [
+      {
+        "href": "/#why",
+        "label": "How it works"
+      },
+      {
+        "href": "/#features",
+        "label": "Features"
+      },
+      {
+        "href": "/#faq",
+        "label": "FAQ"
+      },
+      {
+        "href": "https://docs.bearminion.com/",
+        "label": "Docs"
+      }
+    ],
+    "sticky": true,
+    "tone": "subtle",
+    "variant": "floating"
+  },
+  "name": "BearMinion",
+  "nameMarks": [
+    {
+      "end": 10,
+      "font": "serif",
+      "italic": true,
+      "start": 4
+    }
+  ],
+  "schemaVersion": 1,
+  "seo": {
+    "description": "The BearMinion for the bare minimum: a git-based CMS for Astro with no database, no admin panel and no server.",
+    "ogImage": "src/assets/uploads/og.png",
+    "titleTemplate": "%s · BearMinion"
+  },
+  "theme": {
+    "mode": "light",
+    "motion": true
+  },
+  "url": "https://bearminion.com"
+}

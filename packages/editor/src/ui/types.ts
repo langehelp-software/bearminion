@@ -1,6 +1,7 @@
 import type { ThemeDefinition } from '../theme.js'
 import type { CountRule } from '../draft.js'
 import type { OptionalContent } from '../section-optional.js'
+import type { FieldChoices, FieldIcons, ShowWhen } from '../field-rules.js'
 import type { Wireframe } from '../wireframe.js'
 
 export interface Option {
@@ -21,6 +22,14 @@ export interface Catalog {
   contentCounts: Record<string, Record<string, CountRule & { recommended?: number | string }>>
   sectionDefaults: Record<string, Record<string, unknown>>
   optionalContent?: Record<string, OptionalContent>
+  /** Fixed choices per field key (`steps[].icon`), from each section schema's enums. */
+  fieldChoices?: Record<string, FieldChoices>
+  /** Picker icons per field key and choice, from each section's `icons`. */
+  fieldIcons?: Record<string, FieldIcons>
+  /** Image fields per section type, by field key (`poster`, `items[].image`), from each section schema. */
+  fieldImages?: Record<string, readonly string[]>
+  /** Props hidden while the section's options make them unused, from each section's `showWhen`. */
+  showWhen?: Record<string, ShowWhen>
   sectionLabels: Record<string, string>
   /** One line per type for the Add section picker, from each section's definition. */
   sectionDescriptions?: Record<string, string>

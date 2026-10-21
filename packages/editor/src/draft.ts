@@ -220,7 +220,7 @@ export function isMultilineField(path: string): boolean {
 }
 
 export function isRichField(path: string, kind: string | null): boolean {
-  return kind === 'rich' || /(?:^|\.)(?:body|intro|sub|description|quote|note|thanks|a)$/.test(path)
+  return kind === 'rich' || /(?:^|\.)(?:body|intro|sub|description|quote|note|thanks|a)$/.test(path) || /(?:^|\.)points\.\d+$/.test(path)
 }
 
 export function nextSectionId(sections: readonly { id: string }[], type: string): string {

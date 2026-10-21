@@ -1,0 +1,60 @@
+---
+import type { Image } from 'bearminion'
+import { imageUrl } from '../../../lib/image-url'
+import { cn } from '../../../lib/cn'
+
+interface Props {
+  /** A video file URL, or `placeholder` for an empty frame. */
+  src: string
+  poster?: Image
+  label?: string
+  loop: boolean
+  roundedClass?: string
+  class?: string
+}
+
+const { src, poster, label, loop, roundedClass = 'rounded-card-lg', class: className } = Astro.props
+const placeholder = src === 'placeholder'
+
+const posterSrc = await imageUrl(poster)
+// A looping video starts muted and without controls once the page script sees it on screen. Until then, and without
+// JavaScript or with reduced motion, it keeps its controls so it can still be played.
+const playback = loop ? { muted: true, loop: true, controls: true, 'data-video-loop': '' } : { controls: true }
+---
+
+<div class={cn('relative overflow-hidden bg-surface', placeholder && 'placeholder-stripes aspect-video', roundedClass, className)}>
+  {
+    placeholder ? (
+      <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+        <span class="flex size-14 items-center justify-center rounded-full bg-fg text-bg" aria-hidden="true">
+          <svg viewBox="0 0 16 16" class="ms-0.5 size-5" fill="currentColor"><path d="M4 2.5v11l9-5.5z" /></svg>
+        </span>
+        <span class="font-mono text-[0.6875rem] tracking-[0.04em] text-muted">Add a video link in the section settings</span>
+      </div>
+    ) : (
+      <video class="block h-auto w-full" src={src} poster={posterSrc} preload="metadata" playsinline aria-label={label} {...playback} />
+    )
+  }
+</div>
+
+<script>
+  /** Looping videos play while at least a quarter of them is on screen, and not at all with reduced motion. */
+  function bindLoopingVideos() {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    for (const video of document.querySelectorAll<HTMLVideoElement>('video[data-video-loop]')) {
+      if (video.dataset.bound === 'true') continue
+      video.dataset.bound = 'true'
+      if (reduced) continue
+      video.controls = false
+      new IntersectionObserver(
+        ([entry]) => {
+          if (entry?.isIntersecting) void video.play().catch(() => (video.controls = true))
+          else video.pause()
+        },
+        { threshold: 0.25 },
+      ).observe(video)
+    }
+  }
+  bindLoopingVideos()
+  document.addEventListener('bearminion:preview', bindLoopingVideos)
+</script>

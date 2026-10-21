@@ -1,5 +1,5 @@
 ---
-import { DEFAULT_CONTACT_ANCHOR } from '../shared'
+import { anchorAttrs } from '../../../lib/link-attrs'
 import type { Section } from '../definitions'
 import Typography from '../../atoms/Typography.astro'
 import SectionHeader from '../../molecules/SectionHeader.astro'
@@ -50,9 +50,14 @@ const reveal = section.motion ?? motion
               {props.more}
             </Typography>
           )}
-          <a href={`#${DEFAULT_CONTACT_ANCHOR}`} class="text-[0.9375rem] font-medium text-link underline-offset-4 hover:underline">
-            Contact us →
-          </a>
+          {props.link && (
+            <a
+              {...anchorAttrs(props.link)}
+              class="text-[0.9375rem] font-medium text-link underline-offset-4 hover:underline"
+            >
+              <span data-field={field('link.label')}>{props.link.label}</span> <span aria-hidden="true">→</span>
+            </a>
+          )}
         </div>
         <div>
           {props.items.map((item, itemIndex) => (

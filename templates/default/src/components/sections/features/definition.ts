@@ -5,9 +5,9 @@ import { featuresWireframe } from './wireframe'
 
 export const featuresVariants = ['cards', 'list', 'bento'] as const
 
-/** Three to six cards; the bento layout is a fixed four-tile grid. */
+/** Three to six cards. In the bento grid, four keeps a wide fourth card; any other count fills rows of three. */
 export const featuresCounts = {
-  items: { recommended: '4 for bento, 3–6 otherwise', min: 3, max: 6, exact: { variant: 'bento', count: 4 } },
+  items: { recommended: '3–6; 4 or 6 fill the bento grid best', min: 3, max: 6 },
 } as const satisfies Record<string, CountRule>
 
 export const featureItemSchema = z
@@ -51,14 +51,4 @@ export const features = defineSection({
   optional: { props: ['eyebrow', 'heading', 'intro', 'link'], items: { items: ['description', 'image'] } },
   counts: featuresCounts,
   wireframe: featuresWireframe,
-  refine({ variant, props }, ctx) {
-    const { variant: exactVariant, count } = featuresCounts.items.exact
-    if (variant === exactVariant && props.items.length !== count) {
-      ctx.addIssue({
-        code: 'custom',
-        message: `The ${exactVariant} variant needs exactly ${count} feature items`,
-        path: ['props', 'items'],
-      })
-    }
-  },
 })

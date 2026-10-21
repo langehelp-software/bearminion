@@ -18,6 +18,7 @@ export const typography = cva('text-balance', {
         'mx-auto max-w-[16ch] font-sans text-[clamp(2.75rem,1.2rem+6.6cqi,7rem)] leading-[0.93] font-semibold tracking-[-0.05em]',
       'display-editorial': 'font-sans text-[clamp(3.25rem,0.5rem+11cqi,10.5rem)] leading-[0.86] font-semibold tracking-[-0.06em]',
       h2: 'font-sans text-[clamp(2rem,1.2rem+3.4cqi,3.75rem)] leading-none font-semibold tracking-[-0.04em]',
+      'h2-md': 'font-sans text-[clamp(2.25rem,1.3rem+3.6cqi,4rem)] leading-[0.98] font-semibold tracking-[-0.045em]',
       'h2-lg': 'font-sans text-[clamp(2.25rem,1.2rem+4.4cqi,4.75rem)] leading-[0.95] font-semibold tracking-[-0.05em]',
       h3: 'font-sans text-[1.25rem] leading-[1.25] font-semibold tracking-[-0.02em]',
       lead: 'text-pretty font-sans text-[clamp(1.0625rem,1rem+0.35cqi,1.25rem)] leading-[1.55]',
@@ -52,11 +53,11 @@ export const typography = cva('text-balance', {
       right: 'text-right',
     },
   },
+  // No default weight or font: the size already sets them (headings are semibold, eyebrows mono), and a default here
+  // would be merged in after the size and override it.
   defaultVariants: {
     size: 'body',
     color: 'default',
-    weight: 'regular',
-    font: 'sans',
   },
 })
 

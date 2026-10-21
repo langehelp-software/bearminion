@@ -15,6 +15,7 @@ import { siteDefinition } from '../../../templates/default/src/components/organi
 import { faqCounts } from '../../../templates/default/src/components/sections/faq/definition'
 import { featuresCounts } from '../../../templates/default/src/components/sections/features/definition'
 import { heroSchema } from '../../../templates/default/src/components/sections/hero/definition'
+import { stepsCounts } from '../../../templates/default/src/components/sections/steps/definition'
 
 export { heroSchema, pageSchema, sectionOptions, sectionSchema, sectionTypes, type Section }
 export const sectionRegistry = sectionDefinitions
@@ -28,6 +29,6 @@ export const siteSchema = siteDefinition.schema
 export const siteOptions = siteDefinition.options
 
 /** Item-count rules the starter's schemas enforce. */
-export const contentCounts = { features: featuresCounts, faq: faqCounts } as const
+export const contentCounts = { features: featuresCounts, faq: faqCounts, steps: stepsCounts } as const
 
 export const optionalContent = Object.fromEntries(sectionTypes.map((type) => [type, sectionDefinitions[type].optional]))

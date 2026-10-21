@@ -1,10 +1,12 @@
 import { type SectionDraft, suggestAnchor } from '../../draft.js'
 import { orderContentKeys } from '../../section-optional.js'
-import { OptionalContext } from '../context.js'
+import { isPropShown } from '../../field-rules.js'
+import { FieldsContext, OptionalContext } from '../context.js'
 import { Icon } from '../icons.js'
 import type { LibraryImage } from '../image-field.js'
 import { text } from '../shared.js'
 import type { Catalog } from '../types.js'
+import { ChoiceField } from './choice-field.js'
 import { Field, OptionControl, MissingField, ValueEditor } from './fields.js'
 import { Segmented } from './segmented.js'
 
@@ -53,6 +55,14 @@ export function SectionForm({
     paintSection(section.id, name, name === 'motion' && value === undefined ? siteMotion : value)
     if (name === 'variant') onPreview()
   }
+  /** The value an option has now, or its default: what `showWhen` compares against. */
+  const optionValue = (name: string): unknown => {
+    const option = options.find((item) => item.name === name)
+    const current = getOptionValue(section, name)
+    if (name === 'motion') return current ?? siteMotion
+    return current ?? option?.default
+  }
+  const shownProp = (key: string) => isPropShown(catalog.showWhen?.[section.type], key, optionValue)
   const isUnknown = (item: SectionDraft) => !Object.hasOwn(catalog.sectionLabels, item.type)
   const labelOf = (item: SectionDraft) => (isUnknown(item) ? `Unknown (${item.type})` : (catalog.sectionLabels[item.type] ?? item.type))
   if (isUnknown(section)) {
@@ -140,32 +150,23 @@ export function SectionForm({
 
       <div class="bm-stack">
         <p class="bm-group">Layout</p>
-        {(variantOption || toneOption) && (
-          <div class="bm-row-split">
-            {variantOption && (
-              <OptionControl
-                option={variantOption}
-                path={pathFor('variant')}
-                value={getOptionValue(section, 'variant')}
-                onChange={(value) => set('variant', value)}
-              />
-            )}
-            {toneOption && (
-              <label class="bm-label">
-                Tone
-                <select
-                  value={section.tone ?? (text(toneOption.default) || 'base')}
-                  onChange={(event) => set('tone', event.currentTarget.value)}
-                >
-                  {(toneOption.choices ?? []).map((choice) => (
-                    <option key={choice} value={choice}>
-                      {choice}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-          </div>
+        {variantOption && (
+          <OptionControl
+            option={variantOption}
+            path={pathFor('variant')}
+            value={getOptionValue(section, 'variant')}
+            segmented
+            onChange={(value) => set('variant', value)}
+          />
+        )}
+        {toneOption && (
+          <ChoiceField
+            label="Tone"
+            path={pathFor('tone')}
+            value={section.tone ?? (text(toneOption.default) || 'base')}
+            choices={toneOption.choices ?? []}
+            onChange={(value) => set('tone', value)}
+          />
         )}
         {motionOption && (
           <Segmented
@@ -188,48 +189,57 @@ export function SectionForm({
           option={option}
           path={pathFor(option.name)}
           value={getOptionValue(section, option.name)}
+          segmented
           onChange={(value) => set(option.name, value)}
         />
       ))}
       <OptionalContext.Provider value={{ content: catalog.optionalContent?.[section.type] }}>
-        {orderContentKeys(
-          Object.keys(section.props),
-          catalog.optionalContent?.[section.type]?.props ?? [],
-          Object.keys(catalog.sectionDefaults[section.type] ?? {}),
-        ).map((key) => {
-          if (shown.has(key) || key === 'marks') return null
-          const path = `sections.${index}.props.${key}`
-          const defaultValue = catalog.sectionDefaults[section.type]?.[key]
-          if (!(key in section.props)) {
+        <FieldsContext.Provider
+          value={{
+            choices: catalog.fieldChoices?.[section.type],
+            icons: catalog.fieldIcons?.[section.type],
+            images: catalog.fieldImages?.[section.type],
+          }}
+        >
+          {orderContentKeys(
+            Object.keys(section.props),
+            catalog.optionalContent?.[section.type]?.props ?? [],
+            Object.keys(catalog.sectionDefaults[section.type] ?? {}),
+          ).map((key) => {
+            if (shown.has(key) || key === 'marks' || !shownProp(key)) return null
+            const path = `sections.${index}.props.${key}`
+            const defaultValue = catalog.sectionDefaults[section.type]?.[key]
+            if (!(key in section.props)) {
+              return (
+                <MissingField
+                  key={key}
+                  name={key}
+                  path={path}
+                  sample={defaultValue}
+                  images={images}
+                  onField={onField}
+                  onUploaded={onUploaded}
+                  onDeleted={onDeleted}
+                />
+              )
+            }
             return (
-              <MissingField
+              <ValueEditor
                 key={key}
-                name={key}
+                label={key}
+                value={section.props[key]}
                 path={path}
-                sample={defaultValue}
-                images={images}
+                rule={catalog.contentCounts[section.type]?.[key]}
+                variant={section.variant}
+                sample={sampleItem(defaultValue)}
                 onField={onField}
+                images={images}
                 onUploaded={onUploaded}
                 onDeleted={onDeleted}
               />
             )
-          }
-          return (
-            <ValueEditor
-              key={key}
-              label={key}
-              value={section.props[key]}
-              path={path}
-              rule={catalog.contentCounts[section.type]?.[key]}
-              variant={section.variant}
-              sample={sampleItem(defaultValue)}
-              onField={onField}
-              images={images}
-              onUploaded={onUploaded}
-              onDeleted={onDeleted}
-            />
-          )
-        })}
+          })}
+        </FieldsContext.Provider>
       </OptionalContext.Provider>
 
       <div class="bm-actions-split">

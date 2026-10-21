@@ -16,6 +16,7 @@ const CASES = [
   'A [link](https://example.com){new} here',
   'A [link](https://example.com){same} here',
   'A [mail](mailto:a@b.co) here',
+  'Run `npm run dev` then **save**',
 ]
 
 describe('markdown ↔ ProseMirror document', () => {
@@ -56,6 +57,11 @@ describe('commands', () => {
     expect(markdownFromDoc(bold.doc)).toBe('**Hello** world')
     const plain = run(at(markdownFromDoc(bold.doc), 1, 6), commandFor('bold'))
     expect(markdownFromDoc(plain.doc)).toBe('Hello world')
+  })
+
+  it('marks the selection as code, dropping its other marks', () => {
+    expect(markdownFromDoc(run(at('Run npm run dev', 5, 16), commandFor('code')).doc)).toBe('Run `npm run dev`')
+    expect(markdownFromDoc(run(at('Run **npm** now', 5, 8), commandFor('code')).doc)).toBe('Run `npm` now')
   })
 
   it('italicises the selection', () => {
@@ -117,11 +123,12 @@ describe('commands', () => {
 describe('active state', () => {
   it('reports bold, italic and links at the selection', () => {
     const none = activeOf(at('Hello **world**', 2))
-    expect(none).toEqual({ bold: false, italic: false, link: false, bulletList: false, orderedList: false })
+    expect(none).toEqual({ bold: false, italic: false, code: false, link: false, bulletList: false, orderedList: false })
     expect(activeOf(at('Hello **world**', 8, 10)).bold).toBe(true)
     expect(activeOf(at('Hello **world**', 9)).bold).toBe(true)
     expect(activeOf(at('A *b* c', 4)).italic).toBe(true)
     expect(activeOf(at('A [b](https://example.com) c', 3, 4)).link).toBe(true)
+    expect(activeOf(at('Run `dev` now', 6)).code).toBe(true)
   })
 
   it('reports which kind of list the caret is in', () => {

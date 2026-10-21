@@ -2287,6 +2287,38 @@ button.bm-pill-btn:focus-visible {
   color: var(--ink);
   box-shadow: var(--bm-shadow-segment-on);
 }
+.bm-icon-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--bm-fill);
+}
+.bm-sidebar .bm-icon-picker button {
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: oklch(0.45 0.01 255);
+}
+.bm-sidebar .bm-icon-picker button:hover {
+  background: oklch(1 0 0 / 0.5);
+  color: var(--ink);
+}
+.bm-sidebar .bm-icon-picker button[aria-checked="true"] {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: var(--bm-shadow-segment-on);
+}
+.bm-icon-picker svg {
+  width: 20px;
+  height: 20px;
+}
 .bm-actions-split {
   display: flex;
   gap: 8px;

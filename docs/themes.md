@@ -1,10 +1,13 @@
-# Building a theme
+---
+title: Building a theme
+description: "What a BearMinion theme supplies: section types, the header and footer definition, the theme contract, live preview and content collections."
+---
 
 What a theme supplies to `bearminion`: section types, the header and footer definition, the fixed theme contract, the live preview renderer and content collections. The default template is a complete example; its README walks through [adding a section type](../templates/default/README.md#add-a-section-type).
 
 ## Section registry
 
-The package ships no section types. A site defines each one in its own directory and passes the set to `bearminion({ sections, site })`, `loadContent(dir, { sections, site })` and `loadPages(dir, sections)`. The starter's sections are `hero`, `logoStrip`, `features`, `textImage`, `stats`, `testimonials`, `pricing`, `faq`, `cta` and `contact`, each with three variants, in `templates/default/src/components/sections/<name>/`:
+The package ships no section types. A site defines each one in its own directory and passes the set to `bearminion({ sections, site })`, `loadContent(dir, { sections, site })` and `loadPages(dir, sections)`. The starter's sections are `hero`, `logoStrip`, `features`, `textImage`, `stats`, `testimonials`, `steps`, `pricing`, `video`, `media`, `faq`, `cta` and `contact`, each with three variants, in `templates/default/src/components/sections/<name>/`:
 
 ```text
 hero/
@@ -14,11 +17,31 @@ hero/
   Hero.stories.ts Storybook
 ```
 
-`definition.ts` calls `defineSection({ type, label, description, schema, defaults, variants, defaultVariant, options?, optional, counts?, wireframe, refine? })`. `variants` becomes the section's `variant` field and control, and `options` adds controls after variant, tone and motion. `optional` names the props an author may drop (a test checks it against the schema). `counts` holds list-length rules per array prop. `refine` holds rules the schema cannot express, such as the bento variant needing exactly 4 items. `defaults` must already satisfy `schema`.
+`definition.ts` calls `defineSection({ type, label, description, schema, defaults, variants, defaultVariant, options?, optional, counts?, wireframe, icons?, showWhen?, refine? })`. `variants` becomes the section's `variant` field and control, and `options` adds controls after variant, tone and motion. `optional` names the props an author may drop (a test checks it against the schema). `counts` holds list-length rules per array prop. `refine` holds rules the schema cannot express, such as a variant that needs an exact item count. `defaults` must already satisfy `schema`.
+
+The sidebar reads the schema for two things. A string enum anywhere in `props`, a list item's field included, becomes a choice: a segmented control for up to four choices, a select for more. An object with `src` and `alt` is an image slot, whatever the prop is called. Fields are named by their place in `props`, with list items as `[]`: `steps[].icon`, `items[].image`.
+
+`icons` draws the choices of a field as an icon grid. Give SVG path data on a 24 × 24 grid, drawn as a 1.8 stroke, for every choice:
+
+```ts
+icons: { 'steps[].icon': { terminal: 'M4 5h16v14H4zM8 10l2.5 2L8 14M12.5 14H16', edit: 'M4 20h4L19 9l-4-4L4 16z' } },
+```
+
+`showWhen` hides a prop in the sidebar while the section's options make it unused. Every option named must match; a list matches any of its values, and `variant`, `tone` and `motion` count as options. A hidden prop keeps its value in the file:
+
+```ts
+showWhen: {
+  poster: { kind: 'video' },
+  badge: { variant: ['split', 'centered'] },
+  primary: { button: true },
+},
+```
+
+`defineSection` throws when `icons` names a field without choices or misses a choice, or when `showWhen` names a prop, option or value that does not exist.
 
 `wireframe.ts` is plain data, not a component: `defineWireframe([[left, top, width, height, kind], ...])` with percentages in a 100 × 100 frame and a kind (`title`, `text`, `block`, `button`, `outline`, `card`, `highlight`, `avatar`, `dark`, `light`, `figure`) that the editor draws in a fixed greyscale. It is plain data because the picker runs in the browser and cannot render `.astro`. `GET /schema` returns each section's wireframe and description, so the picker needs no knowledge of the section.
 
-The starter lists its directories in `sections/definitions.ts` (no `.astro` imports, so `astro.config.ts` can load it) and `sections/registry.ts` (type → component). It derives its own `Section` and `Page` types from the registry with `SectionOf<typeof sectionDefinitions>`. Every configurable option has a `label`, a `type` of `enum` / `boolean` / `number` / `string`, `choices` and a `default`. In the starter, feature items are 3–6 and the bento variant needs exactly 4. FAQ items are 4–8. A pricing plan `cta` is a link `{ label, href }`. `yearlyDiscount` defaults to `0.2`.
+The starter lists its directories in `sections/definitions.ts` (no `.astro` imports, so `astro.config.ts` can load it) and `sections/registry.ts` (type → component). It derives its own `Section` and `Page` types from the registry with `SectionOf<typeof sectionDefinitions>`. Every configurable option has a `label`, a `type` of `enum` / `boolean` / `number` / `string`, `choices` and a `default`. In the starter, feature items are 3–6; in the bento layout four keep a wide fourth card and any other count fills rows of three. FAQ items are 4–8. A pricing plan `cta` is a link `{ label, href }`. `yearlyDiscount` defaults to `0.2`. A video `video` is a link to a video file (`.mp4`, `.webm`, `.m4v`, `.mov` or `.ogv`, as `https://…` or a path in `public/`) or `placeholder`; page links such as YouTube are refused. Its `playback` option is `controls` or `loop` (muted, plays while on screen, paused with reduced motion). A media `video` is a YouTube or Vimeo link or a video file link; it loads nothing until the visitor presses play, through youtube-nocookie.com or Vimeo with Do Not Track, and a YouTube video without a `poster` shows its own thumbnail. Its options are `kind` (`video` or `image`), `aspect` (`16:9`, `4:3`, `21:9`, `1:1`) and `intro` (show the heading). Steps take 2–6 items, each with an `icon` (`terminal`, `edit`, `upload`, `moon`, `git`, `check`, `bolt`, `cursor`, `sliders`, `database`), a `title` and a rich `description`, and a `numbered` option. The hero's `code` option shows its `command` with a copy button: `off`, `action` (in the button row, in place of the secondary button), `chip` or `terminal`. Its `button` option hides the primary button, and an optional `badge` (`tag`, `text`, `href`) takes the eyebrow's place in the split and centered layouts. The terminal CTA's `output` holds up to 8 lines `{ prompt?, text }` printed under its command. An empty Video or Media frame is an editor hint: built sites leave it out.
 
 Shared fields are `text`, `richText`, `image` `{ src, alt }`, `link` `{ label, href }`, and `tone` (`base`, `subtle`, `inverse`, `brand`). Atom vocabularies (button roles and sizes, the type scale) belong to the theme: the default template keeps them in `src/components/atoms/options.ts`, and section JSON never stores them. Fonts, radii, spacing, and density live in the design tokens. To add a type, add a directory like the one above and list it in `definitions.ts` and `registry.ts`.
 

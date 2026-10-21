@@ -1,0 +1,11 @@
+---
+// The BearMinion wordmark, drawn the way the logo is: the bear, "Bear" in Bricolage Grotesque extra-bold and "Minion"
+// in Instrument Serif italic. It is HTML rather than an image so it stays sharp and follows the light and dark theme.
+import bear from '../assets/bear.svg'
+---
+
+<a href={import.meta.env.BASE_URL} class="site-title bm-wordmark" aria-label="BearMinion docs home">
+  <img src={bear.src} alt="" width="35" height="32" />
+  <span class="bm-word" aria-hidden="true"><span class="bm-word-bear">Bear</span><span class="bm-word-minion">Minion</span></span>
+  <span class="bm-docs-label" aria-hidden="true">Docs</span>
+</a>

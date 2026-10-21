@@ -408,6 +408,10 @@ describe('editor API', () => {
       sectionDescriptions: Record<string, string>
       sectionWireframes: Record<string, unknown[]>
       sectionDefaults: { hero: { heading: string } }
+      fieldChoices: Record<string, Record<string, string[]>>
+      fieldIcons: Record<string, Record<string, Record<string, string>>>
+      fieldImages: Record<string, string[]>
+      showWhen: Record<string, Record<string, Record<string, unknown>>>
       projectId: string
     }
     expect(catalog.sectionOptions).toEqual(sectionOptions)
@@ -419,6 +423,7 @@ describe('editor API', () => {
       header: { links: { recommended: 4 } },
       footer: { columns: { recommended: 3, max: 3 } },
       logoStrip: { logos: { recommended: 6 } },
+      steps: contentCounts.steps,
       features: contentCounts.features,
       textImage: { points: { recommended: 3 } },
       stats: { items: { recommended: 4 } },
@@ -432,6 +437,14 @@ describe('editor API', () => {
     expect(catalog.sectionDescriptions.hero).toBe('Opening heading, intro, buttons and an image.')
     expect(catalog.sectionLabels.hero).toBe('Hero')
     expect(catalog.sectionDefaults.hero.heading).toBe('Say what you do in one line.')
+    expect(catalog.fieldChoices.steps?.['steps[].icon']).toContain('terminal')
+    expect(catalog.fieldChoices.media?.kind).toEqual(['video', 'image'])
+    expect(Object.keys(catalog.fieldIcons)).toEqual(['steps'])
+    expect(catalog.fieldIcons.steps?.['steps[].icon']?.terminal).toMatch(/^M/)
+    expect(catalog.showWhen.media?.poster).toEqual({ kind: 'video' })
+    expect(catalog.fieldImages.media).toEqual(['poster', 'image'])
+    expect(catalog.fieldImages.features).toEqual(['items[].image'])
+    expect(catalog.showWhen.hero?.command).toEqual({ code: ['action', 'chip', 'terminal'] })
     expect(catalog.projectId).toMatch(/^[0-9a-f]+-[0-9a-f]+$/)
 
     const write = await call(context, 'POST', `${API_PREFIX}/schema`, { json: {} })
@@ -597,7 +610,7 @@ describe('editor API', () => {
     expect(badVariant.status).toBe(400)
 
     const shortBento = structuredClone(sectionRegistry.features.defaults)
-    shortBento.items = shortBento.items.slice(0, contentCounts.features.items.exact.count - 1)
+    shortBento.items = shortBento.items.slice(0, contentCounts.features.items.min - 1)
     const badBento = await call(context, 'PUT', `${API_PREFIX}/pages/index`, {
       json: {
         slug: 'index',

@@ -1,0 +1,19 @@
+# Copied from templates/default by scripts/sync-template.mjs. Change them there, not here.
+/astro.config.ts
+/tsconfig.json
+/src/*
+!/src/assets/
+/src/assets/*
+!/src/assets/uploads/
+
+node_modules/
+dist/
+.astro/
+.editor/
+.env
+.env.*
+*.log
+.DS_Store
+
+# Throwaway site copy used by tests/scripts/record-demo.mjs
+.demo-recording/

@@ -9,13 +9,16 @@ import {
   canRemoveItems,
   reorderList,
 } from '../../draft.js'
+import { sectionFieldKey } from '../../field-rules.js'
 import { isOptionalPath, type OptionalContent, orderContentKeys } from '../../section-optional.js'
-import { LinksContext, OptionalContext, IssueContext } from '../context.js'
+import { FieldsContext, LinksContext, OptionalContext, IssueContext } from '../context.js'
 import { Icon } from '../icons.js'
 import { type LibraryImage, ImageField } from '../image-field.js'
 import { Info } from '../info.js'
 import { isLinkRecord, isImageRecord, isRecord, text } from '../shared.js'
-import type { Option, Issue } from '../types.js'
+import type { Option } from '../types.js'
+import { ChoiceField } from './choice-field.js'
+import { FieldErrors, issuesFor } from './field-errors.js'
 
 /** `yearlyDiscount` and `cta_label` read as "Yearly discount" and "Cta label". Array item numbers stay numbers. */
 function humanize(key: string): string {
@@ -49,6 +52,9 @@ export function MissingField({
   onDeleted: (image: LibraryImage) => void
 }) {
   const label = humanize(name)
+  const fields = useContext(FieldsContext)
+  const key = sectionFieldKey(path)
+  const image = isImageField(name) || (key !== null && (fields.images?.includes(key) ?? false))
   if (LINK_KEYS.has(name)) {
     const fallback = { label: 'Button', href: '#' }
     return (
@@ -65,7 +71,7 @@ export function MissingField({
   return (
     <ValueEditor
       label={name}
-      value={isImageField(name) ? { src: '', alt: '' } : ''}
+      value={image ? { src: '', alt: '' } : ''}
       path={path}
       rule={undefined}
       variant={undefined}
@@ -105,6 +111,21 @@ export function ValueEditor({
   const optionalSpec = useContext(OptionalContext).content
   const optional = isOptionalPath(optionalSpec, path)
   const label = humanize(rawLabel)
+  const fixed = useContext(FieldsContext)
+  const key = sectionFieldKey(path)
+  const choices = key === null ? undefined : fixed.choices?.[key]
+  if (choices && (typeof value === 'string' || value === undefined)) {
+    return (
+      <ChoiceField
+        label={label}
+        path={path}
+        value={value ?? ''}
+        choices={choices}
+        icons={key === null ? undefined : fixed.icons?.[key]}
+        onChange={(next) => onField(path, next)}
+      />
+    )
+  }
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === undefined) {
     const rich = typeof value === 'string' && isRichField(path, null)
     const heading = isHeadingField(path)
@@ -345,6 +366,7 @@ export function OptionControl({
   meta,
   hint,
   multiline,
+  segmented = false,
 }: {
   option: Option
   value: unknown
@@ -353,6 +375,8 @@ export function OptionControl({
   meta?: string
   hint?: string
   multiline?: boolean
+  /** A choice option with up to four choices shows as a segmented control instead of a select. */
+  segmented?: boolean
 }) {
   const issues = issuesFor(useContext(IssueContext), path)
   if (option.type === 'boolean') {
@@ -368,6 +392,17 @@ export function OptionControl({
         </span>
         <input type="checkbox" role="switch" checked={checked} onChange={(event) => onChange(event.currentTarget.checked)} />
       </label>
+    )
+  }
+  if (option.type === 'enum' && segmented) {
+    return (
+      <ChoiceField
+        label={option.label}
+        path={path}
+        value={text(value || option.default)}
+        choices={option.choices ?? []}
+        onChange={(next) => onChange(next)}
+      />
     )
   }
   if (option.type === 'enum') {
@@ -490,24 +525,6 @@ export function Field({
     </label>
   )
   return field
-}
-
-function FieldErrors({ issues }: { issues: Issue[] }) {
-  if (issues.length === 0) return null
-  return (
-    <>
-      {issues.map((issue) => (
-        <span class="bm-error" key={`${issue.path}:${issue.message}`}>
-          {issue.message}
-        </span>
-      ))}
-    </>
-  )
-}
-
-function issuesFor(issues: Issue[], path: string | undefined): Issue[] {
-  if (!path) return []
-  return issues.filter((issue) => issue.path === path)
 }
 
 /** An array item's keys, plus the optional ones it has dropped, in the order the sample item lists them. */

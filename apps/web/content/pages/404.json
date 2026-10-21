@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "sections": [
+    {
+      "anchor": "not-found",
+      "id": "not-found",
+      "props": {
+        "eyebrow": "404",
+        "heading": "Nothing in this cave.",
+        "marks": [
+          {
+            "end": 21,
+            "font": "serif",
+            "italic": true,
+            "start": 11
+          }
+        ],
+        "primary": {
+          "href": "/",
+          "label": "Back to the homepage"
+        },
+        "sub": "The link is broken or the page moved. Either way, it isn't here."
+      },
+      "tone": "base",
+      "type": "hero",
+      "variant": "centered"
+    }
+  ],
+  "seo": {
+    "description": "The page you were looking for does not exist.",
+    "nofollow": true,
+    "noindex": true,
+    "title": "Page not found"
+  },
+  "slug": "404",
+  "title": "Page not found"
+}

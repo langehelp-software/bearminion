@@ -6,6 +6,7 @@ import Typography from '../../atoms/Typography.astro'
 import MediaFrame from '../../molecules/MediaFrame.astro'
 import SectionHeader from '../../molecules/SectionHeader.astro'
 import SectionShell from '../../molecules/SectionShell.astro'
+import { cn } from '../../../lib/cn'
 
 interface Props {
   section: Extract<Section, { type: 'features' }>
@@ -17,6 +18,9 @@ const { section, index, motion = true } = Astro.props
 const props = section.props
 const field = (path: string) => `sections.${index}.props.${path}`
 const reveal = section.motion ?? motion
+const wideFourth = props.items.length === 4
+/** At two columns, an even count leaves the last card alone on its row, so it spans the row with its text beside the picture. */
+const spanLast = (itemIndex: number) => !wideFourth && itemIndex === props.items.length - 1 && props.items.length % 2 === 0
 ---
 
 <SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
@@ -88,29 +92,50 @@ const reveal = section.motion ?? motion
     section.variant === 'bento' && (
       <div class="section-container">
         <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} intro={props.intro} align="center" field={field} class="mx-auto max-w-3xl" />
-        <ul class="mt-12 grid grid-cols-1 gap-4 @min-[620px]:grid-cols-2 @min-[960px]:grid-cols-3">
+        <ul class="mt-[clamp(2.5rem,4cqi,4rem)] grid grid-cols-1 gap-4 @min-[620px]:grid-cols-2 @min-[960px]:grid-cols-3">
           {props.items.map((item, itemIndex) => (
             <li
               class:list={[
-                'flex flex-col gap-4 rounded-card-lg bg-surface p-6 ring-line',
-                itemIndex === 0 && '@min-[620px]:col-span-2 @min-[960px]:row-span-2',
-                itemIndex === 3 && '@min-[620px]:col-span-2 @min-[960px]:col-span-3 @min-[960px]:grid @min-[960px]:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] @min-[960px]:items-end @min-[960px]:gap-8',
+                'flex min-h-72 flex-col gap-4 rounded-card-lg bg-surface p-2 ring-line',
+                // The first card is the big one: two columns, and two rows at three columns.
+                itemIndex === 0 && '@min-[620px]:col-span-2 @min-[620px]:min-h-[26rem] @min-[960px]:row-span-2',
+                // Four cards: the fourth spans the row, with its text beside the picture at three columns.
+                wideFourth &&
+                  itemIndex === 3 &&
+                  '@min-[620px]:col-span-2 @min-[960px]:col-span-3 @min-[960px]:flex-row-reverse @min-[960px]:items-center',
+                // Any other count at two columns: the last card spans the row when it would sit alone, picture beside text.
+                spanLast(itemIndex) && '@min-[620px]:@max-[959px]:col-span-2 @min-[620px]:@max-[959px]:flex-row-reverse @min-[620px]:@max-[959px]:items-center',
               ]}
             >
               {!item.image?.hidden && (
-<MediaFrame
-                src={item.image?.src}
-                alt={item.image?.alt ?? item.title}
-                aspectClass={itemIndex === 0 ? 'aspect-[4/3] min-h-48 flex-1' : 'aspect-[4/3]'}
-                fit={item.image?.fit} position={item.image?.position} data-field={field(`items.${itemIndex}.image.alt`)}
-              />
-)}
-              <div>
-                <p class="font-mono text-[0.6875rem] tracking-[0.08em] text-muted">{String(itemIndex + 1).padStart(2, '0')}</p>
-                <Typography as="h3" size="h3" class="mt-3" data-field={field(`items.${itemIndex}.title`)}>
+                <MediaFrame
+                  src={item.image?.src}
+                  alt={item.image?.alt ?? item.title}
+                  aspectClass={cn(
+                    'min-h-36 flex-1',
+                    wideFourth && itemIndex === 3 && '@min-[960px]:self-stretch',
+                    spanLast(itemIndex) && '@min-[620px]:@max-[959px]:self-stretch',
+                  )}
+                  roundedClass="rounded-2xl"
+                  class="p-3"
+                  fit={item.image?.fit}
+                  position={item.image?.position}
+                  data-field={field(`items.${itemIndex}.image.alt`)}
+                />
+              )}
+              <div
+                class:list={[
+                  'flex flex-col gap-1.5 px-2 pt-1 pb-2',
+                  wideFourth && itemIndex === 3 && '@min-[960px]:flex-1 @min-[960px]:px-6',
+                  spanLast(itemIndex) && '@min-[620px]:@max-[959px]:flex-1 @min-[620px]:@max-[959px]:px-6',
+                ]}
+              >
+                <Typography as="h3" size="h3" data-field={field(`items.${itemIndex}.title`)}>
                   {item.title}
                 </Typography>
-                {item.description && <Typography as="p" size="body" color="muted" class="mt-2" data-field={field(`items.${itemIndex}.description`)} markdown={item.description} />}
+                {item.description && (
+                  <Typography as="p" size="body" color="muted" class="max-w-[30rem]" data-field={field(`items.${itemIndex}.description`)} markdown={item.description} />
+                )}
               </div>
             </li>
           ))}

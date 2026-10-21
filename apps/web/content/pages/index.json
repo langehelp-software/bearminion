@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "sections": [
+    {
+      "anchor": "hero",
+      "id": "hero",
+      "props": {
+        "badge": {
+          "href": "https://github.com/langehelp-software/bearminion/releases",
+          "tag": "BearMinion 1.2",
+          "text": "Available now"
+        },
+        "button": false,
+        "code": "action",
+        "command": "npm create bearminion@latest",
+        "glow": true,
+        "heading": "The BearMinion for the bare minimum.",
+        "image": {
+          "alt": "The BearMinion editor over a site: a heading being edited on the page, the section toolbar, and the Pages tab in the sidebar",
+          "fit": "auto",
+          "hidden": true,
+          "src": "src/assets/uploads/editor.png"
+        },
+        "marks": [
+          {
+            "end": 14,
+            "font": "serif",
+            "italic": true,
+            "start": 8
+          }
+        ],
+        "primary": {
+          "href": "https://docs.bearminion.com/getting-started/",
+          "label": "Wake the minion"
+        },
+        "secondary": {
+          "href": "https://github.com/langehelp-software/bearminion",
+          "label": "View on GitHub",
+          "style": "tertiary"
+        },
+        "sub": "Inline website editing that doesn't insult your wallet. Click any text, *change it*, and let the minion dump it into your repo.\n\nShips as pure static HTML for $0/month!\n*Sorry, enterprise CMS sales teams.*"
+      },
+      "tone": "base",
+      "type": "hero",
+      "variant": "centered"
+    },
+    {
+      "anchor": "demo",
+      "id": "demo",
+      "props": {
+        "aspect": "16:9",
+        "body": "Edit a heading, add a section, swap its layout, repaint the palette, save. That's the whole demo.",
+        "eyebrow": "Demo",
+        "heading": "One minute. No sales call.",
+        "intro": false,
+        "kind": "video",
+        "label": "A 40-second recording of the BearMinion editor: edit the heading, add a section, switch its layout, repaint the palette, save",
+        "marks": [
+          {
+            "end": 26,
+            "font": "serif",
+            "italic": true,
+            "start": 12
+          }
+        ],
+        "poster": {
+          "alt": "",
+          "src": "src/assets/uploads/editor-demo-poster.png"
+        },
+        "video": "/videos/bearminion-editor.mp4"
+      },
+      "tone": "base",
+      "type": "media",
+      "variant": "centered"
+    },
+    {
+      "anchor": "why",
+      "id": "why",
+      "props": {
+        "body": "A git-based CMS for Astro. Edit your site on the page, save to JSON in your repo, ship static HTML.",
+        "eyebrow": "Why BearMinion",
+        "heading": "What is BearMinion?",
+        "marks": [
+          {
+            "end": 18,
+            "font": "serif",
+            "italic": true,
+            "start": 12
+          }
+        ],
+        "numbered": false,
+        "steps": [
+          {
+            "description": "One command sets up the site and the editor. You're editing your first page before your coffee cools down.",
+            "icon": "bolt",
+            "title": "Quick"
+          },
+          {
+            "description": "Click the text on the page and type. No admin panel, no forms to learn, nothing to train your client on.",
+            "icon": "cursor",
+            "title": "Easy to use"
+          },
+          {
+            "description": "Sections are Astro components with a schema. Add your own, restyle the ones you have, keep your Tailwind setup.",
+            "icon": "sliders",
+            "title": "Customizable"
+          },
+          {
+            "description": "Content is JSON files in your repo. Nothing to host, back up or migrate. Git is the history.",
+            "icon": "database",
+            "title": "No database"
+          }
+        ]
+      },
+      "tone": "subtle",
+      "type": "steps",
+      "variant": "rail"
+    },
+    {
+      "anchor": "features",
+      "id": "features",
+      "props": {
+        "eyebrow": "What you can change",
+        "heading": "Edit the page, not a form about the page.",
+        "intro": "The editor reads your theme's own schemas, so it can only write content your site actually renders. No orphan fields. No mystery settings.",
+        "items": [
+          {
+            "description": "Click a heading and type. **Bold**, *italic*, links and lists are stored as a tiny markdown subset, not a blob of HTML.",
+            "image": {
+              "alt": "Editing on the page: a heading word selected with the weight and font bar above it, and a paragraph word selected with the bold, italic, code, list and link bar below it",
+              "fit": "cover",
+              "position": "center",
+              "src": "src/assets/uploads/editor-format-bar.png"
+            },
+            "title": "Text, in place"
+          },
+          {
+            "description": "Add them from a visual picker, reorder them, and switch each one between three layouts and four tones. No page-builder hangover.",
+            "image": {
+              "alt": "The Add section picker: a wireframe, the variant count and a line for each section type",
+              "fit": "cover",
+              "position": "center",
+              "src": "src/assets/uploads/editor-add-section.png"
+            },
+            "title": "Sections"
+          },
+          {
+            "description": "Upload once, reuse from the library, set fit and focal point. Your logo and social image live there too.",
+            "image": {
+              "alt": "An image on the page with its bar: Cover, Contain or Auto, a position grid, and Change",
+              "fit": "cover",
+              "position": "center",
+              "src": "src/assets/uploads/editor-image-library.png"
+            },
+            "title": "Images"
+          },
+          {
+            "description": "Pick three colors. The theme derives the rest and checks contrast against WCAG, so nobody squints.",
+            "image": {
+              "alt": "The Design tab preview: every tone in light and dark, each text pair at WCAG AA contrast",
+              "fit": "cover",
+              "position": "center",
+              "src": "src/assets/uploads/editor-design-tab.png"
+            },
+            "title": "Palette"
+          },
+          {
+            "description": "Nested menus, the footer, and a title, description and social image for every page. The boring parts, handled.",
+            "image": {
+              "alt": "The Navigation tab brand settings: the name or a logo image, and the logo height",
+              "fit": "cover",
+              "position": "center",
+              "src": "src/assets/uploads/editor-navigation-tab.png"
+            },
+            "title": "Navigation and SEO"
+          },
+          {
+            "description": "Every save is kept, with undo and redo. Turn on git and Save commits the changed files. It never pushes. That part is your call.",
+            "image": {
+              "alt": "Version history: every save of the page, with a Restore button on each",
+              "fit": "cover",
+              "position": "center",
+              "src": "src/assets/uploads/editor-version-history.png"
+            },
+            "title": "History and git"
+          }
+        ],
+        "marks": [
+          {
+            "end": 41,
+            "font": "serif",
+            "italic": true,
+            "start": 15
+          }
+        ]
+      },
+      "tone": "base",
+      "type": "features",
+      "variant": "bento"
+    },
+    {
+      "anchor": "facts",
+      "id": "facts",
+      "props": {
+        "eyebrow": "In the box",
+        "heading": "Everything you need, out of the box.",
+        "items": [
+          {
+            "label": "section types to build pages from",
+            "value": "13"
+          },
+          {
+            "label": "layouts, three for every section",
+            "value": "39"
+          },
+          {
+            "label": "color tones, each contrast-checked",
+            "value": "4"
+          },
+          {
+            "label": "licensed: free, and yours to change",
+            "value": "MIT"
+          }
+        ],
+        "marks": [
+          {
+            "end": 36,
+            "font": "serif",
+            "italic": true,
+            "start": 21
+          }
+        ]
+      },
+      "tone": "inverse",
+      "type": "stats",
+      "variant": "row"
+    },
+    {
+      "anchor": "faq",
+      "id": "faq",
+      "props": {
+        "eyebrow": "FAQ",
+        "heading": "Fair questions, straight answers.",
+        "items": [
+          {
+            "a": "In your repo. One JSON file per page in content/pages/, the site settings in content/site.json, images in src/assets/uploads/. Review it in a pull request like any other change.",
+            "q": "Where is my content stored?"
+          },
+          {
+            "a": "No. The editor and its API exist only in astro dev. Production gets a static build with no editor, no server and no database to poke.",
+            "q": "Does the editor ship to my live site?"
+          },
+          {
+            "a": "Anyone with the repo cloned and the dev server running. The editor only answers your own machine, so other sites and your coworker's laptop can't touch your content. Editing a live site without a clone is planned.",
+            "q": "Who can edit, and from where?"
+          },
+          {
+            "a": "Yes. Once the site is created, the template is yours: change its components and styles, or add a section type with a schema, defaults and a component. The editor picks it up. See [Building a theme](https://docs.bearminion.com/themes/).",
+            "q": "Can I use my own design?"
+          },
+          {
+            "a": "Anywhere that serves static files: Vercel, Netlify, Cloudflare Pages, GitHub Pages or a server in your closet. The host runs npm run build and publishes dist.",
+            "q": "Where can I host it?"
+          },
+          {
+            "a": "Nothing. It is [MIT licensed](https://github.com/langehelp-software/bearminion/blob/main/LICENSE), and the site it creates is yours. Keep the $99 a month.",
+            "q": "What does it cost?"
+          }
+        ],
+        "link": {
+          "href": "https://docs.bearminion.com/",
+          "label": "Read the docs"
+        },
+        "marks": [
+          {
+            "end": 33,
+            "font": "serif",
+            "italic": true,
+            "start": 16
+          }
+        ],
+        "more": "The rest is in the docs."
+      },
+      "tone": "base",
+      "type": "faq",
+      "variant": "split"
+    },
+    {
+      "anchor": "start",
+      "id": "start",
+      "props": {
+        "body": "Run one command, answer three boring questions and watch it do the rest. Template copied, dependencies installed, first commit done.\n\nNow it gets out of your way so you can actually work.",
+        "command": "npm create bearminion@latest",
+        "heading": "Wake the minion.",
+        "marks": [
+          {
+            "end": 16,
+            "font": "serif",
+            "italic": true,
+            "start": 9
+          }
+        ],
+        "output": [
+          {
+            "text": "Created My Site in my-site"
+          },
+          {
+            "text": "Installed dependencies"
+          },
+          {
+            "prompt": "→",
+            "text": "Next: cd my-site, npm run dev, then Ctrl+E"
+          }
+        ],
+        "primary": {
+          "href": "https://docs.bearminion.com/getting-started/",
+          "label": "Get started"
+        },
+        "secondary": {
+          "href": "https://docs.bearminion.com/",
+          "label": "Read the docs",
+          "newTab": true,
+          "style": "tertiary"
+        }
+      },
+      "tone": "brand",
+      "type": "cta",
+      "variant": "terminal"
+    }
+  ],
+  "seo": {
+    "description": "BearMinion is a git-based CMS for Astro. Click to edit, save as JSON in your repo, ship a static build. No database, no admin panel, no $99 a month.",
+    "nofollow": false,
+    "noindex": false,
+    "ogImage": "src/assets/uploads/og.png",
+    "title": "Git-based CMS for Astro"
+  },
+  "slug": "index",
+  "title": "Home"
+}
