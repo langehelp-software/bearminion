@@ -4,7 +4,7 @@
   "description": "A git-based, no-database CMS for Astro: JSON content in your repo, edited inline during astro dev.",
   "license": "MIT",
   "author": "Jakub Lange",
-  "homepage": "https://github.com/langehelp-software/bearminion#readme",
+  "homepage": "https://bearminion.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/langehelp-software/bearminion.git",

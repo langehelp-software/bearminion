@@ -8,6 +8,10 @@
 </p>
 
 <p align="center">
+  <a href="https://bearminion.com"><strong>bearminion.com</strong></a> · <a href="https://docs.bearminion.com">Documentation</a> · <a href="https://docs.bearminion.com/getting-started/">Getting started</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/langehelp-software/bearminion/actions/workflows/ci.yml"><img src="https://github.com/langehelp-software/bearminion/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/bearminion"><img src="https://img.shields.io/npm/v/bearminion?color=169717" alt="npm version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-169717" alt="MIT license" /></a>
@@ -25,7 +29,7 @@ cd my-site
 npm run dev
 ```
 
-It asks for the site's name and web address, then installs everything and makes the first git commit. Add `--storybook` for a component workshop, or see [all options](packages/create-bearminion/README.md#options).
+It asks for the site's name and web address, then installs everything and makes the first git commit. Add `--storybook` for a component workshop, or see [all options](https://docs.bearminion.com/getting-started/#options).
 
 **2. Edit it**
 
@@ -58,7 +62,8 @@ Your content is plain files in your project, so every change is in your git hist
 
 ## Learn more
 
-- [Documentation](docs/README.md): the content files, the editor, building your own theme, and the API
+- [bearminion.com](https://bearminion.com): what it looks like, with a demo of the editor
+- [Documentation](https://docs.bearminion.com): the content files, the editor, building your own theme, and the API (source in [docs/](docs/README.md))
 - [Template guide](templates/default/README.md): the components that come with your site
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
 

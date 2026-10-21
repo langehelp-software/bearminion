@@ -4,7 +4,7 @@
   "description": "Create a BearMinion site: an Astro website you edit by clicking on it.",
   "license": "MIT",
   "author": "Jakub Lange",
-  "homepage": "https://github.com/langehelp-software/bearminion#readme",
+  "homepage": "https://bearminion.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/langehelp-software/bearminion.git",

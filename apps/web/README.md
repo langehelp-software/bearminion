@@ -41,7 +41,7 @@ pnpm --filter @bearminion/web sync --watch
 
 ## Dependencies
 
-`package.json` lists the same dependencies as the template, without Storybook. The sync stops with a list of differences when they drift apart, for example after a dependency update in the template. To fix it:
+`package.json` lists the same dependencies as the template, without Storybook, plus `bearminion-site` (`workspace:*`), the template itself. Nothing imports it: it tells Vercel that this site is built from `templates/default`, so with **Skip deployment** on (Project → Settings → Build and Deployment → Root Directory) a change to the template still redeploys bearminion.com. The sync's dependency check ignores it. The sync stops with a list of differences when they drift apart, for example after a dependency update in the template. To fix it:
 
 ```bash
 pnpm --filter @bearminion/web sync --fix-deps

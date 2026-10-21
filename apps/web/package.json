@@ -29,6 +29,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.5",
     "@types/node": "^22.19.0",
+    "bearminion-site": "workspace:*",
     "typescript": "~5.9.3"
   }
 }

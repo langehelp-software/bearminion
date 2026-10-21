@@ -14,6 +14,15 @@ pnpm dev              # tsdown --watch for the library, astro dev for the templa
 
 Open http://localhost:4321 and press Ctrl+E (Cmd+E) for the editor.
 
+The two websites run from this repository too:
+
+```bash
+pnpm web:dev          # bearminion.com (apps/web): the template's code with the site's own content, edited with BearMinion
+pnpm docs:dev         # docs.bearminion.com (apps/docs): Starlight, reading the pages in docs/
+```
+
+bearminion.com runs the template's code, copied in before every `dev`, `build` and `typecheck`, so change components in `templates/default`, never in `apps/web` (see [its README](apps/web/README.md)). The docs are the Markdown files in `docs/`; a page there is a page on docs.bearminion.com, and the docs build fails on a broken link or anchor.
+
 ## Repository layout
 
 - `packages/editor` is the published `bearminion` package. Source in `src/`, unit tests in `test/` (Vitest).
@@ -26,6 +35,7 @@ Open http://localhost:4321 and press Ctrl+E (Cmd+E) for the editor.
 - `packages/create-bearminion` is the published `npm create bearminion` CLI. Its build copies `templates/default` into `template/` (ignored by git) and fails when the template's `bearminion` range does not match the package version.
 - `templates/default` is the site people create. Treat it as user code: plain Astro, no imports from the monorepo, and `bearminion` by version range.
 - `tests` holds the template's unit tests, the editor's end-to-end suite and the script that records the editor demo for bearminion.com (`pnpm web:record-demo`, see [apps/web](apps/web/README.md)).
+- `apps/web` is bearminion.com and `apps/docs` is docs.bearminion.com, each deployed by its own Vercel project.
 - `docs` is the reference documentation. A change to the content format, the editor, the API or the theme contract updates the matching page in the same pull request.
 
 ## Before you open a pull request
