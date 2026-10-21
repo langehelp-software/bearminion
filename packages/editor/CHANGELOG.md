@@ -1,5 +1,23 @@
 # bearminion
 
+## 1.2.0
+
+### Minor Changes
+
+- 4c3f823: Rich text has inline code: text between backticks is stored as `` `code` ``, rendered as `<code>`, and toggled with a new Code button in the on-page format bar. Nothing inside code is parsed as markdown. List items under `points` are edited as rich text in the sidebar.
+- 19c1e5a: Section tab controls follow the section's schema instead of guessing from values:
+  
+  - Any string enum inside a section's props (such as a list item's `icon`) is a choice in the sidebar instead of a free text box. A new `icons` option on `defineSection` draws the choices of a field as an icon grid: `icons: { 'steps[].icon': { terminal: 'M4 5h16…', … } }`, SVG path data on a 24 × 24 grid, one per choice.
+  - A new `showWhen` option on `defineSection` hides props the section's options make unused, such as `{ poster: { kind: 'video' } }`. A list matches any of its values, and `variant`, `tone` and `motion` count as options. Hidden props keep their value in the file.
+  - Variant, tone and choice options with up to four choices are segmented controls instead of selects.
+  - An image prop that is missing from the content now offers an image slot whatever it is called. It used to be a text box unless the prop was named `image` or `logo`, so a missing `poster` could not be set.
+  
+  `defineSection` checks `icons` and `showWhen` against the schema and options and throws on a mistake. `GET /schema` serves `fieldChoices`, `fieldIcons`, `fieldImages` and `showWhen`.
+
+### Patch Changes
+
+- 9261888: The live preview now runs the scripts of a section type that was not on the page before, so a section added from the picker works before you save (a copy button, a looping video). A sidebar value that has no text of its own on the page, such as a video link or a section option, now updates the preview as you change it instead of after a save.
+
 ## 1.1.0
 
 ### Minor Changes
