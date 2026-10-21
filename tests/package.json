@@ -7,7 +7,8 @@
   "scripts": {
     "test": "vitest run --project template",
     "test:e2e": "vitest run --project e2e",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "record-demo": "node scripts/record-demo.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",

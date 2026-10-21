@@ -10,6 +10,7 @@
     "dev:lib": "pnpm --filter bearminion dev",
     "web:dev": "pnpm --filter @bearminion/web dev",
     "web:build": "pnpm build:lib && pnpm --filter @bearminion/web build",
+    "web:record-demo": "pnpm build:lib && pnpm --filter @bearminion/tests record-demo",
     "docs:dev": "pnpm --filter @bearminion/docs dev",
     "docs:build": "pnpm --filter @bearminion/docs build",
     "test": "pnpm build:lib && pnpm -r --if-present test",

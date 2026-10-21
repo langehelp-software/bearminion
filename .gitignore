@@ -13,3 +13,4 @@ templates/default/src/assets/e2e-uploads/
 packages/create-bearminion/template/
 # Local roadmap, kept out of the public repository
 /PLAN.md
+tests/.demo-frames/

@@ -25,7 +25,7 @@ Open http://localhost:4321 and press Ctrl+E (Cmd+E) for the editor.
     - `ui/assets/` holds the overlay's own images. The editor ships its assets and never uses the site's.
 - `packages/create-bearminion` is the published `npm create bearminion` CLI. Its build copies `templates/default` into `template/` (ignored by git) and fails when the template's `bearminion` range does not match the package version.
 - `templates/default` is the site people create. Treat it as user code: plain Astro, no imports from the monorepo, and `bearminion` by version range.
-- `tests` holds the template's unit tests and the editor's end-to-end suite.
+- `tests` holds the template's unit tests, the editor's end-to-end suite and the script that records the editor demo for bearminion.com (`pnpm web:record-demo`, see [apps/web](apps/web/README.md)).
 - `docs` is the reference documentation. A change to the content format, the editor, the API or the theme contract updates the matching page in the same pull request.
 
 ## Before you open a pull request

@@ -54,7 +54,7 @@
         "heading": "One minute. No sales call.",
         "intro": false,
         "kind": "video",
-        "label": "A one-minute recording of the BearMinion editor",
+        "label": "A 40-second recording of the BearMinion editor: edit the heading, add a section, switch its layout, repaint the palette, save",
         "marks": [
           {
             "end": 26,
@@ -62,7 +62,12 @@
             "italic": true,
             "start": 12
           }
-        ]
+        ],
+        "poster": {
+          "alt": "",
+          "src": "src/assets/uploads/editor-demo-poster.png"
+        },
+        "video": "/videos/bearminion-editor.mp4"
       },
       "tone": "base",
       "type": "media",
