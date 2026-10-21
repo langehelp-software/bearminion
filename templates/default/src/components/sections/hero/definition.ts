@@ -64,5 +64,11 @@ export const hero = defineSection({
     { name: 'glow', label: 'Background glow', type: 'boolean', default: false },
   ],
   optional: { props: ['eyebrow', 'heading', 'sub', 'badge', 'primary', 'secondary', 'command', 'image'] },
+  showWhen: {
+    badge: { variant: ['split', 'centered'] },
+    primary: { button: true },
+    secondary: { code: ['off', 'chip', 'terminal'] },
+    command: { code: ['action', 'chip', 'terminal'] },
+  },
   wireframe: heroWireframe,
 })

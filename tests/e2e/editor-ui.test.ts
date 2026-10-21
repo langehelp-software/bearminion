@@ -144,7 +144,7 @@ describe('editor overlay', () => {
     await page.getByRole('textbox', { name: /^Anchor/ }).fill('top')
     await page.locator('#top').waitFor()
     expect(await page.locator('#top').getAttribute('data-section-id')).toBe('hero')
-    await page.getByLabel('Variant').selectOption('centered')
+    await choose(page, 'Variant', 'Centered')
     await page.locator('[data-section-id="hero"] .text-center').waitFor()
     expect(navigated).toBe(false)
     await shot(page, 'variant_after.png')
@@ -1012,7 +1012,7 @@ describe('editor overlay', () => {
 
     // A looping video is muted and bound by the page script, which takes its controls away while it plays. The file
     // here does not exist, so play() fails once it is on screen and the controls come back; that is not checked.
-    await page.getByLabel('Playback').selectOption('loop')
+    await choose(page, 'Playback', 'Loop')
     await section.locator('video[data-video-loop]').waitFor({ state: 'attached' })
     await page.waitForFunction(() => {
       const node = document.querySelector('[data-section-id="video"] video')
@@ -1034,22 +1034,23 @@ describe('editor overlay', () => {
     await hero.click({ position: { x: 24, y: 80 } })
     await page.getByRole('toolbar', { name: 'Section' }).getByRole('button', { name: 'Settings', exact: true }).click()
     await page.locator('[data-editor-field="section:hero"]').waitFor()
-    await page.getByRole('textbox', { name: /^Command/ }).fill('npm create bearminion@latest')
-    // A command alone shows nothing: the style decides.
-    await page.waitForTimeout(400)
-    expect(await hero.locator('[data-command-line]').count()).toBe(0)
+    // While the style is Off the command is not used, so its field is hidden.
+    expect(await page.getByRole('textbox', { name: /^Command/ }).count()).toBe(0)
 
-    await page.getByLabel('Install command').selectOption('action')
+    await choose(page, 'Install command', 'Action')
+    await page.getByRole('textbox', { name: /^Command/ }).fill('npm create bearminion@latest')
     const line = hero.locator('[data-command-line]')
     await line.waitFor()
     expect(await line.locator('[data-command]').innerText()).toBe('npm create bearminion@latest')
     // `action` takes the secondary button's place in the row.
     await hero.locator('[data-field="sections.0.props.secondary.label"]').waitFor({ state: 'detached' })
     expect(await hero.locator('[data-field="sections.0.props.primary.label"]').count()).toBe(1)
+    expect(await page.getByRole('button', { name: /^Edit link: Primary/ }).count()).toBe(1)
     await page.getByRole('switch', { name: 'Primary button' }).uncheck()
     await hero.locator('[data-field="sections.0.props.primary.label"]').waitFor({ state: 'detached' })
+    expect(await page.getByRole('button', { name: /^Edit link: Primary/ }).count()).toBe(0)
 
-    await page.getByLabel('Install command').selectOption('terminal')
+    await choose(page, 'Install command', 'Terminal')
     await hero.getByText('Terminal', { exact: true }).waitFor()
     await hero.locator('[data-field="sections.0.props.secondary.label"]').waitFor()
 
@@ -1105,6 +1106,37 @@ describe('editor overlay', () => {
     await page.close()
   }, 60_000)
 
+  it('shows only the Media fields the chosen type uses', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    await openClean(page)
+    const toolbar = page.getByRole('toolbar', { name: 'Section' })
+    await page.locator('[data-section-id="hero"]').click({ position: { x: 24, y: 80 } })
+    await toolbar.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Add below' }).click()
+    await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Media', exact: true }).click()
+    const section = page.locator('[data-section-id="media"]')
+    await section.getByText('Add a video link in the section settings').click()
+    const form = page.locator('[data-editor-field="section:media"]')
+    if (!(await form.isVisible())) await toolbar.getByRole('button', { name: 'Settings', exact: true }).click()
+    await form.waitFor()
+    const videoField = page.getByRole('textbox', { name: /^Video/ })
+    await videoField.waitFor()
+    const poster = form.locator('.bm-label-text', { hasText: /^Poster$/ })
+    expect(await poster.count()).toBe(1)
+
+    await choose(page, 'Type', 'Image')
+    await videoField.waitFor({ state: 'detached' })
+    expect(await poster.count()).toBe(0)
+    await form.locator('.bm-label-text', { hasText: /^Image$/ }).waitFor()
+    await shot(page, 'media_fields_image.png')
+
+    await page.getByRole('switch', { name: 'Show heading' }).uncheck()
+    await page.getByRole('textbox', { name: /^Eyebrow/ }).waitFor({ state: 'detached' })
+    await choose(page, 'Type', 'Video')
+    await videoField.waitFor()
+    await page.close()
+  }, 60_000)
+
   it('adds a Steps section and renders code typed in backticks as a chip', async () => {
     // Tall enough that the new section's text, and the format bar under it, are on screen.
     const page = await browser.newPage({ viewport: { width: 1280, height: 1400 } })
@@ -1131,6 +1163,18 @@ describe('editor overlay', () => {
         (key) => key.includes(':page:') && (localStorage.getItem(key)?.includes('the `reader does`.') ?? false),
       ),
     )
+
+    // Step icons are picked from a grid, and the page redraws the icon.
+    await toolbar.getByRole('button', { name: 'Settings', exact: true }).click()
+    const form = page.locator('[data-editor-field="section:steps"]')
+    await form.waitFor()
+    await form.locator('details.bm-array-item summary').first().click()
+    const picker = form.getByRole('radiogroup', { name: 'Icon' }).first()
+    expect(await picker.getByRole('radio', { checked: true }).getAttribute('aria-label')).toBe('Cursor')
+    const terminal = await picker.getByRole('radio', { name: 'Terminal' }).locator('path').getAttribute('d')
+    await picker.getByRole('radio', { name: 'Terminal' }).click()
+    await section.locator(`ol > li:first-child path[d="${terminal}"]`).waitFor()
+    await shot(page, 'steps_icon_picker.png')
     await page.close()
   }, 60_000)
 
@@ -1180,6 +1224,11 @@ async function openClean(page: Page): Promise<void> {
 }
 
 /** The Advanced row opens by itself when the link has an ID or a non-default style; open it only if it is still shut. */
+/** Picks one option of a segmented control or icon picker in the sidebar. */
+async function choose(page: Page, group: string, option: string): Promise<void> {
+  await page.getByRole('radiogroup', { name: group, exact: true }).getByRole('radio', { name: option, exact: true }).click()
+}
+
 async function openAdvanced(dialog: ReturnType<Page['locator']>): Promise<void> {
   const toggle = dialog.getByRole('button', { name: 'Advanced' })
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()

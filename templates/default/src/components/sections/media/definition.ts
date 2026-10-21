@@ -59,5 +59,14 @@ export const media = defineSection({
     { name: 'intro', label: 'Show heading', type: 'boolean', default: true },
   ],
   optional: { props: ['eyebrow', 'heading', 'body', 'video', 'poster', 'image', 'label', 'caption'] },
+  showWhen: {
+    eyebrow: { intro: true },
+    heading: { intro: true },
+    body: { intro: true },
+    video: { kind: 'video' },
+    poster: { kind: 'video' },
+    label: { kind: 'video' },
+    image: { kind: 'image' },
+  },
   wireframe: mediaWireframe,
 })

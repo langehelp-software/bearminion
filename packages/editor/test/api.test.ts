@@ -408,6 +408,10 @@ describe('editor API', () => {
       sectionDescriptions: Record<string, string>
       sectionWireframes: Record<string, unknown[]>
       sectionDefaults: { hero: { heading: string } }
+      fieldChoices: Record<string, Record<string, string[]>>
+      fieldIcons: Record<string, Record<string, Record<string, string>>>
+      fieldImages: Record<string, string[]>
+      showWhen: Record<string, Record<string, Record<string, unknown>>>
       projectId: string
     }
     expect(catalog.sectionOptions).toEqual(sectionOptions)
@@ -433,6 +437,14 @@ describe('editor API', () => {
     expect(catalog.sectionDescriptions.hero).toBe('Opening heading, intro, buttons and an image.')
     expect(catalog.sectionLabels.hero).toBe('Hero')
     expect(catalog.sectionDefaults.hero.heading).toBe('Say what you do in one line.')
+    expect(catalog.fieldChoices.steps?.['steps[].icon']).toContain('terminal')
+    expect(catalog.fieldChoices.media?.kind).toEqual(['video', 'image'])
+    expect(Object.keys(catalog.fieldIcons)).toEqual(['steps'])
+    expect(catalog.fieldIcons.steps?.['steps[].icon']?.terminal).toMatch(/^M/)
+    expect(catalog.showWhen.media?.poster).toEqual({ kind: 'video' })
+    expect(catalog.fieldImages.media).toEqual(['poster', 'image'])
+    expect(catalog.fieldImages.features).toEqual(['items[].image'])
+    expect(catalog.showWhen.hero?.command).toEqual({ code: ['action', 'chip', 'terminal'] })
     expect(catalog.projectId).toMatch(/^[0-9a-f]+-[0-9a-f]+$/)
 
     const write = await call(context, 'POST', `${API_PREFIX}/schema`, { json: {} })

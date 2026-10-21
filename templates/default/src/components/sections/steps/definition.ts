@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { defineSection, linkSchema, richTextSchema, textSchema, withEmphasis, type CountRule } from 'bearminion'
 import { accent, eyebrow, heading } from '../shared'
+import { stepIconPaths } from './icons'
 import { stepsWireframe } from './wireframe'
 
 export const stepsVariants = ['columns', 'rail', 'list'] as const
@@ -56,5 +57,6 @@ export const steps = defineSection({
   options: [{ name: 'numbered', label: 'Show numbers', type: 'boolean', default: true }],
   optional: { props: ['eyebrow', 'heading', 'body', 'link'], items: { steps: ['description'] } },
   counts: stepsCounts,
+  icons: { 'steps[].icon': stepIconPaths },
   wireframe: stepsWireframe,
 })

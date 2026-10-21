@@ -4,6 +4,8 @@ import { imageTooLarge, kindFromMime, sniffImage } from './images.js'
 import { API_PREFIX, type EditorContext, type SectionRegistry } from './options.js'
 import type { CountRule, Option } from './section-options.js'
 import type { OptionalContent } from './section-optional.js'
+import type { FieldChoices, FieldIcons, ShowWhen } from './field-rules.js'
+import { imageFields } from './section-fields.js'
 import type { Wireframe } from './wireframe.js'
 import { JSON_BODY_LIMIT, MULTIPART_BODY_LIMIT, isLocalRequest, readSlug } from './security.js'
 import { projectId } from './draft-store.js'
@@ -158,6 +160,10 @@ async function getSchema(context: EditorContext): Promise<Response> {
   const sectionOptions: Record<string, readonly Option[]> = {}
   const optionalContent: Record<string, OptionalContent> = {}
   const contentCounts: Record<string, Record<string, CountRule>> = { ...context.site.counts }
+  const fieldChoices: Record<string, FieldChoices> = {}
+  const fieldIcons: Record<string, FieldIcons> = {}
+  const showWhen: Record<string, ShowWhen> = {}
+  const fieldImages: Record<string, string[]> = {}
   for (const definition of Object.values(context.sections)) {
     const type = definition.type
     sectionDefaults[type] = definition.defaults
@@ -167,6 +173,11 @@ async function getSchema(context: EditorContext): Promise<Response> {
     sectionOptions[type] = definition.options
     optionalContent[type] = definition.optional
     if (Object.keys(definition.counts).length > 0) contentCounts[type] = { ...definition.counts }
+    if (Object.keys(definition.choices).length > 0) fieldChoices[type] = definition.choices
+    if (Object.keys(definition.icons).length > 0) fieldIcons[type] = definition.icons
+    if (Object.keys(definition.showWhen).length > 0) showWhen[type] = definition.showWhen
+    const images = imageFields(definition.schema)
+    if (images.length > 0) fieldImages[type] = images
   }
   return json(200, {
     sectionOptions,
@@ -175,6 +186,10 @@ async function getSchema(context: EditorContext): Promise<Response> {
     theme: context.theme,
     contentCounts,
     optionalContent,
+    fieldChoices,
+    fieldIcons,
+    fieldImages,
+    showWhen,
     sectionDefaults,
     sectionLabels,
     sectionDescriptions,
