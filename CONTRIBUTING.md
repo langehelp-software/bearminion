@@ -37,7 +37,7 @@ pnpm test
 pnpm test:e2e         # needs Playwright's Chromium: run pnpm e2e:setup once (and after a Playwright upgrade)
 ```
 
-CI runs the same checks, plus `publint` and `@arethetypeswrong/cli` on the packed library, and installs a copy of the template with npm outside the monorepo.
+CI runs the same checks, plus `publint` and `@arethetypeswrong/cli` on the packed library, and installs a copy of the template with npm outside the monorepo. It also builds bearminion.com and the docs (the docs build fails on a broken link), checks that the site's CSS has every template class its code uses, and fails when a build changes a tracked file. A pull request that only changes `apps/web/content/`, `apps/web/src/assets/uploads/` or `apps/web/public/` runs only the site builds.
 
 - Keep pull requests focused, and add or update tests with behaviour changes. The e2e suite covers the editor UI; prefer a unit test when the logic can live outside a component.
 - A change to the content schemas that would reject existing files needs a content migration (see [Content versions](docs/content.md#content-versions)).

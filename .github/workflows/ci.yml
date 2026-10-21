@@ -13,8 +13,36 @@ permissions:
   contents: read
 
 jobs:
+  # A pull request that only changes bearminion.com's content (pages, images, the demo video) skips the editor's
+  # checks and tests: the `sites` job still builds the site, which validates the content. Skipped jobs count as
+  # passed for required checks, so content pull requests are not left waiting.
+  changes:
+    name: What changed
+    runs-on: ubuntu-24.04
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "origin/$BASE_REF...HEAD")
+          code=$(printf '%s\n' "$changed" | grep -vE '^apps/web/(content|src/assets/uploads|public)/' | grep -v '^$' || true)
+          if [ -n "$code" ]; then echo "code=true" >> "$GITHUB_OUTPUT"; else echo "code=false" >> "$GITHUB_OUTPUT"; fi
+          printf 'Changed outside the site content:\n%s\n' "${code:-(nothing)}"
+
   check:
     name: Lint, types, unit tests, build
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -40,8 +68,38 @@ jobs:
           pnpm build
           pnpm dlx publint@0.3.25
 
+  sites:
+    name: bearminion.com and docs
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The template's own build is the reference for the style check below.
+      - run: pnpm build
+      # Syncs the template's code into apps/web, then builds it: the content is validated against the template's schemas.
+      - run: pnpm web:build
+      # Fails on a broken link or #anchor between pages, or to a file in the repository.
+      - run: pnpm docs:build
+      - name: bearminion.com has the template's styles
+        run: pnpm --filter @bearminion/web check-styles
+      - name: The builds change no tracked files
+        run: |
+          status=$(git status --porcelain)
+          if [ -n "$status" ]; then
+            echo "The builds left changes (a file that should be gitignored, or a stale synced copy):"
+            echo "$status"
+            exit 1
+          fi
+
   e2e:
     name: Editor end-to-end
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -56,6 +114,8 @@ jobs:
 
   create:
     name: npm create bearminion (${{ matrix.storybook && 'with Storybook' || 'default' }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false

@@ -9,7 +9,7 @@ The BearMinion website, built with BearMinion. It runs the code of the [default 
 | `public/videos/` | The editor demo on the home page | yes |
 | `astro.config.ts`, `tsconfig.json`, the rest of `src/` | Copied from `templates/default` by `scripts/sync-template.mjs` before every `dev`, `build` and `typecheck` | no |
 
-Tailwind skips files listed in `.gitignore`, so the sync also adds an `@source` line for each copied `src/` folder to the copy of the stylesheet. Without them the site would build with most of its styles missing.
+Tailwind skips files listed in `.gitignore`, so the sync also adds an `@source` line for each copied `src/` folder to the copy of the stylesheet. Without them the site would build with most of its styles missing. CI catches that: `pnpm --filter @bearminion/web check-styles`, run after `pnpm build` and `pnpm web:build`, fails when the site's CSS lacks a class the template's CSS has and the site's code uses.
 
 ## Edit the site
 
