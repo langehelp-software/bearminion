@@ -58,8 +58,10 @@ The [default BearMinion template](https://github.com/langehelp-software/bearmini
 
 ## Learn more
 
+- [bearminion.com](https://bearminion.com), with a demo of the editor
+- [Getting started](https://docs.bearminion.com/getting-started/): create, edit and put your site online
+- [Documentation](https://docs.bearminion.com)
 - [BearMinion on GitHub](https://github.com/langehelp-software/bearminion)
-- [Documentation](https://github.com/langehelp-software/bearminion/blob/main/docs/README.md)
 
 ## License
 

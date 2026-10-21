@@ -1,6 +1,6 @@
 ---
 import type { Image } from 'bearminion'
-import { imageUrl } from '../../../lib/image-url'
+import { imageSrcset, imageUrl } from '../../../lib/image-url'
 import { cn } from '../../../lib/cn'
 import MediaFrame from '../../molecules/MediaFrame.astro'
 import type { MediaProps } from './definition'
@@ -15,10 +15,12 @@ interface Props {
   label?: string
   /** `data-field` path for the image, so a click on the frame opens the image picker. */
   imageField: string
+  /** Near the top of the page: the cover loads at once instead of lazily, since it is likely the largest thing on screen. */
+  eager?: boolean
   class?: string
 }
 
-const { kind, aspect, video, poster, image, label, imageField, class: className } = Astro.props
+const { kind, aspect, video, poster, image, label, imageField, eager = false, class: className } = Astro.props
 const ASPECT = { '16:9': 'aspect-video', '4:3': 'aspect-[4/3]', '21:9': 'aspect-[21/9]', '1:1': 'aspect-square' } as const
 const frame = cn(
   'relative w-full min-h-48 overflow-hidden rounded-[clamp(1rem,2cqi,1.5rem)] bg-surface shadow-[inset_0_0_0_1px_var(--line),0_40px_80px_-48px_oklch(0.2_0.02_255/0.35)]',
@@ -29,6 +31,9 @@ const source = kind === 'video' && video ? parseMediaSource(video) : null
 const hasImage = kind === 'image' && Boolean(image?.src) && image?.src !== 'placeholder' && !image?.hidden
 const empty = kind === 'video' ? !source : !hasImage
 const cover = source ? ((await imageUrl(poster)) ?? (source.kind === 'youtube' ? source.thumbnail : undefined)) : undefined
+const coverSrcset = source ? await imageSrcset(poster) : undefined
+// The frame is at most 68rem wide and the full width of a phone.
+const coverSizes = '(min-width: 72rem) 68rem, 100vw'
 const name = label || 'Video'
 ---
 
@@ -68,7 +73,17 @@ const name = label || 'Video'
         data-label={name}
         data-poster={source.kind === 'file' ? cover : undefined}
       >
-        {cover && <img src={cover} alt="" class="absolute inset-0 size-full object-cover" loading="lazy" decoding="async" />}
+        {cover && (
+          <img
+            src={cover}
+            srcset={coverSrcset}
+            sizes={coverSrcset ? coverSizes : undefined}
+            alt=""
+            class="absolute inset-0 size-full object-cover"
+            loading={eager ? 'eager' : 'lazy'}
+            decoding="async"
+          />
+        )}
         <button
           type="button"
           class="group absolute inset-0 grid cursor-pointer place-items-center bg-[oklch(0.15_0.01_255/0.12)] transition-colors hover:bg-[oklch(0.15_0.01_255/0.22)] focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent"

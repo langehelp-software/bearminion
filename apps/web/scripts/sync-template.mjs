@@ -17,6 +17,11 @@ const SYNCED = ['astro.config.ts', 'tsconfig.json', 'src']
 /** Never copied: the site's own images, and Storybook, which this site does not use. */
 const SKIPPED = ['src/assets', 'src/stories']
 const STORYBOOK = ['storybook', '@storybook/builder-vite', '@storybook-astro/framework']
+/**
+ * This site's dependency on the template itself. Nothing imports it: it tells Vercel's "Skip deployment" (and pnpm)
+ * that bearminion.com is built from templates/default, so a template-only change still redeploys the site.
+ */
+const SITE_ONLY = ['bearminion-site']
 
 const posix = (file) => file.split(path.sep).join('/')
 
@@ -92,7 +97,8 @@ function copyAll() {
 
 function dependencies(file) {
   const pkg = JSON.parse(readFileSync(file, 'utf8'))
-  const drop = (record = {}) => Object.fromEntries(Object.entries(record).filter(([name]) => !STORYBOOK.includes(name)))
+  const drop = (record = {}) =>
+    Object.fromEntries(Object.entries(record).filter(([name]) => !STORYBOOK.includes(name) && !SITE_ONLY.includes(name)))
   return { dependencies: drop(pkg.dependencies), devDependencies: drop(pkg.devDependencies) }
 }
 
@@ -116,8 +122,11 @@ function fixDependencies() {
   const file = path.join(site, 'package.json')
   const pkg = JSON.parse(readFileSync(file, 'utf8'))
   const wanted = dependencies(path.join(template, 'package.json'))
+  const siteOnly = Object.fromEntries(Object.entries(pkg.devDependencies ?? {}).filter(([name]) => SITE_ONLY.includes(name)))
   pkg.dependencies = wanted.dependencies
-  pkg.devDependencies = wanted.devDependencies
+  pkg.devDependencies = Object.fromEntries(
+    Object.entries({ ...wanted.devDependencies, ...siteOnly }).sort(([a], [b]) => a.localeCompare(b)),
+  )
   writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`)
 }
 

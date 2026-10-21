@@ -200,7 +200,7 @@ A variant change, a new, duplicated, moved, or deleted section, and a sidebar va
 
 Header links nest up to three levels (`MAX_NAV_DEPTH`). Desktop navigation uses hover and focus flyouts. The mobile menu uses an accordion. The link picker lists pages, `#anchor` on the current page, `/page#anchor` on other pages, and a custom URL.
 
-The API is `/__bearminion/api` on localhost. Saving `content/*.json` asks the editor to reload. If the draft is still dirty, the editor asks to save, discard, or cancel first. Unsaved drafts are kept in `localStorage` until save or discard. An upload does not reload by itself, so the draft can preview the new file before save. Request and response shapes, with curl examples, are in the [Dev API docs](https://github.com/langehelp-software/bearminion/blob/main/docs/dev-api.md), and every sidebar tab is described in [the editor docs](https://github.com/langehelp-software/bearminion/blob/main/docs/editor.md).
+The API is `/__bearminion/api` on localhost. Saving `content/*.json` asks the editor to reload. If the draft is still dirty, the editor asks to save, discard, or cancel first. Unsaved drafts are kept in `localStorage` until save or discard. An upload does not reload by itself, so the draft can preview the new file before save. Request and response shapes, with curl examples, are in the [Dev API docs](https://docs.bearminion.com/dev-api/), and every sidebar tab is described in [the editor docs](https://docs.bearminion.com/editor/).
 
 ```bash
 pnpm dev

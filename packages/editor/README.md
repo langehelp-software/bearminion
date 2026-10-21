@@ -47,7 +47,8 @@ Content is plain JSON in your project, validated on every save and kept in your 
 
 ## Learn more
 
-- [Documentation](https://github.com/langehelp-software/bearminion/blob/main/docs/README.md), including [building your own theme](https://github.com/langehelp-software/bearminion/blob/main/docs/themes.md) on this package
+- [bearminion.com](https://bearminion.com), with a demo of the editor
+- [Documentation](https://docs.bearminion.com), including [building your own theme](https://docs.bearminion.com/themes/) on this package and the [Astro integration](https://docs.bearminion.com/integration/)
 - [Source and issues](https://github.com/langehelp-software/bearminion)
 
 Requires Astro 7 and Zod 4 (peer dependencies, already in the template).
