@@ -103,8 +103,12 @@ describe('editor overlay', () => {
     await page.getByRole('menuitem', { name: 'Add below' }).click()
     await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Call to action' }).click()
     await page.locator('[data-section-id="cta-2"]').waitFor()
+    // Wait for the reload itself: the page before it already has data-bearminion-ready, so a click right after
+    // the save can land on that page and be lost when it reloads.
+    const reloadedAgain = page.waitForEvent('load')
     await page.keyboard.press('Control+s')
     await waitFor(() => fs.readFileSync(indexPath, 'utf8').includes('"id": "cta-2"'), 'added section missing from index.json')
+    await reloadedAgain
     // The sidebar can stay open across the save reload, so wait for the editor itself, not its button.
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
 
