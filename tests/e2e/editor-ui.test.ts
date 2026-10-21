@@ -162,6 +162,10 @@ describe('editor overlay', () => {
     // The starter's first header link has one child, "How it works".
     // Hidden until hover, so a CSS locator: getByRole skips hidden links.
     const nested = desktopNav.locator('a', { hasText: 'How it works' })
+    // Wait rather than count once: the test before this one saves, and the dev server may still be settling.
+    await nested.waitFor({ state: 'attached', timeout: 15_000 }).catch(async () => {
+      throw new Error(`No "How it works" link in the header nav. The nav was:\n${await desktopNav.innerHTML().catch(() => '(no nav)')}`)
+    })
     expect(await nested.count()).toBe(1)
     await desktopNav.getByRole('link', { name: /^Features/ }).hover()
     await nested.waitFor({ state: 'visible' })
@@ -1152,8 +1156,9 @@ describe('editor overlay', () => {
 
     const text = section.locator('[data-field="sections.1.props.steps.0.description"]')
     await text.click()
-    // Select "reader does" at the end of "Name the first thing the reader does." and mark it as code.
-    await page.keyboard.press('End')
+    // Select "reader does" at the end of "Name the first thing the reader does." and mark it as code. End does not
+    // move the caret in Chrome on macOS; Cmd+Right is the end of the line there.
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End')
     await page.keyboard.press('ArrowLeft')
     for (let step = 0; step < 11; step += 1) await page.keyboard.press('Shift+ArrowLeft')
     await page.getByRole('button', { name: 'Code', exact: true }).click()
