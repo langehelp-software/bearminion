@@ -11,6 +11,15 @@ describe('renderRichText', () => {
     expect(renderRichText('one\n\ntwo')).toBe('<p>one</p><p>two</p>')
   })
 
+  it('renders inline code literally', () => {
+    expect(renderRichText('Run `npm run dev` now')).toBe('<p>Run <code>npm run dev</code> now</p>')
+    expect(renderRichText('`**not bold** [x](/y)`')).toBe('<p><code>**not bold** [x](/y)</code></p>')
+    expect(renderRichText('`<script>`')).toBe('<p><code>&lt;script&gt;</code></p>')
+    expect(renderRichText('one ` tick')).toBe('<p>one ` tick</p>')
+    expect(renderRichText('empty `` pair')).toBe('<p>empty `` pair</p>')
+    expect(renderRichText('- `pnpm dev`')).toBe('<ul><li><code>pnpm dev</code></li></ul>')
+  })
+
   it('escapes raw HTML and drops unsafe links', () => {
     expect(renderRichText('<script>alert(1)</script>')).toBe('<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>')
     expect(renderRichText('[click](javascript:alert(1))')).toBe('<p>click</p>')
@@ -57,10 +66,19 @@ describe('markdownFromHtml', () => {
       '- Alpha\n- Beta **bold**',
       '1. One\n2. Two',
       'Intro\n\n- Alpha\n\nAfter',
+      'Run `npm run dev` and **save**',
+      '- `content/` holds pages',
     ]
     for (const sample of samples) {
       expect(markdownFromHtml(renderRichText(sample))).toBe(sample)
     }
+  })
+
+  it('keeps code plain: no marks, backticks or line breaks inside it', () => {
+    expect(markdownFromHtml('<p>Run <code><strong>npm</strong> run</code></p>')).toBe('Run `npm run`')
+    expect(markdownFromHtml('<code>a`b</code>')).toBe('`ab`')
+    expect(markdownFromHtml('<code>one<br>two</code>')).toBe('`one two`')
+    expect(markdownFromHtml('<kbd>Ctrl</kbd>+<kbd>S</kbd>')).toBe('`Ctrl`+`S`')
   })
 
   it('serializes formatted DOM the browser produces', () => {

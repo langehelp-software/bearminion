@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { defineSection, imageSchema, richTextSchema, textSchema, withEmphasis } from 'bearminion'
+import { VIDEO_FILE } from '../media/source'
 import { accent, eyebrow, heading } from '../shared'
 import { videoWireframe } from './wireframe'
 
@@ -7,8 +8,6 @@ export const videoVariants = ['framed', 'wide', 'split'] as const
 
 /** `controls`: the visitor presses play. `loop`: plays silently and on repeat while it is on screen, like a moving image. */
 export const videoPlayback = ['controls', 'loop'] as const
-
-const VIDEO_FILE = /^(?:\/(?!\/)|https?:\/\/)\S+\.(?:mp4|webm|m4v|mov|ogv)(?:[?#]\S*)?$/i
 
 /**
  * A video file the browser can play: a path in the site's `public/` folder (`/videos/demo.webm`) or an `https://` link

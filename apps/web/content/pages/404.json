@@ -1,24 +1,25 @@
 {
+  "schemaVersion": 1,
   "sections": [
     {
       "anchor": "not-found",
       "id": "not-found",
       "props": {
         "eyebrow": "404",
-        "heading": "Page not found.",
+        "heading": "Nothing in this cave.",
         "marks": [
           {
-            "end": 15,
+            "end": 21,
             "font": "serif",
             "italic": true,
-            "start": 5
+            "start": 11
           }
         ],
         "primary": {
           "href": "/",
           "label": "Back to the homepage"
         },
-        "sub": "The link may be broken, or the page may have moved."
+        "sub": "The link is broken or the page moved. Either way, it isn't here."
       },
       "tone": "base",
       "type": "hero",

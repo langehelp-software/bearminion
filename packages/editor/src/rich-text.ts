@@ -1,5 +1,5 @@
 /**
- * The subset the editor toolbar writes: paragraphs, line breaks, bold, italic,
+ * The subset the editor toolbar writes: paragraphs, line breaks, bold, italic, inline code (backticks),
  * links, and bulleted or numbered lists. Headings and images are not supported.
  * Stored as markdown. Rendered as a fixed set of tags, with text escaped.
  *
@@ -68,6 +68,15 @@ function renderInline(source: string): string {
   let index = 0
   let html = ''
   while (index < source.length) {
+    if (source[index] === '`') {
+      // Inline code is literal: nothing inside it is parsed, so `**` or a link in it stays as typed.
+      const end = source.indexOf('`', index + 1)
+      if (end > index + 1) {
+        html += `<code>${escapeHtml(source.slice(index + 1, end))}</code>`
+        index = end + 1
+        continue
+      }
+    }
     if (source.startsWith('***', index)) {
       const end = source.indexOf('***', index + 3)
       if (end !== -1) {
@@ -153,7 +162,7 @@ function escapeAttr(value: string): string {
   return escapeHtml(value)
 }
 
-type Mark = 'strong' | 'em' | 'link' | 'ul' | 'ol' | 'li' | 'block'
+type Mark = 'strong' | 'em' | 'code' | 'link' | 'ul' | 'ol' | 'li' | 'block'
 
 interface HtmlNode {
   mark: Mark | 'text' | 'root'
@@ -246,6 +255,7 @@ function blockOf(name: string): Mark | null {
 function markOf(name: string, style: string): Mark | null {
   if (name === 'strong' || name === 'b') return 'strong'
   if (name === 'em' || name === 'i') return 'em'
+  if (name === 'code' || name === 'kbd' || name === 'samp') return 'code'
   if (name === 'a') return 'link'
   if (name === 'span') {
     if (/font-weight\s*:\s*(?:bold|[7-9]00)/i.test(style)) return 'strong'
@@ -303,6 +313,11 @@ function listItemText(node: HtmlNode): string {
 
 function serializeInline(node: HtmlNode): string {
   if (node.mark === 'text') return node.text ?? ''
+  if (node.mark === 'code') {
+    // Code holds plain text only. A backtick inside would end it early, and a line break cannot be in it.
+    const text = plainText(node).replace(/`/g, '').replace(/\n+/g, ' ')
+    return text.trim() === '' ? text : `\`${text}\``
+  }
   if (node.mark === 'ul' || node.mark === 'ol') return serializeList(node)
   if (node.mark === 'li' || node.mark === 'block' || node.mark === 'root') return serializeFlow(node.children)
   const inner = node.children.map((child) => serializeInline(child)).join('')
@@ -316,6 +331,11 @@ function serializeInline(node: HtmlNode): string {
     return `[${inner}](${href})${flag}`
   }
   return inner
+}
+
+function plainText(node: HtmlNode): string {
+  if (node.mark === 'text') return node.text ?? ''
+  return node.children.map((child) => plainText(child)).join('')
 }
 
 function cleanup(value: string): string {

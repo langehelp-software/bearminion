@@ -216,6 +216,19 @@
   [data-field-kind="rich"] li::marker {
     color: var(--muted);
   }
+  /* Inline code, written with backticks: a small mono chip that keeps its words together. */
+  [data-field-kind="rich"] code {
+    display: inline-block;
+    margin: 0.0625rem;
+    padding: 0.0625rem 0.4375rem;
+    border-radius: 6px;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    font-family: var(--font-mono);
+    font-size: 0.84em;
+    color: var(--fg);
+    white-space: nowrap;
+  }
   blockquote[data-field-kind="rich"]::before {
     content: "“";
   }
@@ -331,14 +344,15 @@
   [data-open="true"] .menu-bar-2 {
     transform: translateY(-2.75px) rotate(-45deg);
   }
-  [data-motion="true"] [data-reveal] {
+  /* A section's own motion setting decides, not the page's: `<html>` carries data-motion too. */
+  [data-motion="true"] > [data-reveal] {
     opacity: 0;
     transform: translateY(28px);
   }
-  [data-motion="true"] [data-reveal="16"] {
+  [data-motion="true"] > [data-reveal="16"] {
     transform: translateY(16px);
   }
-  [data-motion="true"][data-revealed] [data-reveal] {
+  [data-motion="true"][data-revealed] > [data-reveal] {
     opacity: 1;
     transform: none;
     transition:
@@ -362,7 +376,7 @@
     color: var(--bg);
   }
   @media (prefers-reduced-motion: reduce) {
-    [data-motion="true"] [data-reveal] {
+    [data-motion="true"] > [data-reveal] {
       opacity: 1;
       transform: none;
     }

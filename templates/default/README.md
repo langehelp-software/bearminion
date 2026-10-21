@@ -29,9 +29,9 @@ This template is yours to change: it is the theme. `bearminion` is the only runt
 
 Organisms are Header, Navigation, MobileMenu, and Footer. A modal, a dialog, and a cookie banner belong in this folder too. They are the chrome around every page (or a standalone widget), and they are fed by `content/site.json`.
 
-Sections are `hero`, `logoStrip`, `features`, `textImage`, `stats`, `testimonials`, `pricing`, `video`, `faq`, `cta`, and `contact`. Each page entry is `{ id, anchor?, type, variant, tone, motion?, props }`. `anchor` is an optional lowercase slug, unique on the page, and it becomes the section element's `id`. `data-section-id` stays the section id. `[data-section-id]` sets `scroll-margin-top: 7rem` so a sticky or floating header does not cover the target. `html` uses `scroll-behavior: smooth`, and `prefers-reduced-motion: reduce` forces `scroll-behavior: auto`. Section components are built from molecules and atoms. A section may use an organism when it needs one, such as a modal. The section root carries `data-section-id`, `data-section-type`, `data-variant`, `data-tone`, and `data-motion`. Atoms accept a `class` and forward `data-*` attributes, including `data-field`, so the editor can find the text.
+Sections are `hero`, `logoStrip`, `steps`, `features`, `textImage`, `stats`, `testimonials`, `pricing`, `video`, `media`, `faq`, `cta`, and `contact`. Each page entry is `{ id, anchor?, type, variant, tone, motion?, props }`. `anchor` is an optional lowercase slug, unique on the page, and it becomes the section element's `id`. `data-section-id` stays the section id. `[data-section-id]` sets `scroll-margin-top: 7rem` so a sticky or floating header does not cover the target. `html` uses `scroll-behavior: smooth`, and `prefers-reduced-motion: reduce` forces `scroll-behavior: auto`. Section components are built from molecules and atoms. A section may use an organism when it needs one, such as a modal. The section root carries `data-section-id`, `data-section-type`, `data-variant`, `data-tone`, and `data-motion`. Atoms accept a `class` and forward `data-*` attributes, including `data-field`, so the editor can find the text.
 
-Paragraph fields (`sub`, `intro`, `body`, `description`, `quote`, `note`, `thanks`, and FAQ answers) are markdown. The template renders bold, italic, links, and paragraphs through `bearminion/rich-text`, escapes every other character, and adds `rel="noopener noreferrer"` on `http` and `https` links.
+Paragraph fields (`sub`, `intro`, `body`, `description`, `quote`, `note`, `thanks`, FAQ answers and Text + Image `points`) are markdown. The template renders bold, italic, inline `code` (a mono chip), links, and paragraphs through `bearminion/rich-text`, escapes every other character, and adds `rel="noopener noreferrer"` on `http` and `https` links.
 
 ```text
 src/components/
@@ -40,7 +40,7 @@ src/components/
   organisms/    Header, Navigation, MobileMenu, Footer, plus site-definition.ts (header and footer layouts, limits)
   sections/     one directory per type, plus definitions.ts, registry.ts, shared.ts, SectionList.astro
     hero/         definition.ts (zod schema, defaults, options), wireframe.ts (picker thumbnail), Hero.astro, Hero.stories.ts
-    logo-strip/ features/ text-image/ stats/ testimonials/ pricing/ video/ faq/ cta/ contact/
+    logo-strip/ steps/ features/ text-image/ stats/ testimonials/ pricing/ video/ media/ faq/ cta/ contact/
   seo/          Seo
 ```
 

@@ -33,8 +33,8 @@ It asks for the site's name and web address. Open the address `npm run dev` prin
 
 ## What you can change
 
-- **Text** right on the page, with bold, italic, links and lists
-- **Sections**: eleven ready-made types, each with three layouts, added from a visual picker
+- **Text** right on the page, with bold, italic, code, links and lists
+- **Sections**: thirteen ready-made types, each with three layouts, added from a visual picker
 - **Pages, menus and footer**, with titles and descriptions for search and sharing
 - **Images**: upload, choose how they fill their frame and which part stays in view
 - **Colors**: pick three, and the editor builds a full light and dark palette that stays readable

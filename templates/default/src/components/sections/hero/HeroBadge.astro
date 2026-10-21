@@ -1,0 +1,26 @@
+---
+import { anchorAttrs } from '../../../lib/link-attrs'
+import type { HeroProps } from './definition'
+
+interface Props {
+  badge: NonNullable<HeroProps['badge']>
+  field: (path: string) => string
+}
+
+const { badge, field } = Astro.props
+---
+
+<a
+  {...anchorAttrs({ href: badge.href })}
+  class="inline-flex h-9 max-w-full items-center gap-2.5 rounded-full bg-surface ps-1.5 pe-3.5 text-[0.875rem] text-fg ring-line transition-shadow hover:shadow-[inset_0_0_0_1px_var(--fg)]"
+>
+  {
+    badge.tag && (
+      <span class="inline-flex h-6 shrink-0 items-center rounded-full bg-accent px-2.5 text-[0.8125rem] font-semibold tracking-[-0.01em] text-on" data-field={field('badge.tag')}>
+        {badge.tag}
+      </span>
+    )
+  }
+  <span class="truncate font-medium" data-field={field('badge.text')}>{badge.text}</span>
+  <span class="text-muted" aria-hidden="true">→</span>
+</a>

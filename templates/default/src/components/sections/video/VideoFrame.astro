@@ -1,7 +1,6 @@
 ---
-import { getImage } from 'astro:assets'
 import type { Image } from 'bearminion'
-import { isRemote, resolveLocalAsset } from '../../../lib/assets'
+import { imageUrl } from '../../../lib/image-url'
 import { cn } from '../../../lib/cn'
 
 interface Props {
@@ -17,24 +16,7 @@ interface Props {
 const { src, poster, label, loop, roundedClass = 'rounded-card-lg', class: className } = Astro.props
 const placeholder = src === 'placeholder'
 
-/**
- * The poster as a URL for the `poster` attribute, which takes no `<img>`: optimized when the file is in src/assets,
- * served by the editor's dev route when it was just uploaded, and as it is when it is a remote URL.
- */
-async function posterUrl(image: Image | undefined): Promise<string | undefined> {
-  if (!image || image.hidden || image.src === 'placeholder') return undefined
-  if (isRemote(image.src)) return image.src
-  const path = image.src.replace(/^\//, '')
-  const asset = resolveLocalAsset(path)
-  if (asset) return (await getImage({ src: asset, width: Math.min(asset.width, 1920), format: 'webp' })).src
-  if (path.startsWith('src/assets/')) {
-    if (import.meta.env.DEV) return `/__bearminion/assets?src=${encodeURIComponent(path)}`
-    throw new Error(`No file in src/assets for the poster "${image.src}". Restore the file, or choose another image in the editor and save.`)
-  }
-  return image.src
-}
-
-const posterSrc = await posterUrl(poster)
+const posterSrc = await imageUrl(poster)
 // A looping video starts muted and without controls once the page script sees it on screen. Until then, and without
 // JavaScript or with reduced motion, it keeps its controls so it can still be played.
 const playback = loop ? { muted: true, loop: true, controls: true, 'data-video-loop': '' } : { controls: true }

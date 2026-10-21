@@ -419,6 +419,7 @@ describe('editor API', () => {
       header: { links: { recommended: 4 } },
       footer: { columns: { recommended: 3, max: 3 } },
       logoStrip: { logos: { recommended: 6 } },
+      steps: contentCounts.steps,
       features: contentCounts.features,
       textImage: { points: { recommended: 3 } },
       stats: { items: { recommended: 4 } },
@@ -597,7 +598,7 @@ describe('editor API', () => {
     expect(badVariant.status).toBe(400)
 
     const shortBento = structuredClone(sectionRegistry.features.defaults)
-    shortBento.items = shortBento.items.slice(0, contentCounts.features.items.exact.count - 1)
+    shortBento.items = shortBento.items.slice(0, contentCounts.features.items.min - 1)
     const badBento = await call(context, 'PUT', `${API_PREFIX}/pages/index`, {
       json: {
         slug: 'index',

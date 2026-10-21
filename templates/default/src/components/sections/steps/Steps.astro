@@ -1,0 +1,139 @@
+---
+import type { Section } from '../definitions'
+import Button from '../../atoms/Button.astro'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+import { anchorAttrs, buttonLinkProps, buttonVariant } from '../../../lib/link-attrs'
+import { stepColumns, stepIconPaths } from './icons'
+
+interface Props {
+  section: Extract<Section, { type: 'steps' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const columns = stepColumns[props.steps.length] ?? ''
+const number = (itemIndex: number) => String(itemIndex + 1).padStart(2, '0')
+const textLink = 'inline-flex items-center gap-1.5 text-[0.9375rem] font-medium text-link underline-offset-4 hover:underline'
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  {
+    section.variant === 'columns' && (
+      <div class="section-container flex flex-col gap-[clamp(2.5rem,5cqi,4rem)]">
+        <div class="flex flex-wrap items-end justify-between gap-x-16 gap-y-5">
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} headingClass="max-w-[16ch]" class="flex-[1_1_26rem] gap-5" />
+          {(props.body || props.link) && (
+            <div class="flex flex-[0_1_26rem] flex-col items-start gap-4">
+              {props.body && <Typography as="p" size="lead" color="muted" data-field={field('body')} markdown={props.body} />}
+              {props.link && (
+                <a {...anchorAttrs(props.link)} class={textLink}>
+                  <span data-field={field('link.label')}>{props.link.label}</span>
+                  <span aria-hidden="true">→</span>
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+        <ol class:list={['grid grid-cols-1 gap-4', columns]}>
+          {props.steps.map((step, itemIndex) => (
+            <li class="flex flex-col gap-4 rounded-card bg-surface p-[clamp(1.5rem,2.5cqi,2rem)] ring-line [&_code]:bg-bg">
+              <div class="flex items-center justify-between">
+                <span class="grid size-12 place-items-center rounded-[0.875rem] bg-accent text-on" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" class="size-[22px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d={stepIconPaths[step.icon]} />
+                  </svg>
+                </span>
+                {props.numbered && <span class="font-mono text-[0.75rem] tracking-[0.06em] text-muted">{number(itemIndex)}</span>}
+              </div>
+              <Typography as="h3" size="h3" class="mt-2 text-[1.375rem] leading-[1.15] tracking-[-0.025em]" data-field={field(`steps.${itemIndex}.title`)}>
+                {step.title}
+              </Typography>
+              {step.description && <Typography as="p" size="body" color="muted" data-field={field(`steps.${itemIndex}.description`)} markdown={step.description} />}
+            </li>
+          ))}
+        </ol>
+      </div>
+    )
+  }
+  {
+    section.variant === 'rail' && (
+      <div class="section-container flex flex-col items-center gap-[clamp(3rem,6cqi,5rem)]">
+        <SectionHeader
+          eyebrow={props.eyebrow}
+          heading={props.heading}
+          marks={props.marks}
+          intro={props.body}
+          introField="body"
+          align="center"
+          size="h2-md"
+          field={field}
+          headingClass="max-w-[18ch]"
+          class="gap-5 [&>[data-field-kind=rich]]:max-w-[34rem]"
+        />
+        <ol class:list={['grid w-full grid-cols-1 gap-x-8 gap-y-14', columns]}>
+          {props.steps.map((step, itemIndex) => (
+            <li class="relative flex flex-col gap-3.5 border-t border-line pt-9">
+              <span class="absolute -top-6 left-0 grid size-12 place-items-center rounded-full bg-bg text-fg ring-line" aria-hidden="true">
+                <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d={stepIconPaths[step.icon]} />
+                </svg>
+              </span>
+              {props.numbered && <span class="font-mono text-[0.75rem] tracking-[0.06em] text-link">Step {number(itemIndex)}</span>}
+              <Typography as="h3" size="h3" class="text-[1.375rem] leading-[1.15] tracking-[-0.025em]" data-field={field(`steps.${itemIndex}.title`)}>
+                {step.title}
+              </Typography>
+              {step.description && <Typography as="p" size="body" color="muted" data-field={field(`steps.${itemIndex}.description`)} markdown={step.description} />}
+            </li>
+          ))}
+        </ol>
+        {props.link && (
+          <Button {...buttonLinkProps(props.link)} variant={buttonVariant(props.link, 'secondary')} arrow data-field={field('link.label')}>
+            {props.link.label}
+          </Button>
+        )}
+      </div>
+    )
+  }
+  {
+    section.variant === 'list' && (
+      <div class="section-container grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] items-start gap-[clamp(2.5rem,6cqi,6rem)]">
+        <div class="sticky top-24 flex flex-col items-start gap-5">
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} class="gap-5" />
+          {props.body && <Typography as="p" size="lead" color="muted" data-field={field('body')} class="max-w-[30rem]" markdown={props.body} />}
+          {props.link && (
+            <a {...anchorAttrs(props.link)} class={textLink}>
+              <span data-field={field('link.label')}>{props.link.label}</span>
+              <span aria-hidden="true">→</span>
+            </a>
+          )}
+        </div>
+        <ol class="flex flex-col">
+          {props.steps.map((step, itemIndex) => (
+            <li class="grid grid-cols-[3rem_minmax(0,1fr)] gap-5 border-t border-line py-7">
+              <span class="grid size-12 place-items-center rounded-[0.875rem] bg-accent text-on" aria-hidden="true">
+                <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d={stepIconPaths[step.icon]} />
+                </svg>
+              </span>
+              <div class="flex flex-col gap-2">
+                <div class="flex items-baseline gap-3">
+                  {props.numbered && <span class="font-mono text-[0.75rem] text-muted">{number(itemIndex)}</span>}
+                  <Typography as="h3" size="h3" class="text-[1.25rem] leading-[1.2]" data-field={field(`steps.${itemIndex}.title`)}>
+                    {step.title}
+                  </Typography>
+                </div>
+                {step.description && <Typography as="p" size="body" color="muted" data-field={field(`steps.${itemIndex}.description`)} markdown={step.description} />}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    )
+  }
+</SectionShell>

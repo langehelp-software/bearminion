@@ -11,12 +11,14 @@ interface Props {
 const { sections, motion = true } = Astro.props
 const Hero = sectionComponents.hero
 const LogoStrip = sectionComponents.logoStrip
+const Steps = sectionComponents.steps
 const Features = sectionComponents.features
 const TextImage = sectionComponents.textImage
 const Stats = sectionComponents.stats
 const Testimonials = sectionComponents.testimonials
 const Pricing = sectionComponents.pricing
 const Video = sectionComponents.video
+const Media = sectionComponents.media
 const Faq = sectionComponents.faq
 const Cta = sectionComponents.cta
 const Contact = sectionComponents.contact
@@ -29,6 +31,8 @@ const Contact = sectionComponents.contact
         return <Hero section={section} index={index} motion={motion} />
       case 'logoStrip':
         return <LogoStrip section={section} index={index} motion={motion} />
+      case 'steps':
+        return <Steps section={section} index={index} motion={motion} />
       case 'features':
         return <Features section={section} index={index} motion={motion} />
       case 'textImage':
@@ -41,6 +45,8 @@ const Contact = sectionComponents.contact
         return <Pricing section={section} index={index} motion={motion} />
       case 'video':
         return <Video section={section} index={index} motion={motion} />
+      case 'media':
+        return <Media section={section} index={index} motion={motion} />
       case 'faq':
         return <Faq section={section} index={index} motion={motion} />
       case 'cta':

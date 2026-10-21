@@ -31,12 +31,14 @@ type Assert<T extends true> = T
 type SectionTypeName =
   | 'hero'
   | 'logoStrip'
+  | 'steps'
   | 'features'
   | 'textImage'
   | 'stats'
   | 'testimonials'
   | 'pricing'
   | 'video'
+  | 'media'
   | 'faq'
   | 'cta'
   | 'contact'
@@ -50,12 +52,14 @@ describe('section schemas', () => {
     expect(sectionTypes).toEqual([
       'hero',
       'logoStrip',
+      'steps',
       'features',
       'textImage',
       'stats',
       'testimonials',
       'pricing',
       'video',
+      'media',
       'faq',
       'cta',
       'contact',
@@ -321,18 +325,16 @@ describe('section schemas', () => {
     })
     expect(shortFeatures.success).toBe(false)
 
-    const bento = sectionSchema.safeParse({
-      id: 'features',
-      type: 'features',
-      variant: 'bento',
-      props: {
-        ...sectionRegistry.features.defaults,
-        items: sectionRegistry.features.defaults.items.slice(0, contentCounts.features.items.exact.count - 1),
-      },
-    })
-    expect(bento.success).toBe(false)
-    if (!bento.success) {
-      expect(bento.error.issues.map((issue) => issue.message).join('\n')).toMatch(/exactly 4 feature items/)
+    // The bento grid takes any count the section allows: 4 keeps the wide fourth card, 3, 5 or 6 fill rows of three.
+    const items = sectionRegistry.features.defaults.items
+    for (const count of [3, 4, 5, 6]) {
+      const bento = sectionSchema.safeParse({
+        id: 'features',
+        type: 'features',
+        variant: 'bento',
+        props: { ...sectionRegistry.features.defaults, items: Array.from({ length: count }, (_, at) => items[at % items.length]) },
+      })
+      expect(bento.success, `bento with ${count} items`).toBe(true)
     }
 
     const shortFaq = sectionRegistry.faq.schema.safeParse({
@@ -875,13 +877,85 @@ describe('video section', () => {
 })
 
 describe('commands', () => {
-  it('lets the hero show a command and the CTA terminal show output lines', () => {
-    expect(sectionRegistry.hero.schema.parse({ ...sectionRegistry.hero.defaults, command: 'npm create bearminion@latest' }).command).toBe(
-      'npm create bearminion@latest',
-    )
-    const output = ['Installed 12 packages', 'Done in 3s']
-    expect(sectionRegistry.cta.schema.parse({ ...sectionRegistry.cta.defaults, output }).output).toEqual(output)
-    expect(sectionRegistry.cta.schema.safeParse({ ...sectionRegistry.cta.defaults, output: Array(9).fill('line') }).success).toBe(false)
-    expect(sectionRegistry.cta.schema.safeParse({ ...sectionRegistry.cta.defaults, output: [''] }).success).toBe(false)
+  it('shows the hero command only in a chosen style, and keeps the primary button in the file when it is switched off', () => {
+    const hero = sectionRegistry.hero
+    const parsed = hero.schema.parse({ ...hero.defaults, command: 'npm create bearminion@latest' })
+    expect(parsed.command).toBe('npm create bearminion@latest')
+    expect(parsed.code).toBe('off')
+    expect(parsed.button).toBe(true)
+    expect(parsed.glow).toBe(false)
+    expect(hero.schema.parse({ ...hero.defaults, code: 'action', button: false }).primary).toEqual(hero.defaults.primary)
+    expect(hero.schema.safeParse({ ...hero.defaults, code: 'banner' }).success).toBe(false)
+    expect(sectionOptions.hero.map((option) => option.name)).toEqual(['variant', 'tone', 'motion', 'button', 'code', 'glow'])
+  })
+
+  it('takes a linked badge with an optional tag', () => {
+    const hero = sectionRegistry.hero
+    const badge = { tag: '1.2', text: 'Available now', href: '/changelog' }
+    expect(hero.schema.parse({ ...hero.defaults, badge }).badge).toEqual(badge)
+    expect(hero.schema.safeParse({ ...hero.defaults, badge: { text: 'Out now', href: '#' } }).success).toBe(true)
+    expect(hero.schema.safeParse({ ...hero.defaults, badge: { tag: 'New', href: '#' } }).success).toBe(false)
+  })
+
+  it('lets the CTA terminal print up to eight lines, each with an optional prompt', () => {
+    const cta = sectionRegistry.cta
+    const output = [{ text: 'Installed 12 packages' }, { prompt: '→', text: 'Next: npm run dev' }]
+    expect(cta.schema.parse({ ...cta.defaults, output }).output).toEqual(output)
+    expect(cta.schema.safeParse({ ...cta.defaults, output: Array(9).fill({ text: 'line' }) }).success).toBe(false)
+    expect(cta.schema.safeParse({ ...cta.defaults, output: [{ text: '' }] }).success).toBe(false)
+    expect(cta.schema.safeParse({ ...cta.defaults, output: ['plain string'] }).success).toBe(false)
+  })
+})
+
+describe('media section', () => {
+  const media = sectionRegistry.media
+  const withVideo = (video: string) => media.schema.safeParse({ ...media.defaults, video })
+
+  it('plays YouTube, Vimeo and video file links', () => {
+    for (const link of [
+      'https://www.youtube.com/watch?v=abcdefghijk',
+      'https://youtu.be/abcdefghijk',
+      'https://www.youtube.com/shorts/abcdefghijk',
+      'https://www.youtube-nocookie.com/embed/abcdefghijk',
+      'https://vimeo.com/76979871',
+      'https://player.vimeo.com/video/76979871',
+      '/videos/demo.webm',
+      'https://cdn.example.com/demo.mp4?v=2',
+    ]) {
+      expect(withVideo(link).success, link).toBe(true)
+    }
+  })
+
+  it('refuses links that are not a video', () => {
+    for (const link of ['https://example.com/page', 'javascript:alert(1)', 'youtube.com/watch?v=abcdefghijk', '/images/a.gif', '']) {
+      expect(withVideo(link).success, link).toBe(false)
+    }
+  })
+
+  it('defaults to a video with a heading, and offers type, shape and heading controls', () => {
+    const parsed = media.schema.parse(media.defaults)
+    expect([parsed.kind, parsed.aspect, parsed.intro]).toEqual(['video', '16:9', true])
+    expect(parsed.video).toBeUndefined()
+    expect(sectionOptions.media.map((option) => option.name)).toEqual(['variant', 'tone', 'motion', 'kind', 'aspect', 'intro'])
+  })
+})
+
+describe('steps section', () => {
+  const steps = sectionRegistry.steps
+
+  it('takes two to six steps with a known icon', () => {
+    const step = { icon: 'bolt', title: 'Quick', description: 'Run `npm run dev`.' }
+    for (const count of [2, 6]) {
+      expect(steps.schema.safeParse({ ...steps.defaults, steps: Array(count).fill(step) }).success, `${count}`).toBe(true)
+    }
+    for (const count of [1, 7]) {
+      expect(steps.schema.safeParse({ ...steps.defaults, steps: Array(count).fill(step) }).success, `${count}`).toBe(false)
+    }
+    expect(steps.schema.safeParse({ ...steps.defaults, steps: [step, { ...step, icon: 'rocket' }] }).success).toBe(false)
+  })
+
+  it('numbers steps unless switched off', () => {
+    expect(steps.schema.parse(steps.defaults).numbered).toBe(true)
+    expect(steps.schema.parse({ ...steps.defaults, numbered: false }).numbered).toBe(false)
   })
 })

@@ -9,7 +9,7 @@ import { isSafeHref, markdownFromHtml, renderRichText, sanitizeRichHtml, stripPl
 
 /**
  * The rich-text subset as a ProseMirror schema: paragraphs, line breaks, flat bulleted and numbered lists, bold,
- * italic and links. Nothing else can exist in the document, so nothing else can be pasted or typed into it.
+ * italic, inline code and links. Nothing else can exist in the document, so nothing else can be pasted or typed into it.
  * Storage stays the markdown subset of `rich-text.ts`; this module only converts at the edges.
  */
 export const richSchema = new Schema({
@@ -26,6 +26,8 @@ export const richSchema = new Schema({
   marks: {
     strong: { parseDOM: [{ tag: 'strong' }, { tag: 'b' }], toDOM: () => ['strong', 0] },
     em: { parseDOM: [{ tag: 'em' }, { tag: 'i' }], toDOM: () => ['em', 0] },
+    // Markdown code is literal, so it carries no other mark, and typing at its end leaves it.
+    code: { excludes: '_', inclusive: false, parseDOM: [{ tag: 'code' }], toDOM: () => ['code', 0] },
     link: {
       // `newTab` mirrors `data-new-tab` in the markdown flags: null leaves it to the default (external links open a new tab).
       attrs: { href: {}, newTab: { default: null } },
@@ -53,7 +55,7 @@ export const richSchema = new Schema({
 })
 
 const { paragraph, bullet_list, ordered_list, list_item, hard_break } = richSchema.nodes
-const { strong, em, link } = richSchema.marks
+const { strong, em, code, link } = richSchema.marks
 const parser = ModelParser.fromSchema(richSchema)
 const serializer = DOMSerializer.fromSchema(richSchema)
 
@@ -213,7 +215,7 @@ function setLink(href: string): Command {
   }
 }
 
-export type RichCommand = 'bold' | 'italic' | 'bulletList' | 'orderedList' | 'link'
+export type RichCommand = 'bold' | 'italic' | 'code' | 'bulletList' | 'orderedList' | 'link'
 
 /** The editing command behind a toolbar button. `url` is for `link`. */
 export function commandFor(command: RichCommand, url = ''): Command {
@@ -222,6 +224,8 @@ export function commandFor(command: RichCommand, url = ''): Command {
       return toggleMark(strong)
     case 'italic':
       return toggleMark(em)
+    case 'code':
+      return toggleMark(code)
     case 'bulletList':
       return toggleList(bullet_list)
     case 'orderedList':
@@ -238,6 +242,7 @@ export const enterCommand: Command = chainCommands(splitListItem(list_item), lif
 export interface RichActive {
   bold: boolean
   italic: boolean
+  code: boolean
   link: boolean
   bulletList: boolean
   orderedList: boolean
@@ -251,6 +256,7 @@ export function activeOf(state: EditorState): RichActive {
   return {
     bold: marked(strong),
     italic: marked(em),
+    code: marked(code),
     link: marked(link),
     bulletList: lists.length > 0 && lists.every((item) => item.node.type === bullet_list),
     orderedList: lists.length > 0 && lists.every((item) => item.node.type === ordered_list),
@@ -258,7 +264,14 @@ export function activeOf(state: EditorState): RichActive {
 }
 
 function sameActive(a: RichActive, b: RichActive): boolean {
-  return a.bold === b.bold && a.italic === b.italic && a.link === b.link && a.bulletList === b.bulletList && a.orderedList === b.orderedList
+  return (
+    a.bold === b.bold &&
+    a.italic === b.italic &&
+    a.code === b.code &&
+    a.link === b.link &&
+    a.bulletList === b.bulletList &&
+    a.orderedList === b.orderedList
+  )
 }
 
 export interface RichEditor {

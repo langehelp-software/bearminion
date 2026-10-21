@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { defineSection, imageSchema, linkSchema, richTextSchema, textSchema, withEmphasis } from 'bearminion'
+import { defineSection, imageSchema, linkSchema, richTextSchema, withEmphasis } from 'bearminion'
 import { accent, eyebrow, heading } from '../shared'
 import { textImageWireframe } from './wireframe'
 
@@ -9,7 +9,8 @@ export const textImageSchema = withEmphasis({
   eyebrow,
   heading,
   body: richTextSchema.optional(),
-  points: z.array(textSchema),
+  /** Rich text: bold, italic, links and `code` in backticks. Plain strings render as before. */
+  points: z.array(richTextSchema),
   link: linkSchema.optional(),
   image: imageSchema,
 })

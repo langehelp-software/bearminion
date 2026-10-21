@@ -4,32 +4,76 @@ import { cn } from '../../lib/cn'
 interface Props {
   /** The shell command, such as `npm create bearminion@latest`. */
   command: string
+  /**
+   * `chip`: a small pill. `action`: a pill as tall as a button, for a button row. `terminal`: a dark block with a
+   * "Terminal" bar, the same in every tone.
+   */
+  variant?: 'chip' | 'action' | 'terminal'
   class?: string
   'data-field'?: string
 }
 
-const { command, class: className, 'data-field': dataField } = Astro.props
+const { command, variant = 'chip', class: className, 'data-field': dataField } = Astro.props
+const copyIcon = 'M8 8h11v11H8zM5 16V5h11'
 ---
 
-<div
-  class={cn(
-    'inline-flex max-w-full items-center gap-3 rounded-full border border-line bg-surface py-1.5 ps-4 pe-1.5 font-mono text-[0.8125rem] text-fg',
-    className,
-  )}
-  data-command-line
->
-  <span class="text-muted select-none" aria-hidden="true">$</span>
-  <code class="min-w-0 truncate" data-command data-field={dataField}>{command}</code>
-  <button
-    type="button"
-    class="shrink-0 rounded-full bg-fg px-3 py-1.5 text-[0.75rem] font-medium text-bg transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-    aria-label="Copy command"
-    data-copy-command
-  >
-    <span data-copy-label>Copy</span>
-  </button>
-  <span class="sr-only" role="status" data-copy-status></span>
-</div>
+{
+  variant === 'terminal' ? (
+    <div
+      class={cn(
+        'w-full max-w-[30rem] overflow-hidden rounded-2xl bg-[oklch(0.17_0.012_255)] text-left text-[oklch(0.93_0.004_250)] shadow-[0_0_0_1px_oklch(0.97_0.004_250/0.08),0_32px_64px_-40px_oklch(0.15_0.02_255/0.6)]',
+        className,
+      )}
+      data-command-line
+    >
+      <div class="flex items-center justify-between border-b border-[oklch(0.97_0.004_250/0.08)] py-2 ps-4 pe-2">
+        <span class="font-mono text-[0.6875rem] tracking-[0.08em] text-[oklch(0.93_0.004_250/0.55)] uppercase">Terminal</span>
+        <button
+          type="button"
+          class="h-[1.875rem] rounded-full bg-[oklch(0.97_0.004_250/0.08)] px-3 text-[0.75rem] font-medium transition-colors hover:bg-[oklch(0.97_0.004_250/0.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          aria-label="Copy command"
+          data-copy-command
+        >
+          <span data-copy-label>Copy</span>
+        </button>
+      </div>
+      <div class="flex gap-3 overflow-x-auto p-4 font-mono text-[0.8125rem] leading-[1.6] whitespace-pre">
+        <span class="text-[oklch(0.87_0.2_145)] select-none" aria-hidden="true">$</span>
+        <code data-command data-field={dataField}>{command}</code>
+      </div>
+      <span class="sr-only" role="status" data-copy-status />
+    </div>
+  ) : (
+    <div
+      class={cn(
+        'inline-flex max-w-full items-center rounded-full bg-surface font-mono text-fg ring-line',
+        variant === 'action' ? 'h-12 gap-3.5 ps-[1.125rem] pe-1.5 text-[0.875rem]' : 'h-11 gap-3 ps-4 pe-1.5 text-[0.8125rem]',
+        className,
+      )}
+      data-command-line
+    >
+      <span class="text-muted select-none" aria-hidden="true">$</span>
+      <code class="min-w-0 truncate" data-command data-field={dataField}>{command}</code>
+      <button
+        type="button"
+        class={cn(
+          'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-fg font-sans font-medium text-bg transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+          variant === 'action' ? 'h-9 px-3.5 text-[0.8125rem]' : 'h-8 px-3 text-[0.75rem]',
+        )}
+        aria-label="Copy command"
+        data-copy-command
+      >
+        {variant === 'action' && (
+          <svg viewBox="0 0 24 24" class="size-[13px]" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
+            <path d={copyIcon} />
+          </svg>
+        )}
+        <span data-copy-label>Copy</span>
+      </button>
+      <span class="sr-only" role="status" data-copy-status />
+    </div>
+  )
+}
 
 <script>
   /** Copies the command as it is on the page now, so an edit in the editor is what gets copied. */

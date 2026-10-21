@@ -59,17 +59,13 @@
         "title": "Legal"
       }
     ],
-    "legal": "© 2026 Jakub Lange. Released under the MIT license.",
-    "text": "A git-based, no-database CMS for Astro. Edit your site by clicking on it, and ship a plain static build.",
+    "legal": "© 2026 BearMinion - Released under the MIT license.",
+    "text": "Your loyal sitekick for Astro. Edit by clicking, ship a static build, go back to sleep.",
     "tone": "base",
     "variant": "wordmark"
   },
   "header": {
     "actions": [
-      {
-        "href": "https://github.com/langehelp-software/bearminion",
-        "label": "GitHub"
-      },
       {
         "href": "https://docs.bearminion.com/getting-started/",
         "label": "Get started"
@@ -81,7 +77,7 @@
         "label": "Features"
       },
       {
-        "href": "/#workflow",
+        "href": "/#why",
         "label": "How it works"
       },
       {
@@ -108,7 +104,7 @@
   ],
   "schemaVersion": 1,
   "seo": {
-    "description": "BearMinion is an open-source, git-based CMS for Astro: edit your site by clicking on it, with no database, no admin panel and no server.",
+    "description": "The BearMinion for the bare minimum: a git-based CMS for Astro with no database, no admin panel and no server.",
     "ogImage": "src/assets/uploads/og.png",
     "titleTemplate": "%s · BearMinion"
   },

@@ -1,0 +1,133 @@
+---
+import type { Image } from 'bearminion'
+import { imageUrl } from '../../../lib/image-url'
+import { cn } from '../../../lib/cn'
+import MediaFrame from '../../molecules/MediaFrame.astro'
+import type { MediaProps } from './definition'
+import { parseMediaSource } from './source'
+
+interface Props {
+  kind: MediaProps['kind']
+  aspect: MediaProps['aspect']
+  video?: string
+  poster?: Image
+  image?: Image
+  label?: string
+  /** `data-field` path for the image, so a click on the frame opens the image picker. */
+  imageField: string
+  class?: string
+}
+
+const { kind, aspect, video, poster, image, label, imageField, class: className } = Astro.props
+const ASPECT = { '16:9': 'aspect-video', '4:3': 'aspect-[4/3]', '21:9': 'aspect-[21/9]', '1:1': 'aspect-square' } as const
+const frame = cn(
+  'relative w-full min-h-48 overflow-hidden rounded-[clamp(1rem,2cqi,1.5rem)] bg-surface shadow-[inset_0_0_0_1px_var(--line),0_40px_80px_-48px_oklch(0.2_0.02_255/0.35)]',
+  ASPECT[aspect],
+  className,
+)
+const source = kind === 'video' && video ? parseMediaSource(video) : null
+const hasImage = kind === 'image' && Boolean(image?.src) && image?.src !== 'placeholder' && !image?.hidden
+const empty = kind === 'video' ? !source : !hasImage
+const cover = source ? ((await imageUrl(poster)) ?? (source.kind === 'youtube' ? source.thumbnail : undefined)) : undefined
+const name = label || 'Video'
+---
+
+{
+  empty ? (
+    // The empty frame is an editor hint, so a built site leaves it out.
+    import.meta.env.DEV && (
+      <div class={cn(frame, 'placeholder-stripes flex flex-col items-center justify-center gap-4 p-6 text-center')} data-field={kind === 'image' ? imageField : undefined}>
+        {kind === 'video' && (
+          <span class="flex size-14 items-center justify-center rounded-full bg-fg text-bg" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="ms-0.5 size-[18px]" fill="currentColor"><path d="M8 5.5v13l11-6.5z" /></svg>
+          </span>
+        )}
+        <span class="font-mono text-[0.75rem] tracking-[0.02em] text-muted">
+          {kind === 'video' ? 'Add a video link in the section settings' : 'Add an image in the section settings'}
+        </span>
+      </div>
+    )
+  ) : kind === 'image' && image ? (
+    <MediaFrame
+      src={image.src}
+      alt={image.alt}
+      fit={image.fit === 'auto' ? 'cover' : image.fit}
+      position={image.position}
+      aspectClass={cn(ASPECT[aspect], 'min-h-48 w-full p-0')}
+      roundedClass="rounded-[clamp(1rem,2cqi,1.5rem)]"
+      class="shadow-[inset_0_0_0_1px_var(--line),0_40px_80px_-48px_oklch(0.2_0.02_255/0.35)]"
+      data-field={imageField}
+    />
+  ) : (
+    source && (
+      <div
+        class={frame}
+        data-media-player
+        data-kind={source.kind}
+        data-src={source.kind === 'file' ? source.src : source.embed}
+        data-label={name}
+        data-poster={source.kind === 'file' ? cover : undefined}
+      >
+        {cover && <img src={cover} alt="" class="absolute inset-0 size-full object-cover" loading="lazy" decoding="async" />}
+        <button
+          type="button"
+          class="group absolute inset-0 grid cursor-pointer place-items-center bg-[oklch(0.15_0.01_255/0.12)] transition-colors hover:bg-[oklch(0.15_0.01_255/0.22)] focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent"
+          aria-label={`Play video: ${name}`}
+          data-media-play
+        >
+          <span class="grid size-16 place-items-center rounded-full bg-fg text-bg shadow-[0_12px_32px_-12px_oklch(0.15_0.02_255/0.6)] transition-transform group-hover:scale-105">
+            <svg viewBox="0 0 24 24" class="ms-0.5 size-5" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+          </span>
+        </button>
+      </div>
+    )
+  )
+}
+
+<script>
+  /**
+   * Nothing is loaded from YouTube, Vimeo or the video file until the visitor presses play. Then the button and cover
+   * are swapped for the player, which starts at once.
+   */
+  function play(frame: HTMLElement) {
+    const src = frame.dataset.src
+    if (!src) return
+    const label = frame.dataset.label ?? 'Video'
+    let player: HTMLElement
+    if (frame.dataset.kind === 'file') {
+      const video = document.createElement('video')
+      video.src = src
+      if (frame.dataset.poster) video.poster = frame.dataset.poster
+      video.controls = true
+      video.autoplay = true
+      video.playsInline = true
+      video.setAttribute('aria-label', label)
+      video.className = 'absolute inset-0 size-full bg-black object-contain'
+      player = video
+    } else {
+      const iframe = document.createElement('iframe')
+      iframe.src = src
+      iframe.title = label
+      iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media'
+      iframe.allowFullscreen = true
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin'
+      iframe.className = 'absolute inset-0 size-full border-0'
+      player = iframe
+    }
+    frame.replaceChildren(player)
+    player.focus()
+  }
+
+  function bindMediaPlayers() {
+    for (const button of document.querySelectorAll<HTMLButtonElement>('[data-media-play]')) {
+      if (button.dataset.bound === 'true') continue
+      button.dataset.bound = 'true'
+      button.addEventListener('click', () => {
+        const frame = button.closest<HTMLElement>('[data-media-player]')
+        if (frame) play(frame)
+      })
+    }
+  }
+  bindMediaPlayers()
+  document.addEventListener('bearminion:preview', bindMediaPlayers)
+</script>
