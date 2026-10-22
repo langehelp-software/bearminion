@@ -15,5 +15,3 @@ dist/
 *.log
 .DS_Store
 
-# Throwaway site copy used by tests/scripts/record-demo.mjs
-.demo-recording/
