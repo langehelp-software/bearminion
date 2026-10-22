@@ -1237,9 +1237,7 @@ describe('editor overlay', () => {
     expect(await dialog.getByRole('button', { name: 'Apply', exact: true }).isDisabled()).toBe(true)
 
     // A pasted script tag is unwrapped and stored as parsed JSON.
-    await json.fill(
-      '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"About us"}</script>',
-    )
+    await json.fill('<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"About us"}</script>')
     await dialog.getByRole('button', { name: 'Apply', exact: true }).click()
     await dialog.waitFor({ state: 'detached' })
     await page.getByText('JSON-LD · 1', { exact: true }).waitFor()
@@ -1264,6 +1262,23 @@ describe('editor overlay', () => {
     expect(saved.seo.jsonLd).toEqual([{ '@context': 'https://schema.org', '@type': 'Article', headline: 'About us' }])
     expect(JSON.parse(fs.readFileSync(sitePath, 'utf8')).analytics).toEqual({ head: snippet })
     expect(errors, logs).toEqual([])
+    await page.close()
+  }, 60_000)
+
+  it('locks page scroll behind a dialog without shifting the layout, and restores it', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'Editor', exact: true }).click()
+    await page.getByRole('tab', { name: 'Pages' }).click()
+    const lockState = () =>
+      page.evaluate(() => ({ overflow: document.documentElement.style.overflow, gutter: document.documentElement.style.scrollbarGutter }))
+    expect(await lockState()).toEqual({ overflow: '', gutter: '' })
+    await page.getByRole('button', { name: 'Edit SEO' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Edit SEO' })
+    expect((await lockState()).overflow).toBe('hidden')
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await dialog.waitFor({ state: 'detached' })
+    expect(await lockState()).toEqual({ overflow: '', gutter: '' })
     await page.close()
   }, 60_000)
 })

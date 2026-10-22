@@ -4,6 +4,7 @@ import type { PageDraft } from '../../draft.js'
 import { isSystemPage } from '../../page.js'
 import { text } from '../shared.js'
 import { type Editor, useEditor } from '../state/editor.js'
+import { ScrollLock } from '../scroll-lock.js'
 import type { EditorDialog } from '../state/ui.js'
 import type { Catalog, ConfirmAction } from '../types.js'
 import { ChangesDialog } from './changes-dialog.js'
@@ -54,18 +55,21 @@ export function SectionConfirm() {
   if (!confirm) return null
   const remove = confirm.action === 'delete'
   return (
-    <ConfirmDialog
-      label={remove ? 'Delete section' : 'Duplicate section'}
-      {...confirmCopy(confirm, doc.page.value, doc.catalog.value)}
-      tone={remove ? 'danger' : 'neutral'}
-      icon={remove ? 'trash' : 'copy'}
-      confirmLabel={remove ? 'Delete' : 'Duplicate'}
-      danger={remove}
-      onConfirm={sections.confirm}
-      onCancel={() => {
-        ui.confirm.value = null
-      }}
-    />
+    <>
+      <ScrollLock />
+      <ConfirmDialog
+        label={remove ? 'Delete section' : 'Duplicate section'}
+        {...confirmCopy(confirm, doc.page.value, doc.catalog.value)}
+        tone={remove ? 'danger' : 'neutral'}
+        icon={remove ? 'trash' : 'copy'}
+        confirmLabel={remove ? 'Delete' : 'Duplicate'}
+        danger={remove}
+        onConfirm={sections.confirm}
+        onCancel={() => {
+          ui.confirm.value = null
+        }}
+      />
+    </>
   )
 }
 
@@ -73,7 +77,13 @@ export function SectionConfirm() {
 export function SessionDialogs() {
   const editor = useEditor()
   const dialog = editor.ui.dialog.value
-  return dialog ? <SessionDialog editor={editor} dialog={dialog} /> : null
+  if (!dialog) return null
+  return (
+    <>
+      <ScrollLock />
+      <SessionDialog editor={editor} dialog={dialog} />
+    </>
+  )
 }
 
 function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialog }) {

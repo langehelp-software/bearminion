@@ -13,6 +13,7 @@ import {
 import { Icon } from './icons.js'
 import { draftImageUsages } from '../asset-paths.js'
 import { deleteImage, uploadImage } from './api-client.js'
+import { ScrollLock } from './scroll-lock.js'
 import { useEditor } from './state/editor.js'
 
 export interface LibraryImage {
@@ -472,6 +473,7 @@ export function ImagePickerModal({
         if (event.target === event.currentTarget) onClose()
       }}
     >
+      <ScrollLock />
       <div class="bm-modal" role="dialog" aria-modal="true" aria-label="Choose image" ref={dialog}>
         <div class="bm-modal-head">
           <h2 class="bm-dialog-title">Choose image</h2>
