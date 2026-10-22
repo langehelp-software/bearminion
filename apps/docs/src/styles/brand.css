@@ -89,12 +89,12 @@ h1#_top,
   border: 1px solid var(--sl-color-hairline);
   border-radius: 0.75rem;
 }
-.sl-markdown-content img[src*='editor-tab-'],
-.sl-markdown-content img[src*='editor-save-menu'] {
+.sl-markdown-content img[src*="editor-tab-"],
+.sl-markdown-content img[src*="editor-save-menu"] {
   max-width: min(100%, 24rem);
   height: auto;
 }
-.sl-markdown-content img[src*='editor-dock'] {
+.sl-markdown-content img[src*="editor-dock"] {
   max-width: min(100%, 22rem);
   height: auto;
 }
