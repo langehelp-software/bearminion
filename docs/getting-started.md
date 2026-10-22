@@ -63,6 +63,10 @@ Press **Ctrl/Cmd+S** to save. The editor writes your changes to `content/` and n
 
 From then on: edit, save, commit, push. Your host rebuilds the site on every push.
 
+### Analytics
+
+Paste the snippet your analytics tool gives you under **Site → Analytics & scripts**, save, commit and push. It runs on your live site only: not while you edit, and not on Vercel or Netlify preview deployments, so your own testing stays out of the numbers. There is nothing to configure. If your host does not mark its previews, or you want to force it either way, set the environment variable `BEARMINION_ANALYTICS` to `off` or `on` for that build (see the [template guide](../templates/default/README.md#analytics)).
+
 ## What is in your site
 
 | Path | What it is |

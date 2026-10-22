@@ -2,23 +2,21 @@ import { useState } from 'preact/hooks'
 import type { PageDraft } from '../../draft.js'
 import { isSystemPage } from '../../page.js'
 import { Icon } from '../icons.js'
-import { type LibraryImage, ImageField } from '../image-field.js'
 import { Info } from '../info.js'
-import { text } from '../shared.js'
 import { Field } from './fields.js'
+import { SeoCard } from './seo-card.js'
 
 export function PageForm({
   page,
   labels,
   siteName,
   siteUrl,
+  siteOgImage,
   selectedId,
   onChange,
   savedSlug,
   onHomeChange,
-  images,
-  onUploaded,
-  onDeleted,
+  onEditSeo,
   onSelectSection,
   onMoveSection,
   onReorderSections,
@@ -30,14 +28,13 @@ export function PageForm({
   labels: Record<string, string>
   siteName: string
   siteUrl: string
+  siteOgImage: string
   selectedId: string | null
   onChange: (page: PageDraft) => void
   /** Slug on disk. It differs from `page.slug` while a rename or a new home page is waiting for save. */
   savedSlug: string
   onHomeChange: (home: boolean) => void
-  images: LibraryImage[]
-  onUploaded: (image: LibraryImage) => void
-  onDeleted: (image: LibraryImage) => void
+  onEditSeo: () => void
   onSelectSection: (id: string) => void
   onMoveSection: (id: string, direction: -1 | 1) => void
   onReorderSections: (from: number, to: number) => void
@@ -46,23 +43,13 @@ export function PageForm({
   onAddSection: (anchor: DOMRect) => void
 }) {
   const [sectionDrag, setSectionDrag] = useState<{ from: number; over: number; mode: 'before' | 'after' } | null>(null)
-  const seo = page.seo
-  const setSeo = (key: string, value: unknown) => onChange({ ...page, seo: { ...seo, [key]: value } })
-  const description = text(seo.description)
-  const ogImage = text(seo.ogImage)
-  const shownTitle = text(seo.title) || page.title
   const isHome = page.slug === 'index'
   const isSystem = isSystemPage(page.slug)
   const savedHome = savedSlug === 'index'
   return (
     <>
       <div class="bm-stack">
-        <p class="bm-group">SEO · {page.title}</p>
-        <div class="bm-serp" aria-hidden="true">
-          <span class="bm-serp-title">{siteName ? `${shownTitle} · ${siteName}` : shownTitle}</span>
-          <span class="bm-serp-url">{serpUrl(siteUrl, page.slug)}</span>
-          <span class="bm-serp-desc">{description || 'No description yet.'}</span>
-        </div>
+        <p class="bm-group">Page · {page.title}</p>
         <Field label="Title" path="title" value={page.title} onChange={(value) => onChange({ ...page, title: value })} />
         <Field
           label="Slug"
@@ -105,55 +92,10 @@ export function PageForm({
             />
           </label>
         )}
-        <Field label="SEO title" path="seo.title" value={text(seo.title)} onChange={(value) => setSeo('title', value)} />
-        <Field
-          label="Description"
-          path="seo.description"
-          value={description}
-          onChange={(value) => setSeo('description', value)}
-          multiline
-          meta={`${description.length} / 160`}
-        />
-        <Field label="Canonical" path="seo.canonical" value={text(seo.canonical)} onChange={(value) => setSeo('canonical', value)} mono />
-        <ImageField
-          label="OG image"
-          path="seo.ogImage"
-          withAlt={false}
-          value={{ src: ogImage }}
-          images={images}
-          onChange={(next) => setSeo('ogImage', next.src)}
-          onUploaded={onUploaded}
-          onDeleted={onDeleted}
-        />
-        {!isSystem && (
-          <label class="bm-switch-row">
-            <span class="bm-switch-text">
-              <span class="bm-switch-title">
-                noindex
-                <Info label="About noindex" text="Emits noindex and drops the page from the sitemap." />
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={seo.noindex === true}
-              onChange={(event) => setSeo('noindex', event.currentTarget.checked)}
-            />
-          </label>
-        )}
-        {!isSystem && (
-          <label class="bm-switch-row">
-            <span class="bm-switch-text">
-              <span class="bm-switch-title">nofollow</span>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={seo.nofollow === true}
-              onChange={(event) => setSeo('nofollow', event.currentTarget.checked)}
-            />
-          </label>
-        )}
+      </div>
+      <div class="bm-stack">
+        <p class="bm-group">SEO</p>
+        <SeoCard page={page} siteName={siteName} siteUrl={siteUrl} siteOgImage={siteOgImage} system={isSystem} onEdit={onEditSeo} />
       </div>
       <div class="bm-stack bm-stack-tight">
         <p class="bm-group">Sections · {page.sections.length}</p>
@@ -283,15 +225,4 @@ export function PageForm({
       </div>
     </>
   )
-}
-
-/** Address as a search result shows it: no scheme, no `www.`, no trailing slash. Without a site URL, the path alone. */
-function serpUrl(siteUrl: string, slug: string): string {
-  const path = slug === 'index' ? '' : `/${slug}`
-  const host = siteUrl
-    .trim()
-    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
-    .replace(/^www\./i, '')
-    .replace(/\/+$/, '')
-  return host === '' ? path || '/' : `${host}${path}`
 }

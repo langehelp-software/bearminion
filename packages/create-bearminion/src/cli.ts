@@ -31,14 +31,14 @@ async function main(): Promise<number> {
   }
 
   const interactive = !options.yes && Boolean(process.stdin.isTTY && process.stdout.isTTY)
-  p.intro('BearMinion')
+  p.intro("🐻 Oh, great. Another website. Let's make this quick.")
 
   const directory =
     options.directory ??
     (interactive
       ? await ask(
           p.text({
-            message: 'Where should the site go?',
+            message: 'Which folder? A new or empty one.',
             placeholder: `./${DEFAULT_DIRECTORY}`,
             defaultValue: DEFAULT_DIRECTORY,
           }),
@@ -48,7 +48,7 @@ async function main(): Promise<number> {
   const targetDir = path.resolve(directory)
   const blocking = await blockingEntries(targetDir)
   if (blocking.length > 0) {
-    p.cancel(`${directory} is not empty (${preview(blocking)}). Choose a new or empty folder.`)
+    p.cancel(`Grrr. ${directory} isn't empty (${preview(blocking)}). Pick another folder, or clean up your mess first.`)
     return 1
   }
 
@@ -57,7 +57,7 @@ async function main(): Promise<number> {
     (interactive
       ? await ask(
           p.text({
-            message: 'What is the site called?',
+            message: 'What are we calling this masterpiece?',
             placeholder: toSiteName(directory),
             defaultValue: toSiteName(directory),
           }),
@@ -69,18 +69,18 @@ async function main(): Promise<number> {
   if (options.url !== undefined) {
     const normalized = normalizeUrl(options.url)
     if (!normalized) {
-      p.cancel(`"${options.url}" is not a web address. Use one such as https://example.com.`)
+      p.cancel(`"${options.url}" isn't a web address. Try something like https://example.com.`)
       return 1
     }
     url = normalized
   } else if (interactive) {
     const answer = await ask(
       p.text({
-        message: 'What is its web address?',
-        placeholder: 'https://example.com  (Enter to skip, set it later under Site → URL)',
+        message: "What's its web address?",
+        placeholder: 'https://example.com  (Enter to skip. Set it later under Site → URL)',
         defaultValue: '',
         validate: (value) =>
-          !value || normalizeUrl(value) ? undefined : 'Enter a full address such as https://example.com, or leave it empty.',
+          !value || normalizeUrl(value) ? undefined : "That's not a web address. Try https://example.com, or leave it empty.",
       }),
     )
     if (answer === undefined) return cancelled()
@@ -89,7 +89,7 @@ async function main(): Promise<number> {
 
   const pm = options.packageManager ?? detectPackageManager(process.env.npm_config_user_agent)
   const spin = p.spinner()
-  spin.start('Copying the template')
+  spin.start('Unpacking the template')
   await scaffold({
     templateDir: path.join(packageRoot, 'template'),
     targetDir,
@@ -98,35 +98,41 @@ async function main(): Promise<number> {
     ...(url ? { url } : {}),
     storybook: options.storybook,
   })
-  spin.stop(`Created ${siteName} in ${path.relative(process.cwd(), targetDir) || '.'}${options.storybook ? ', with Storybook' : ''}`)
+  spin.stop(
+    `Done. ${siteName} lives in ${path.relative(process.cwd(), targetDir) || '.'}${options.storybook ? ', Storybook included' : ''}`,
+  )
 
   let installed = false
   if (options.install) {
-    spin.start(`Installing dependencies with ${pm}`)
+    spin.start(`Fetching the bare minimum with ${pm}`)
     const result = await install(pm, targetDir)
     installed = result.ok
-    if (result.ok) spin.stop('Installed dependencies')
+    if (result.ok) spin.stop('Dependencies installed. Could have been worse.')
     else {
       spin.error(`${pm} install failed`)
       p.log.message(result.output)
-      p.log.warn(`Run ${pm} install in the folder to try again.`)
+      p.log.warn(`Sort out whatever that is, then run ${pm} install in the folder.`)
     }
   }
 
   if (options.git) {
     if (insideGitRepository(path.dirname(targetDir))) {
-      p.log.info('Inside an existing git repository, so no new one was created.')
+      p.log.info("Already inside a git repository, so I didn't start another one.")
     } else {
       const git = initGit(targetDir)
-      if (!git.initialized) p.log.warn(`Could not create a git repository: ${git.reason ?? 'git is not available'}`)
+      if (!git.initialized) p.log.warn(`Couldn't create a git repository: ${git.reason ?? 'git is not available'}`)
       else if (!git.committed)
-        p.log.warn('Created a git repository, but the first commit failed. Set your name and email with git config, then commit.')
+        p.log.warn('Repository created, first commit failed. Set your name and email with git config, then commit. Not my department.')
     }
   }
 
   const steps = [`cd ${path.relative(process.cwd(), targetDir) || '.'}`, ...(installed ? [] : [`${pm} install`]), runCommand(pm, 'dev')]
-  p.note(`${steps.join('\n')}\n\nOpen the address it prints and press Ctrl+E (Cmd+E on a Mac) to edit.`, 'Next steps')
-  p.outro(url ? `Ready to publish at ${url}.` : 'Set your web address under Site → URL before you publish.')
+  p.note(`${steps.join('\n')}\n\nOpen the address it prints, press Ctrl+E (Cmd+E on a Mac) and click on things.`, 'Next steps')
+  p.outro(
+    url
+      ? `Ready to publish at ${url}. I'm going back to sleep.`
+      : "Set your web address under Site → URL before you publish. I'll be asleep.",
+  )
   return 0
 }
 
@@ -137,7 +143,7 @@ async function ask(prompt: Promise<string | symbol>): Promise<string | undefined
 }
 
 function cancelled(): number {
-  p.cancel('Nothing was created.')
+  p.cancel('Nothing was created. Back to sleep.')
   return 1
 }
 

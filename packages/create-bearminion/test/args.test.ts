@@ -26,6 +26,6 @@ describe('parseCliArgs', () => {
   it('refuses an unknown package manager, an unknown option and two directories', () => {
     expect(() => parseCliArgs(['--pm', 'deno'])).toThrow(UsageError)
     expect(() => parseCliArgs(['--template', 'x'])).toThrow(UsageError)
-    expect(() => parseCliArgs(['one', 'two'])).toThrow(/one directory/)
+    expect(() => parseCliArgs(['one', 'two'])).toThrow(/one directory/i)
   })
 })

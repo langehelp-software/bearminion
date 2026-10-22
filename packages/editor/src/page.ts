@@ -36,6 +36,12 @@ export function addSectionIdentityIssues(sections: readonly unknown[], ctx: z.Re
   addLinkIdIssues(sections, ctx)
 }
 
+/** Custom structured data. At most 10 blocks and 50 KB, so a stray paste cannot bloat every page. */
+export const jsonLdSchema = z
+  .array(z.record(z.string(), z.unknown()))
+  .max(10)
+  .refine((blocks) => JSON.stringify(blocks).length <= 50_000, 'JSON-LD is limited to 50 KB')
+
 export const seoSchema = z
   .object({
     title: textSchema,
@@ -46,6 +52,8 @@ export const seoSchema = z
     nofollow: z.boolean().default(false),
     /** Absolute URL or site-relative path. Overrides the generated canonical. */
     canonical: z.string().min(1).optional(),
+    /** Replaces the generated `WebPage` JSON-LD when set. */
+    jsonLd: jsonLdSchema.optional(),
   })
   .strict()
 

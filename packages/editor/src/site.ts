@@ -133,6 +133,17 @@ export const siteSeoSchema = z
   })
   .strict()
 
+/**
+ * Raw HTML snippets for analytics and similar tags. A theme renders `head` at the end of `<head>` and
+ * `bodyEnd` before `</body>`, in production builds only.
+ */
+export const siteAnalyticsSchema = z
+  .object({
+    head: z.string().max(20_000).optional(),
+    bodyEnd: z.string().max(20_000).optional(),
+  })
+  .strict()
+
 /** Height range in px. Unset means the wordmark's own height, 28. */
 export const BRAND_LOGO_HEIGHT = { min: 16, max: 64, default: 28 } as const
 
@@ -170,6 +181,7 @@ function createSiteSchema(header: HeaderParts, footer: FooterParts) {
       /** Image shown in the header and footer in place of the name. */
       brandLogo: brandLogoSchema.optional(),
       seo: siteSeoSchema,
+      analytics: siteAnalyticsSchema.optional(),
       theme: themeSchema.default({ mode: 'light', motion: true }),
       header: headerSchema,
       footer: footerSchema,
@@ -211,6 +223,7 @@ function createSiteSchema(header: HeaderParts, footer: FooterParts) {
 export type Theme = z.infer<typeof themeSchema>
 export type FooterColumn = z.infer<typeof footerColumnSchema>
 export type SiteSeo = z.infer<typeof siteSeoSchema>
+export type SiteAnalytics = z.infer<typeof siteAnalyticsSchema>
 type AnySite = z.output<ReturnType<typeof createSiteSchema>>
 /** A site with header and footer variants as plain strings. {@link SiteWith} narrows them. */
 export type Header = AnySite['header']

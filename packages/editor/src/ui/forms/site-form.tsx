@@ -119,6 +119,31 @@ export function SiteForm({
           onDeleted={onDeleted}
         />
       </div>
+      <div class="bm-stack">
+        <p class="bm-group">Analytics &amp; scripts</p>
+        <Field
+          label="Head"
+          path="analytics.head"
+          value={text(getAt(site, 'analytics.head'))}
+          onChange={(value) => onOptional('analytics.head', value)}
+          hint="Added at the end of the page head. Paste the snippet your analytics tool gives you, script tags included."
+          multiline
+          mono
+        />
+        <Field
+          label="End of body"
+          path="analytics.bodyEnd"
+          value={text(getAt(site, 'analytics.bodyEnd'))}
+          onChange={(value) => onOptional('analytics.bodyEnd', value)}
+          hint="Added just before the closing body tag, for tools that ask for it there."
+          multiline
+          mono
+        />
+        <p class="bm-hint">
+          Runs on your live site only: not while you edit, and not on Vercel or Netlify previews. Most analytics tools need a consent banner
+          for visitors in the EU.
+        </p>
+      </div>
       {SITE_GROUPS.map((group) => {
         const items = shown.filter((option) => groupOf(option) === group)
         if (items.length === 0) return null

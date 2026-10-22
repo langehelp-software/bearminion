@@ -3,44 +3,305 @@ title: The editor
 description: "Everything the BearMinion editor does: inline editing, sections, the sidebar tabs, images, drafts, saving, history and git."
 ---
 
-Everything the dev-only editor does: inline editing, sections, the sidebar tabs, drafts, saving, images, history and git.
+The editor is a dev-only overlay on your own site. You edit the page where it is, and the sidebar holds everything that is not on the page. Nothing reaches your files until you save.
 
-## Using the editor
+![The editor open on the home page: a section toolbar on the left of the page and the sidebar on the right.](images/editor-overview.webp)
 
-Run `npm run dev` in your site (`pnpm dev` from the root of the BearMinion repository). A dock at the top right (preview, Saved/Unsaved pill, Save, and a panel button) opens the sidebar. The same shortcut is Ctrl+E or Cmd+E.
+On this page:
 
-Click text marked `data-field` to edit it in place. Replacing a heading, or the site name, keeps inline marks aligned with the new text and drops a mark when its word is gone. Paste into a plain field stays plain text. Enter commits a single-line field. Selecting words in a heading or the site name opens a format bar for weight (regular, medium, semibold, bold), italic, and font (sans, serif, mono). Fields whose path ends in `body`, `intro`, `sub`, `description`, `quote`, `note`, `thanks`, or `a`, list items under `points`, and any field with `data-field-kind="rich"`, are edited as formatted text. The toolbar applies bold, italic, code, a link, a bulleted list, and a numbered list. Enter in a list starts the next item. Enter on an empty item leaves the list. Enter elsewhere inserts a line break. The value stored in JSON is markdown (`**bold**`, `*italic*`, `` `code` ``, `[text](url)`, `- item`, `1. item`, blank lines for paragraphs). A link can add `{new}` or `{same}` so the new-window choice round-trips. Text in backticks is literal: nothing inside it is parsed, and it carries no other mark. The starter renders that markdown as `strong`, `em`, `code`, `a`, `br`, `p`, `ul`, and `ol`, escapes every other character, drops `javascript:`, `data:`, and `vbscript:` URLs, and sets `target="_blank"` and `rel="noopener noreferrer"` on `http` and `https` links unless `{same}` is set. Pasted HTML is parsed with `DOMParser`, read back as that markdown subset and rendered again, so only those tags reach the page: headings, images, attributes and event handlers from the clipboard are dropped. There are no heading or image buttons. Click an image slot on the page (the image, its frame or an empty placeholder) to open the image picker over the page. Hovering a section image at least 260 × 64 px shows a bar with Fit, Position and Change instead of the Change image chip. An image whose file is gone shows a Missing image placeholder on the page and File not found in its field, and the save fails until another image is chosen.
+- [Open the editor](#open-the-editor)
+- [Edit text on the page](#edit-text-on-the-page)
+- [Edit sections](#edit-sections)
+- [The sidebar](#the-sidebar): [Pages](#pages), [Section](#section), [Navigation](#navigation), [Footer](#footer), [Design](#design) and [Site](#site)
+- [Images](#images)
+- [Preview](#preview)
+- [Save, drafts and history](#save-drafts-and-history)
+- [Keyboard shortcuts](#keyboard-shortcuts)
 
-Hover or select a section for an outline and a toolbar glued to that section’s top edge. The toolbar stays visible while the section is in view: after the section top scrolls past, it pins under a sticky site header until the section ends, including while the sidebar is open. Scrolling does not hide it, and it does not cover the next section’s toolbar. The order is the section name, move up, move down, add, duplicate, settings, and delete. The name is the catalog label plus the anchor when one is set (`Pricing · #pricing`), truncated, with the full text in a tooltip. Move up and move down disable at the ends. Add opens “Add above” and “Add below”, then the section-type list. Duplicate and delete ask for confirmation and only then change the draft. Settings opens the sidebar on the Section tab for that section. Delete uses a danger style. Escape cancels a confirmation. Enter confirms it.
+## Open the editor
 
-The sidebar tabs are Pages, Section, Navigation, Footer, Design, and Site. It opens on Pages, and after a reload it comes back open on the tab you were on. The header shows the BearMinion mark, a preview button, a Saved or Unsaved pill, a Save button (same as Ctrl/Cmd+S) with a menu, and a close button.
+Run `npm run dev` in your site (`pnpm dev` from the root of the BearMinion repository). A dock at the top right opens the sidebar. The shortcut is Ctrl+E or Cmd+E.
 
-- Pages — the page list (follow a link, delete, or create from a section template with New page), then the current page: title, slug (rename on save) and a Home page switch (the home page is `index`, shows a home badge in the list, and its slug is locked; turning the switch on for another page asks before replacing the current home, which moves to a slug generated from its title), SEO title, description with a character count, canonical, og image, noindex, nofollow, and a numbered outline of the sections. Clicking an outline row opens that section on the Section tab.
-- Section — a section picker and the anchor, then Layout (variant, tone, and motion as Site default / On / Off), then Content (the other options and every prop). Choices with up to four values are segmented controls, longer lists are selects, and a field with icons (a step's icon) is an icon grid. Props the current options do not use are hidden, such as the poster while a Media section shows an image; their values stay in the file. Every image field (section images, logo, OG images) is the same control: an empty slot, or a thumbnail with file name, alt text (not on OG images), Fit (Cover, Contain, Auto) and Position (a 3×3 grid, disabled for Auto) on images that sit in a frame (not logos), Change image and Remove. Images that sit in a section also have a Show in section switch: off writes `hidden: true`, which removes the image and its frame from the page while the file and alt text stay. Clicking the slot or Change image opens a modal with an Upload tab (drop a file or click to browse) and a Library tab (pick an upload, or delete one from disk after a confirm; an image that saved content still uses cannot be deleted, and the error names where it is used). A field whose file is gone says File not found. Link fields open the same Edit link popover as the page. Lists are collapsible rows with move and remove. Section text and buttons are optional: clear an optional text field and it is hidden on the page and dropped from the file on save; a button has a Remove control and, once gone, an Add slot. A wrapper whose children are all gone (a section header, an actions row) is not rendered. What defines an item, such as a feature title or a question and its answer, stays required, so remove the whole item instead. `section-optional.ts` lists the optional props. Duplicate section and Delete section sit at the bottom and ask for confirmation. The anchor is a lowercase slug, unique on the page. The field suggests one from the heading (or the section type) when it is empty. The section element uses it as `id`. `data-section-id` stays the section id.
-- Site — Identity (name with style buttons for the selected text and a wordmark preview, URL, favicon), Search defaults (title template, description, og image), then Theme from `siteOptions`.
-- Footer — layout (variant, tone), text, legal line, badge, and up to three columns. Add and remove columns, drag a column by its header to reorder, and drag a link onto another column to move it. Each drag shows what a drop will do. Columns are aligned to the right edge of the footer.
-- Design — three seed colors (brand, neutral, link) and the color mode. The tone palettes and dark mode are derived from them (`theme.colors` in `site.json`, `#rrggbb`). Text on fills picks near-black or near-white by contrast, links are moved to 4.5:1, and the tab lists any text pair still under WCAG AA. The page previews the palette live. The layout injects `themeCss(site.theme.colors)` as `<style id="bm-theme">`; a site without colors ships nothing extra. For full control, the Advanced switch “Override individual colors” replaces any token (background, text, muted text, surface, accent, text on accent, link) per mode and tone via `theme.colors.tones.<light|dark>.<tone>.<token>`; the border follows the text color. Turning the switch off sets `theme.colors.customTones` to `false`: the overrides stay in the file but are not applied. Overrides are checked by the same contrast panel. The editor's own colors are separate and unaffected.
-- Preview — the eye button in the header (or the closed-editor bar) hides every panel, outline and bar so the page looks as visitors see it. A bubble at the bottom right, or Esc, exits and reopens the sidebar if it was open.
-- Footer bar — the footer carries a small “Footer” bar with a settings button that opens the Footer tab.
-- Navigation — brand (name or logo image with a height slider), header layout (variant, tone, sticky), then drag a row to reorder or nest, indent and outdent, and pick a link target. Nesting stops at `MAX_NAV_DEPTH` (3): a top-level link, a child, and a grandchild. The same link control edits header links, up to two header buttons, footer links, button and plan links. It offers existing pages, `#anchor` on the current page, `/page#anchor` on other pages, and a custom URL. An internal link to a missing page or anchor shows a warning and does not block save. Clicking a link or button on the page opens a popover for the label, URL, and “Open in new window”. Buttons and call-to-action links also take an optional HTML id, and optional buttons have a “Remove” action. Clicking an image on the page opens the image picker over the page, without the sidebar.
+![The dock: preview, the Saved or Unsaved pill, Save, and the panel button.](images/editor-dock.webp)
 
-The panel starts at 440px. A handle on its left edge drags the width, arrow keys step it, and a double-click resets it. The width stays between 380px and 40% of the viewport (the minimum shrinks when 40% is smaller than 380px) and is stored in `localStorage` as `bearminion:sidebar-width`. While the sidebar is open the page gets that much right padding, so the section being edited stays beside the panel.
+The dock has four controls:
 
-Edits stay in an in-memory draft. Text changes the DOM immediately. Tone and motion update the `data-*` attributes on the section, so tone colors follow the existing CSS. A variant change, a section you add, duplicate, move, or delete, and a sidebar value with no text of its own on the page (a video link, a section option, an optional field filled or emptied) are sent to `POST /__bearminion/api/preview`. The dev server validates that JSON, renders the page sections with Astro's container API through the Vite SSR module runner (the theme's `defineThemePreview` module, `/src/lib/render-preview.ts` by default), and returns HTML. The overlay replaces `main#content`, runs any script in the new markup that the page has not loaded yet (a section type that was not on the page until now), and dispatches `bearminion:preview` so scripts already on the page can bind the new nodes. The preview response is not written to disk. Header, navigation, footer, and other `site.json` fields appear after you save and reload. The first time one of those fields changes, the editor asks you to save and reload now or keep editing, and the sidebar keeps that notice while the site draft is dirty.
+- **Preview** hides all editor chrome ([details](#preview)).
+- **Saved or Unsaved** shows whether the draft differs from what is on disk.
+- **Save** writes the page and the site.
+- **Panel** opens the sidebar.
 
-Save sends the page and the site in one `POST /save`. The server validates both, including a rename or a move to home, before it writes anything, then writes them together; the page reloads only after that succeeds. A validation error stays on the page and lists the field errors. A content-file change, a Vite full reload, a link to another page, or a page opened from the Pages tab goes through the same choice when the draft is dirty: save and reload, discard changes, or cancel. Save and reload writes the page and the site before it navigates. Ctrl/Cmd+S is the only way to write the draft to disk.
+## Edit text on the page
 
-While a draft differs from the last saved JSON, the editor autosaves it to `localStorage` after about 500ms. Keys are `bearminion:draft:<projectId>:page:<slug>` and `bearminion:draft:<projectId>:site`. `projectId` is a hash of the dev server root and the site name, so two projects on the same localhost port do not share drafts. Each record stores the draft, a timestamp, and a hash of the on-disk JSON it was based on. Drafts older than 14 days are removed. If storage is disabled or full, the editor keeps editing and skips the autosave.
+Click any text marked `data-field` and type. Enter commits a single-line field. Pasting into a plain field pastes plain text.
 
-Opening the page shows the on-disk JSON. When a stored draft exists, a banner says "Unsaved changes from <relative time>" and offers Restore or Discard. If the file changed after the draft was based on it, the banner also says the file on disk has changed, and Restore and Discard still work. A successful save or Discard clears the stored draft. Another tab that saves the same page raises "Another tab saved this page."
+### Headings and the site name
 
-The Unsaved pill shows while the draft differs from the last successful save. Ctrl+S or Cmd+S writes the page and site with `POST /save`. Field errors from the API are listed in the sidebar and repeated next to the matching control. Closing or reloading the tab with unsaved edits triggers the browser's beforeunload warning. Save does not create a git commit unless you use Save menu → Commit changes… (see `git` below).
+Select words in a heading or in the site name to open the format bar. It sets weight (400, 500, 600, 700) and font (sans, serif, mono) for the selection.
 
-Escape blurs the field you are editing, then closes a confirmation, the link popover, the heading format bar, or the add-section picker, then closes the sidebar. Left and Right move between the sidebar tabs when focus is on the tab list. Arrow keys on the resize handle change the sidebar width.
+![The format bar over a selected word in a heading.](images/editor-format-bar.webp)
 
-A newly uploaded image is stored under `src/assets/uploads` and appears in the library immediately. In dev, a `src/assets/` path that is not in the eager `import.meta.glob` is rendered as a plain image whose URL is `/__bearminion/assets?src=...`. That route only serves a file inside `src/assets` or the uploads directory, and only to localhost. Production builds do not include the route. They still resolve the path with the glob and Astro `<Image>`, and they still fail the build when the file is missing.
+Replacing a heading keeps inline marks aligned with the new text. A mark is dropped when its word is gone.
 
-## History and git
+### Formatted text
 
-- `.editor/history/` keeps the newest 50 saved versions per page and for the site. Add it to `.gitignore`. To clear it, stop the dev server and delete the `.editor` folder.
-- `bearminion({ git: true })` enables `GET /git` and `POST /git/commit` (`{ message, paths? }`). Only changed files under `contentDir` and `uploadsDir` can be committed, git runs without a shell, and there is no push. With `git` off, or outside a repo, the editor hides Commit changes….
+Fields whose path ends in `body`, `intro`, `sub`, `description`, `quote`, `note`, `thanks` or `a`, list items under `points`, and any field with `data-field-kind="rich"` are edited as formatted text.
+
+![The text toolbar under a rich-text field: bold, italic, code, bulleted list, numbered list and a link field.](images/editor-rich-toolbar.webp)
+
+| Control | Result |
+| --- | --- |
+| Bold, italic, code | `**bold**`, `*italic*`, `` `code` `` |
+| Link | `[text](url)`. Add `{new}` or `{same}` so the new-window choice round-trips |
+| Bulleted or numbered list | `- item`, `1. item` |
+| Enter | In a list, starts the next item. On an empty item, leaves the list. Elsewhere, a line break |
+
+The stored value is Markdown, with blank lines for paragraphs. Text in backticks is literal: nothing inside it is parsed.
+
+There are no heading or image buttons. Headings are fields, and images are [image slots](#images).
+
+#### What the starter renders
+
+The starter renders that Markdown as `strong`, `em`, `code`, `a`, `br`, `p`, `ul` and `ol`, and escapes every other character.
+
+- `javascript:`, `data:` and `vbscript:` URLs are dropped.
+- `http` and `https` links get `target="_blank"` and `rel="noopener noreferrer"`, unless `{same}` is set.
+- Pasted HTML is parsed with `DOMParser`, read back as that Markdown subset and rendered again. Headings, images, attributes and event handlers from the clipboard are dropped.
+
+### Links and buttons
+
+Click a link or button on the page to open a popover for the label, the URL and “Open in new window”. Buttons and call-to-action links also take an optional HTML id. Optional buttons have a Remove action.
+
+## Edit sections
+
+Hover or select a section to outline it and show a toolbar on its top edge.
+
+![A section toolbar: name, move up, move down, add, duplicate, settings, delete.](images/editor-section-toolbar.webp)
+
+| Control | What it does |
+| --- | --- |
+| Name | The catalog label plus the anchor, such as `Pricing · #pricing`. Truncated, with the full text in a tooltip |
+| Move up, move down | Disabled at the ends |
+| Add | Opens “Add above” and “Add below”, then the section-type list |
+| Duplicate | Asks for confirmation, then changes the draft |
+| Settings | Opens the [Section tab](#section) for this section |
+| Delete | Danger style. Asks for confirmation, then changes the draft |
+
+The toolbar stays visible while the section is in view. When the section top scrolls past, it pins under a sticky site header until the section ends, also while the sidebar is open. It does not cover the next section's toolbar. Escape cancels a confirmation and Enter confirms it.
+
+## The sidebar
+
+The tabs are Pages, Section, Navigation, Footer, Design and Site. The sidebar opens on Pages, and after a reload it comes back open on the tab you were on.
+
+The header shows the BearMinion mark, the preview button, the Saved or Unsaved pill, Save (same as Ctrl/Cmd+S) with a [menu](#save-menu), and a close button.
+
+The panel starts at 440px. A handle on its left edge drags the width, arrow keys step it and a double-click resets it. The width stays between 380px and 40% of the viewport (the minimum shrinks when 40% is smaller than 380px) and is stored in `localStorage` as `bearminion:sidebar-width`. While the sidebar is open, the page gets that much right padding, so the section you edit stays beside the panel.
+
+### Pages
+
+![The Pages tab: the page list, the current page, its SEO card and the section outline.](images/editor-tab-pages.webp)
+
+**The page list.** Follow a link to open a page, delete one, or create one from a section template with New page.
+
+**The current page.** Title, slug (a rename is applied on save) and the Home page switch.
+
+- The home page is `index`, shows a home badge in the list, and its slug is locked.
+- Turning the switch on for another page asks before it replaces the current home, which moves to a slug generated from its title.
+
+**Outline.** A numbered list of the page's sections. Clicking a row opens that section on the Section tab.
+
+#### SEO
+
+The SEO card shows the page as a search result, with the social image as a square thumbnail and badges for what is set (noindex, nofollow, canonical, JSON-LD). Problems with `seo.*` fields are listed on the card.
+
+**Edit SEO** opens a dialog.
+
+![The Edit SEO dialog: a search preview, SEO title, description, canonical and OG image.](images/editor-seo-dialog.webp)
+
+| Field | Notes |
+| --- | --- |
+| SEO title | Falls back to the page title and the site's title template |
+| Description | With a character count |
+| Canonical | Optional |
+| OG image | The same [image field](#images) as everywhere else |
+| noindex, nofollow | Switches |
+| JSON-LD | An object, an array, or a pasted `<script type="application/ld+json">` tag. A Format button tidies it. A missing `@context` or `@type` is a warning |
+
+Apply is blocked while the JSON is invalid. The dialog edits a copy: Apply writes one undo step, Cancel or Escape drops the edits. The page scroll is locked behind the dialog without shifting the layout.
+
+### Section
+
+![The Section tab: the section picker, anchor, layout and content.](images/editor-tab-section.webp)
+
+The tab has three groups, top to bottom:
+
+1. **Section.** The section picker and the anchor.
+2. **Layout.** Variant, tone, and motion (Site default, On or Off).
+3. **Content.** The other options and every prop.
+
+Choices with up to four values are segmented controls, longer lists are selects, and a field with icons (a step's icon) is an icon grid. Props the current options do not use are hidden, such as the poster while a Media section shows an image. Their values stay in the file.
+
+**Anchor.** A lowercase slug, unique on the page. It is suggested from the heading (or the section type) when empty. The section element uses it as `id`. `data-section-id` stays the section id.
+
+**Lists.** Collapsible rows with move and remove.
+
+**Optional text and buttons.** Clear an optional text field and it is hidden on the page and dropped from the file on save. A button has a Remove control and, once gone, an Add slot. A wrapper whose children are all gone (a section header, an actions row) is not rendered. What defines an item, such as a feature title or a question and its answer, stays required: remove the whole item instead. `section-optional.ts` lists the optional props.
+
+**Links.** Link fields open the same [link control](#links-and-targets) as the Navigation tab.
+
+Duplicate section and Delete section sit at the bottom and ask for confirmation.
+
+### Navigation
+
+![The Navigation tab: brand, header layout and the link list.](images/editor-tab-navigation.webp)
+
+- **Brand.** The name, or a logo image with a height slider.
+- **Header layout.** Variant, tone and sticky.
+- **Links.** Drag a row to reorder or nest it, indent and outdent, and pick a link target. Nesting stops at `MAX_NAV_DEPTH` (3): a top-level link, a child and a grandchild.
+- **Buttons.** Up to two header buttons.
+
+#### Links and targets
+
+The same link control edits header links, header buttons, footer links, and button and plan links. It offers:
+
+- existing pages
+- `#anchor` on the current page
+- `/page#anchor` on other pages
+- a custom URL
+
+An internal link to a missing page or anchor shows a warning. It does not block saving.
+
+### Footer
+
+![The Footer tab: layout, text, legal line, badge and columns.](images/editor-tab-footer.webp)
+
+- **Layout.** Variant and tone.
+- **Text.** Footer text, the legal line and the badge.
+- **Columns.** Up to three. Add and remove columns, drag a column by its header to reorder, and drag a link onto another column to move it. Each drag shows what a drop will do.
+
+On the page, the columns stack on small screens, left-aligned: 1 column, then 2 from 416px of footer width, then 3 from 640px. From 896px they sit in a row on the right edge of the footer.
+
+The footer also carries a small “Footer” bar with a settings button that opens this tab.
+
+### Design
+
+![The Design tab: three seed colors, the color mode and the contrast check.](images/editor-tab-design.webp)
+
+**Seed colors.** Three: brand, neutral and link. Plus the color mode. Tone palettes and dark mode are derived from them (`theme.colors` in `site.json`, `#rrggbb`).
+
+**Contrast.** Text on fills picks near-black or near-white by contrast. Links are moved to 4.5:1. The tab lists any text pair still under WCAG AA. The page previews the palette live.
+
+**In the page.** The layout injects `themeCss(site.theme.colors)` as `<style id="bm-theme">`. A site without colors ships nothing extra.
+
+**Override individual colors.** The Advanced switch replaces any token per mode and tone, via `theme.colors.tones.<light|dark>.<tone>.<token>`. Tokens are background, text, muted text, surface, accent, text on accent and link. The border follows the text color. The same contrast panel checks overrides.
+
+Turning the switch off sets `theme.colors.customTones` to `false`: the overrides stay in the file but are not applied.
+
+The editor's own colors are separate and unaffected.
+
+### Site
+
+![The Site tab: identity, search defaults, analytics and theme.](images/editor-tab-site.webp)
+
+| Group | Fields |
+| --- | --- |
+| Identity | Name (with style buttons for the selected text and a wordmark preview), URL, favicon |
+| Search defaults | Title template, description, og image |
+| Analytics & scripts | Raw snippets for the page head and the end of the body |
+| Theme | Options from `siteOptions` |
+
+Analytics snippets run on your live site only: not in dev, and not on Vercel or Netlify previews. See [Analytics](getting-started.md#analytics) for how the template decides, and the `BEARMINION_ANALYTICS` override.
+
+## Images
+
+Every image field is the same control: sections, logo, OG images.
+
+- An empty slot, or a thumbnail with the file name.
+- Alt text (not on OG images).
+- Fit (Cover, Contain, Auto) and Position (a 3×3 grid, disabled for Auto) for images that sit in a frame. Not for logos.
+- Change image and Remove.
+- **Show in section** for images that sit in a section. Off writes `hidden: true`, which removes the image and its frame from the page while the file and alt text stay.
+
+Click the slot, or Change image, to open the picker. On the page, click an image slot (the image, its frame or an empty placeholder) to open the same picker over the page, without the sidebar.
+
+![The image picker with the Upload and Library tabs.](images/editor-image-picker.webp)
+
+- **Upload.** Drop a file or click to browse. New files go to `src/assets/uploads` and show in the library immediately.
+- **Library.** Pick an upload, or delete one from disk after a confirm. An image that saved content still uses cannot be deleted, and the error names where it is used.
+
+Hovering a section image at least 260 × 64 px shows a bar with Fit, Position and Change.
+
+An image whose file is gone shows a Missing image placeholder on the page and File not found in its field. Saving fails until you choose another image.
+
+In dev, a `src/assets/` path that is not in the eager `import.meta.glob` is rendered as a plain image whose URL is `/__bearminion/assets?src=...`. That route only serves a file inside `src/assets` or the uploads directory, and only to localhost. Production builds do not include the route. They still resolve the path with the glob and Astro `<Image>`, and they still fail the build when the file is missing.
+
+## Preview
+
+The eye button in the header, or on the closed editor's bar, hides every panel, outline and bar so the page looks as visitors see it. A bubble at the bottom right, or Esc, exits and reopens the sidebar if it was open.
+
+## Save, drafts and history
+
+### Drafts
+
+Edits stay in an in-memory draft.
+
+- Text changes the DOM immediately.
+- Tone and motion update the `data-*` attributes on the section, so tone colors follow the existing CSS.
+- A variant change, a section you add, duplicate, move or delete, and a sidebar value with no text of its own on the page (a video link, a section option, an optional field filled or emptied) go to `POST /__bearminion/api/preview`.
+
+The dev server validates that JSON, renders the page sections with Astro's container API through the Vite SSR module runner (the theme's `defineThemePreview` module, `/src/lib/render-preview.ts` by default), and returns HTML. The overlay replaces `main#content`, runs any script in the new markup that the page has not loaded yet, and dispatches `bearminion:preview` so scripts already on the page can bind the new nodes. The response is not written to disk.
+
+Header, navigation, footer and other `site.json` fields appear after you save and reload. The first time one of those changes, the editor asks you to save and reload now or keep editing. The sidebar keeps that notice while the site draft is dirty.
+
+### Save
+
+![The Save menu: Undo, Redo, Version history and Discard changes.](images/editor-save-menu.webp)
+
+Ctrl or Cmd+S is the only way to write the draft to disk. It sends the page and the site in one `POST /save`.
+
+- The server validates both, including a rename or a move to home, before it writes anything. Then it writes them together. The page reloads only after that succeeds.
+- A validation error stays on the page. The sidebar lists the field errors, repeated next to the matching control.
+- Closing or reloading the tab with unsaved edits triggers the browser's beforeunload warning.
+- Save does not create a git commit. Use Save menu → Commit changes… ([git](#git)).
+
+A content-file change, a Vite full reload, a link to another page, or a page opened from the Pages tab goes through the same choice when the draft is dirty: save and reload, discard changes, or cancel.
+
+#### Save menu
+
+The menu next to Save has Undo, Redo, Version history… and Discard changes…, plus Commit changes… when [git](#git) is on.
+
+### Autosaved drafts
+
+While a draft differs from the last saved JSON, the editor stores it in `localStorage` after about 500ms.
+
+- Keys are `bearminion:draft:<projectId>:page:<slug>` and `bearminion:draft:<projectId>:site`.
+- `projectId` is a hash of the dev server root and the site name, so two projects on the same localhost port do not share drafts.
+- Each record stores the draft, a timestamp and a hash of the on-disk JSON it was based on.
+- Drafts older than 14 days are removed.
+- If storage is disabled or full, the editor keeps editing and skips the autosave.
+
+When you open a page with a stored draft, a banner says “Unsaved changes from <relative time>” and offers Restore or Discard. If the file changed after the draft was based on it, the banner also says so. Restore and Discard still work. A successful save or Discard clears the stored draft.
+
+Another tab that saves the same page raises “Another tab saved this page.”
+
+### History
+
+`.editor/history/` keeps the newest 50 saved versions per page and for the site. Add it to `.gitignore`. To clear it, stop the dev server and delete the `.editor` folder.
+
+### Git
+
+`bearminion({ git: true })` enables `GET /git` and `POST /git/commit` (`{ message, paths? }`).
+
+- Only changed files under `contentDir` and `uploadsDir` can be committed.
+- Git runs without a shell, and there is no push.
+- With `git` off, or outside a repo, the editor hides Commit changes….
+
+## Keyboard shortcuts
+
+| Keys | Does |
+| --- | --- |
+| Ctrl/Cmd+E | Opens or closes the sidebar |
+| Ctrl/Cmd+S | Saves the page and the site |
+| Esc | Blurs the field you are editing. Then closes, in order: a confirmation, the link popover, the format bar, the add-section picker, the sidebar |
+| Left, Right | Moves between the sidebar tabs when focus is on the tab list |
+| Arrow keys on the resize handle | Change the sidebar width |

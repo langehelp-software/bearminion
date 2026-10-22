@@ -184,11 +184,22 @@ The site's own images (`logo.png`, `favicon.png`, `og.png`, `hero.png`) live in 
 
 ## SEO and sitemap
 
-`Seo.astro` reads the page `seo` object and the site defaults in `site.json`. The document title is `seo.titleTemplate` with `%s` replaced by the page SEO title. Description falls back to the site description. The canonical URL is `seo.canonical` when set, otherwise the page path joined to `site.url`. Robots is `noindex` or `index`, plus `nofollow` or `follow`. Open Graph, Twitter, and WebPage JSON-LD use the same title, description, and image.
+`Seo.astro` reads the page `seo` object and the site defaults in `site.json`. The document title is `seo.titleTemplate` with `%s` replaced by the page SEO title. Description falls back to the site description. The canonical URL is `seo.canonical` when set, otherwise the page path joined to `site.url`. Robots is `noindex` or `index`, plus `nofollow` or `follow`. Open Graph, Twitter, and WebPage JSON-LD use the same title, description, and image. A page that sets `seo.jsonLd` gets those blocks instead of the generated WebPage block, one script tag per block. `site.analytics.head` and `site.analytics.bodyEnd` are emitted by `Base.astro` in production builds only.
 
 `astro.config.ts` sets `site` from `site.json` and adds `@astrojs/sitemap`. The filter keeps content pages whose `seo.noindex` is false. `content/pages/preview.json` is the sample noindex page: it is built, it emits `noindex`, and it is absent from the sitemap. `src/pages/robots.txt.ts` points crawlers at `sitemap-index.xml`.
 
 The style guide at `/style-guide` renders every typography size and button variant. `/variants` renders every section, header, and footer variant. They live in `src/dev/` and only `npm run dev` serves them (the `devPages` integration in `astro.config.ts`), so they never reach the built site. Delete that integration and the folder if you do not want them.
+
+## Analytics
+
+`site.analytics.head` and `site.analytics.bodyEnd` are raw HTML snippets (the editor's Site → Analytics & scripts). `Base.astro` writes `head` at the end of `<head>` and `bodyEnd` before `</body>`, and only when `analyticsEnabled()` in `src/lib/analytics.ts` says the build is the live site's:
+
+1. `BEARMINION_ANALYTICS=on` or `off` decides, when set. `1`, `true` and `yes` also mean on; `0`, `false` and `no` mean off.
+2. Otherwise a production build is required, so `npm run dev` sends no visits.
+3. Vercel (`VERCEL_ENV`) and Netlify (`NETLIFY`, `CONTEXT`) say which deployment is building, so only their production deployments include the snippets.
+4. On any other host every production build includes them. Cloudflare Pages and similar hosts do not say which build is a preview. Set `BEARMINION_ANALYTICS=off` in the host's preview environment (Cloudflare lets you set variables per environment), or `on` to test a snippet locally with `npm run dev`.
+
+People who only use the editor never set a variable: steps 2 and 3 cover the usual setup. The snippets are not sanitised, so give write access to `content/site.json` only to people you would trust with the site's code.
 
 ## Dev editor
 

@@ -16,7 +16,7 @@ export interface CliOptions {
 
 export class UsageError extends Error {}
 
-export const HELP = `Create a BearMinion site: an Astro website you edit by clicking on it.
+export const HELP = `Scaffold a BearMinion site: Astro, plain JSON content, an editor you click on. No database, no drama.
 
 Usage
   npm create bearminion@latest [directory] -- [options]
@@ -24,11 +24,11 @@ Usage
 Options
   --name <name>     Site name (default: from the directory)
   --url <address>   Public address, such as https://example.com (you can set it later in the editor)
-  --storybook       Include Storybook, a workshop for the theme's components
-  --pm <manager>    Package manager to install with: ${PACKAGE_MANAGERS.join(', ')} (default: the one you ran)
-  --no-install      Do not install dependencies
-  --no-git          Do not create a git repository
-  -y, --yes         Ask nothing; use the defaults for anything not given
+  --storybook       Include Storybook (off by default; it is a lot of extra packages)
+  --pm <manager>    Package manager: ${PACKAGE_MANAGERS.join(', ')} (default: the one you ran)
+  --no-install      Skip installing dependencies
+  --no-git          Skip git init
+  -y, --yes         Ask nothing, use defaults for whatever is missing
   -h, --help        Show this help
   -v, --version     Show the version
 `
@@ -42,10 +42,10 @@ export function parseCliArgs(argv: string[]): CliOptions {
     throw new UsageError(error instanceof Error ? error.message : String(error))
   }
   const { values, positionals } = parsed
-  if (positionals.length > 1) throw new UsageError(`Expected one directory, got ${positionals.length}: ${positionals.join(' ')}`)
+  if (positionals.length > 1) throw new UsageError(`One directory, please. Got ${positionals.length}: ${positionals.join(' ')}`)
   const pm = values.pm
   if (pm !== undefined && !isPackageManager(pm)) {
-    throw new UsageError(`Unknown package manager "${pm}". Use one of: ${PACKAGE_MANAGERS.join(', ')}.`)
+    throw new UsageError(`"${pm}" isn't a package manager I know. Use one of: ${PACKAGE_MANAGERS.join(', ')}.`)
   }
   return {
     ...(positionals[0] !== undefined ? { directory: positionals[0] } : {}),

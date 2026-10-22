@@ -21,6 +21,7 @@ export type EditorDialog =
   | { kind: 'discard' }
   | { kind: 'history' }
   | { kind: 'commit' }
+  | { kind: 'seo' }
   | { kind: 'leave'; href: string | null }
   | { kind: 'home'; title: string; previousSlug: string }
 
