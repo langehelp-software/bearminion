@@ -9,12 +9,13 @@ interface ConsentSite {
 }
 
 /**
- * Whether this page asks for consent, and holds its analytics snippets back until it has it. That is the
- * case when the build ships snippets (`analyticsOn`, from `analyticsEnabled`) and the owner has not switched
- * the banner off. Without snippets there is nothing to ask about.
+ * Whether this site asks for consent: the owner has set analytics snippets and has not switched the banner
+ * off. Without snippets there is nothing to ask about. This does not depend on the build: dev and previews
+ * show the banner too, so the owner sees what visitors get. Only a live build also holds the snippets back
+ * (`analyticsEnabled`), because only a live build ships them.
  */
-export function consentRequired(site: ConsentSite, analyticsOn: boolean): boolean {
-  if (!analyticsOn || site.consent?.enabled === false) return false
+export function consentRequired(site: ConsentSite): boolean {
+  if (site.consent?.enabled === false) return false
   return Boolean(site.analytics?.head?.trim() || site.analytics?.bodyEnd?.trim())
 }
 

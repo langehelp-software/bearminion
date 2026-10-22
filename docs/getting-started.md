@@ -73,7 +73,7 @@ With a snippet set, your live site shows a cookie banner and holds the snippet b
 
 Under **Site → Cookie banner**, the switch turns the banner on and off, and **Edit banner** changes its words and adds a link to your privacy policy. Visitors are asked again after 180 days.
 
-The banner is a tool, not legal advice. Switch it off only when your analytics sets no cookies and you know the rules that apply to you. Cookieless tools (Plausible, Umami, Fathom, Vercel Web Analytics) often need no banner, but that depends on the tool and on where your visitors are. To see the banner locally, run the build with `BEARMINION_ANALYTICS=on`.
+The banner is a tool, not legal advice. Switch it off only when your analytics sets no cookies and you know the rules that apply to you. Cookieless tools (Plausible, Umami, Fathom, Vercel Web Analytics) often need no banner, but that depends on the tool and on where your visitors are. The banner also shows while you edit and on previews, so you see what visitors get; the snippets still load on the live site only.
 
 ## What is in your site
 

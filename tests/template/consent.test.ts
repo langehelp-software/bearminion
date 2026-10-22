@@ -6,18 +6,18 @@ import { CONSENT_MAX_AGE_MS, parseChoice, serializeChoice } from '../../template
 const snippet = { head: '<script async src="https://example.com/a.js"></script>' }
 
 describe('consent gate', () => {
-  it('asks when the build ships snippets, unless the owner switched the banner off', () => {
-    expect(consentRequired({ analytics: snippet }, true)).toBe(true)
-    expect(consentRequired({ analytics: { bodyEnd: '<noscript>x</noscript>' } }, true)).toBe(true)
-    expect(consentRequired({ analytics: snippet, consent: { enabled: false } }, true)).toBe(false)
-    expect(consentRequired({ analytics: snippet, consent: { enabled: true, title: 'Hi' } }, true)).toBe(true)
+  it('asks when snippets are set, unless the owner switched the banner off', () => {
+    expect(consentRequired({ analytics: snippet })).toBe(true)
+    expect(consentRequired({ analytics: { bodyEnd: '<noscript>x</noscript>' } })).toBe(true)
+    expect(consentRequired({ analytics: snippet, consent: { enabled: false } })).toBe(false)
+    expect(consentRequired({ analytics: snippet, consent: { enabled: true, title: 'Hi' } })).toBe(true)
   })
 
-  it('has nothing to ask about without snippets, or where snippets do not ship', () => {
-    expect(consentRequired({}, true)).toBe(false)
-    expect(consentRequired({ analytics: {} }, true)).toBe(false)
-    expect(consentRequired({ analytics: { head: '  \n' } }, true)).toBe(false)
-    expect(consentRequired({ analytics: snippet }, false)).toBe(false)
+  it('has nothing to ask about without snippets', () => {
+    expect(consentRequired({})).toBe(false)
+    expect(consentRequired({ analytics: {} })).toBe(false)
+    expect(consentRequired({ analytics: { head: '  \n' } })).toBe(false)
+    expect(consentRequired({ consent: { title: 'Hi' } })).toBe(false)
   })
 })
 

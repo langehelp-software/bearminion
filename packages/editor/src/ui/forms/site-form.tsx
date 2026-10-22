@@ -212,7 +212,7 @@ function ConsentGroup({
   const status = !enabled
     ? 'Off. Your snippets run for every visitor from the first page, EU visitors included.'
     : snippets
-      ? 'On. Your snippets wait until the visitor accepts. Visitors can change their mind from a footer link.'
+      ? 'On. Your snippets wait until the visitor accepts. The banner also shows while you edit, with analytics off.'
       : 'On. It appears once you add an analytics snippet above.'
   return (
     <div class="bm-stack">

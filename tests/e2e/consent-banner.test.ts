@@ -20,6 +20,7 @@ describe('cookie consent on a built site', () => {
   let server: ChildProcess | undefined
   let root = ''
   let logs = ''
+  let buildEnv: NodeJS.ProcessEnv = {}
 
   beforeAll(async () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'bearminion-consent-'))
@@ -31,6 +32,7 @@ describe('cookie consent on a built site', () => {
     site.consent = { policyHref: '/privacy' }
     fs.writeFileSync(sitePath, JSON.stringify(site, null, 2))
     const env: NodeJS.ProcessEnv = { ...process.env, BEARMINION_CONTENT_DIR: contentDir, BEARMINION_ANALYTICS: 'on' }
+    buildEnv = env
     delete env.VITEST
     delete env.VITEST_POOL_ID
     delete env.VITEST_WORKER_ID
@@ -165,6 +167,27 @@ describe('cookie consent on a built site', () => {
     expect(s.bannerHidden).toBe(false)
     await page.close()
   }, 30_000)
+
+  it('shows the banner and its flow with analytics off, and loads nothing', async () => {
+    // A build that does not ship snippets (dev, previews): the preview server serves dist from disk.
+    execFileSync(process.execPath, [astroBin, 'build'], { cwd: starter, env: { ...buildEnv, BEARMINION_ANALYTICS: 'off' }, stdio: 'pipe' })
+    const page = await browser.newPage()
+    await page.goto(origin)
+    expect(await page.locator('template[data-consent-snippet]').count()).toBe(0)
+    let s = await state(page)
+    expect(s.bannerHidden).toBe(false)
+    expect(s.queue).toEqual([])
+    await page.locator('[data-consent-banner] [data-consent-accept]').click()
+    s = await state(page)
+    expect(s.bannerHidden).toBe(true)
+    expect(s.tracked).toBeNull()
+    expect(s.hits).toBe(0)
+    expect(s.bodySnippet).toBe(false)
+    expect(JSON.parse(s.stored ?? '{}').analytics).toBe(true)
+    await page.locator('[data-consent-open]').click()
+    expect((await state(page)).bannerHidden).toBe(false)
+    await page.close()
+  }, 120_000)
 
   async function waitForServer(): Promise<void> {
     const deadline = Date.now() + 60_000

@@ -203,7 +203,7 @@ People who only use the editor never set a variable: steps 2 and 3 cover the usu
 
 ## Cookie banner
 
-When the build ships snippets (the rules above) and `site.consent.enabled` is not `false`, `consentRequired()` in `src/lib/consent.ts` is true and `Base.astro` changes three things:
+When snippets are set and `site.consent.enabled` is not `false`, `consentRequired()` in `src/lib/consent.ts` is true and the banner and the footer link render in every build, dev and previews included, so you see what visitors get. Only a build that ships the snippets (the rules above) holds them back; the others have none to hold. On the live build `Base.astro` changes three things:
 
 - **Before any snippet:** an inline script sets Google Consent Mode v2 to `denied` for `ad_storage`, `ad_user_data`, `ad_personalization` and `analytics_storage`.
 - **The snippets** move into `<template data-consent-snippet="head|body">`, so they are inert. Nothing in them loads or runs.
@@ -211,7 +211,7 @@ When the build ships snippets (the rules above) and `site.consent.enabled` is no
 
 `src/lib/consent-client.ts` shows the banner when there is no stored choice, and keeps the choice in `localStorage` (`bm-consent`, 180 days, bump `CONSENT_VERSION` in `consent-store.ts` to ask everyone again). On accept it sends `gtag('consent', 'update', { analytics_storage: 'granted' })`, then rebuilds the held-back scripts into the page, so they run after the update and work for any vendor, not only Google. Withdrawing deletes `_ga`, `_ga_*`, `_gid` and `_gat*` on the host and its parent domains and reloads, because a loaded script cannot be unloaded. Cookies that other tools set are not cleared. The banner has one category, analytics, and Accept and Reject look the same on purpose.
 
-The banner shows on the live site's build only, since that is where the snippets are. Run the build with `BEARMINION_ANALYTICS=on` to see it. `<noscript>` fallbacks in `bodyEnd`, such as the Google Tag Manager iframe, cannot wait for consent and never run while the banner is on.
+In dev and previews the banner and its choices work, and nothing is loaded or sent, so your own testing stays out of the numbers. `<noscript>` fallbacks in `bodyEnd`, such as the Google Tag Manager iframe, cannot wait for consent and never run while the banner is on.
 
 A theme with its own layout needs three things: render the `template` elements and a banner element carrying `data-consent-banner` (hidden by default) with `data-consent-accept` and `data-consent-reject` buttons, put `data-consent-open` on any element that should reopen it, and import `initConsent` from the script. The default words come from `consentCopy(site.consent)`, which `bearminion` exports.
 

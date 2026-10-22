@@ -24,8 +24,10 @@ const themeColor = site.theme.mode === 'dark' ? '#1c1e24' : '#f7f8f8'
 // Snippets ship in the live site's build only: not in `astro dev`, not in host previews. See lib/analytics.ts.
 const analyticsOn = analyticsEnabled(process.env, import.meta.env.PROD)
 const analytics = analyticsOn ? site.analytics : undefined
-// With a banner, the snippets wait inside <template> until the visitor accepts. See lib/consent.ts.
-const gated = consentRequired(site, analyticsOn)
+// With a banner, the snippets wait inside <template> until the visitor accepts. The banner itself shows in dev
+// and previews too, so the owner sees it; only the live build has snippets to hold back. See lib/consent.ts.
+const asks = consentRequired(site)
+const gated = asks && analyticsOn
 ---
 
 <!doctype html>
@@ -36,7 +38,7 @@ const gated = consentRequired(site, analyticsOn)
     <Seo site={site} page={page} pathname={Astro.url.pathname} />
     <meta name="theme-color" content={themeColor} />
     {gated && <script is:inline set:html={CONSENT_DEFAULT_SCRIPT} />}
-    {analytics?.head && !gated && <Fragment set:html={analytics.head} />}
+    {analytics?.head && !asks && <Fragment set:html={analytics.head} />}
     {gated && analytics?.head && <template data-consent-snippet="head" set:html={analytics.head} />}
     {/* Always present so the editor can update the palette live. */}
     <style id="bm-theme" is:inline set:html={paletteCss}></style>
@@ -53,10 +55,10 @@ const gated = consentRequired(site, analyticsOn)
     <main id="content">
       <slot />
     </main>
-    <Footer site={site} consentLabel={gated ? consentCopy(site.consent).settings : undefined} />
-    {analytics?.bodyEnd && !gated && <Fragment set:html={analytics.bodyEnd} />}
+    <Footer site={site} consentLabel={asks ? consentCopy(site.consent).settings : undefined} />
+    {analytics?.bodyEnd && !asks && <Fragment set:html={analytics.bodyEnd} />}
     {gated && analytics?.bodyEnd && <template data-consent-snippet="body" set:html={analytics.bodyEnd} />}
-    {gated && <ConsentBanner consent={site.consent} />}
+    {asks && <ConsentBanner consent={site.consent} />}
     <script>
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const observer =
