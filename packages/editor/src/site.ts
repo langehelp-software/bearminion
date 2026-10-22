@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CONSENT_HREF, CONSENT_HREF_MESSAGE, CONSENT_LIMITS, CONSENT_REOPEN } from './consent.js'
 import { addMarkIssues, imageSchema, linkSchema, textMarkSchema, textSchema, toneSchema } from './fields.js'
 import { walkLinkIds } from './link-ids.js'
 import { marksFromEmphasis, type TextMark } from './marks.js'
@@ -144,6 +145,28 @@ export const siteAnalyticsSchema = z
   })
   .strict()
 
+/**
+ * The cookie consent banner. A theme shows it whenever it ships analytics snippets, unless `enabled` is
+ * `false`, and holds the snippets back until the visitor accepts. Every text is optional: the theme has a default.
+ */
+export const siteConsentSchema = z
+  .object({
+    /** Only `false` turns the banner off. Absent means on. */
+    enabled: z.boolean().optional(),
+    /** Where visitors reopen the banner. Absent means a link in the footer. */
+    reopen: z.enum(CONSENT_REOPEN).optional(),
+    title: z.string().min(1).max(CONSENT_LIMITS.title).optional(),
+    body: z.string().min(1).max(CONSENT_LIMITS.body).optional(),
+    accept: z.string().min(1).max(CONSENT_LIMITS.button).optional(),
+    reject: z.string().min(1).max(CONSENT_LIMITS.button).optional(),
+    /** The footer link that reopens the banner, and the label of the corner icon. */
+    settings: z.string().min(1).max(CONSENT_LIMITS.link).optional(),
+    policyLabel: z.string().min(1).max(CONSENT_LIMITS.link).optional(),
+    /** A path on this site or an http(s) address. Nothing else, so the link cannot run script. */
+    policyHref: z.string().min(1).max(500).regex(CONSENT_HREF, CONSENT_HREF_MESSAGE).optional(),
+  })
+  .strict()
+
 /** Height range in px. Unset means the wordmark's own height, 28. */
 export const BRAND_LOGO_HEIGHT = { min: 16, max: 64, default: 28 } as const
 
@@ -182,6 +205,7 @@ function createSiteSchema(header: HeaderParts, footer: FooterParts) {
       brandLogo: brandLogoSchema.optional(),
       seo: siteSeoSchema,
       analytics: siteAnalyticsSchema.optional(),
+      consent: siteConsentSchema.optional(),
       theme: themeSchema.default({ mode: 'light', motion: true }),
       header: headerSchema,
       footer: footerSchema,
@@ -224,6 +248,7 @@ export type Theme = z.infer<typeof themeSchema>
 export type FooterColumn = z.infer<typeof footerColumnSchema>
 export type SiteSeo = z.infer<typeof siteSeoSchema>
 export type SiteAnalytics = z.infer<typeof siteAnalyticsSchema>
+export type SiteConsent = z.infer<typeof siteConsentSchema>
 type AnySite = z.output<ReturnType<typeof createSiteSchema>>
 /** A site with header and footer variants as plain strings. {@link SiteWith} narrows them. */
 export type Header = AnySite['header']

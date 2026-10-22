@@ -1,11 +1,13 @@
 ---
 import { themeCss, type Page } from 'bearminion'
 import type { Site } from '../components/organisms/site-definition'
+import ConsentBanner from '../components/organisms/ConsentBanner.astro'
 import Footer from '../components/organisms/Footer.astro'
 import Header from '../components/organisms/Header.astro'
 import Seo from '../components/seo/Seo.astro'
 import { analyticsEnabled } from '../lib/analytics'
 import { resolveLocalAsset } from '../lib/assets'
+import { CONSENT_DEFAULT_SCRIPT, consentCopy, consentRequired } from '../lib/consent'
 import '../styles/global.css'
 
 interface Props {
@@ -20,7 +22,12 @@ const iconType = icon ? ICON_TYPES[icon.format] : undefined
 const paletteCss = themeCss(site.theme.colors)
 const themeColor = site.theme.mode === 'dark' ? '#1c1e24' : '#f7f8f8'
 // Snippets ship in the live site's build only: not in `astro dev`, not in host previews. See lib/analytics.ts.
-const analytics = analyticsEnabled(process.env, import.meta.env.PROD) ? site.analytics : undefined
+const analyticsOn = analyticsEnabled(process.env, import.meta.env.PROD)
+const analytics = analyticsOn ? site.analytics : undefined
+// With a banner, the snippets wait inside <template> until the visitor accepts. The banner itself shows in dev
+// and previews too, so the owner sees it; only the live build has snippets to hold back. See lib/consent.ts.
+const asks = consentRequired(site)
+const gated = asks && analyticsOn
 ---
 
 <!doctype html>
@@ -30,7 +37,9 @@ const analytics = analyticsEnabled(process.env, import.meta.env.PROD) ? site.ana
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <Seo site={site} page={page} pathname={Astro.url.pathname} />
     <meta name="theme-color" content={themeColor} />
-    {analytics?.head && <Fragment set:html={analytics.head} />}
+    {gated && <script is:inline set:html={CONSENT_DEFAULT_SCRIPT} />}
+    {analytics?.head && !asks && <Fragment set:html={analytics.head} />}
+    {gated && analytics?.head && <template data-consent-snippet="head" set:html={analytics.head} />}
     {/* Always present so the editor can update the palette live. */}
     <style id="bm-theme" is:inline set:html={paletteCss}></style>
     {icon && <link rel="icon" type={iconType} href={icon.src} />}
@@ -46,8 +55,10 @@ const analytics = analyticsEnabled(process.env, import.meta.env.PROD) ? site.ana
     <main id="content">
       <slot />
     </main>
-    <Footer site={site} />
-    {analytics?.bodyEnd && <Fragment set:html={analytics.bodyEnd} />}
+    <Footer site={site} consentLabel={asks && site.consent?.reopen !== 'icon' ? consentCopy(site.consent).settings : undefined} />
+    {analytics?.bodyEnd && !asks && <Fragment set:html={analytics.bodyEnd} />}
+    {gated && analytics?.bodyEnd && <template data-consent-snippet="body" set:html={analytics.bodyEnd} />}
+    {asks && <ConsentBanner consent={site.consent} />}
     <script>
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const observer =

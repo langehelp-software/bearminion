@@ -1,8 +1,11 @@
 import type { JSX } from 'preact'
 import { getAt } from '../../draft.js'
 import type { MarkPatch } from '../../marks.js'
+import { Icon } from '../icons.js'
 import { type LibraryImage, ImageField } from '../image-field.js'
+import { Info } from '../info.js'
 import { text, isImageRecord } from '../shared.js'
+import { consentEnabled, hasAnalyticsSnippet } from '../site-draft.js'
 import type { SiteDraft, Option } from '../types.js'
 import { OptionControl, Field } from './fields.js'
 import { Segmented } from './segmented.js'
@@ -42,6 +45,8 @@ export function SiteForm({
   images,
   onField,
   onOptional,
+  onConsentEnabled,
+  onEditConsent,
   onMarks,
   onUploaded,
   onDeleted,
@@ -52,6 +57,10 @@ export function SiteForm({
   onField: (path: string, value: unknown) => void
   /** Optional text fields: an empty value removes the key instead of saving "". */
   onOptional: (path: string, value: string) => void
+  /** The cookie banner switch. */
+  onConsentEnabled: (enabled: boolean) => void
+  /** Opens the dialog with the banner's text. */
+  onEditConsent: () => void
   onMarks: (path: string, patch: MarkPatch, start: number, end: number) => void
   onUploaded: (image: LibraryImage) => void
   onDeleted: (image: LibraryImage) => void
@@ -139,11 +148,14 @@ export function SiteForm({
           multiline
           mono
         />
-        <p class="bm-hint">
-          Runs on your live site only: not while you edit, and not on Vercel or Netlify previews. Most analytics tools need a consent banner
-          for visitors in the EU.
-        </p>
+        <p class="bm-hint">Runs on your live site only: not while you edit, and not on Vercel or Netlify previews.</p>
       </div>
+      <ConsentGroup
+        enabled={consentEnabled(site)}
+        snippets={hasAnalyticsSnippet(site)}
+        onEnabled={onConsentEnabled}
+        onEdit={onEditConsent}
+      />
       {SITE_GROUPS.map((group) => {
         const items = shown.filter((option) => groupOf(option) === group)
         if (items.length === 0) return null
@@ -180,6 +192,48 @@ export function SiteGroup({
       {pairs.length > 0 && <div class="bm-row-split">{pairs.map(control)}</div>}
       {rest.filter((option) => option.type !== 'enum' && option.type !== 'string').map(control)}
       {extra}
+    </div>
+  )
+}
+
+/** The cookie banner: a switch here, its text in a dialog. */
+function ConsentGroup({
+  enabled,
+  snippets,
+  onEnabled,
+  onEdit,
+}: {
+  enabled: boolean
+  /** Whether an analytics snippet is set. Without one the banner has nothing to ask about. */
+  snippets: boolean
+  onEnabled: (enabled: boolean) => void
+  onEdit: () => void
+}) {
+  const status = !enabled
+    ? 'Off. Your snippets run for every visitor from the first page, EU visitors included.'
+    : snippets
+      ? 'On. Your snippets wait until the visitor accepts. The banner also shows while you edit, with analytics off.'
+      : 'On. It appears once you add an analytics snippet above.'
+  return (
+    <div class="bm-stack">
+      <p class="bm-group">Cookie banner</p>
+      <label class="bm-switch-row">
+        <span class="bm-switch-text">
+          <span class="bm-switch-title">
+            Ask before analytics runs
+            <Info
+              label="About the cookie banner"
+              text="Visitors in the EU and UK must agree before analytics cookies are set. With the banner on, nothing from the snippets loads until they accept. Google tags also get Consent Mode v2 signals."
+            />
+          </span>
+        </span>
+        <input type="checkbox" role="switch" checked={enabled} onChange={(event) => onEnabled(event.currentTarget.checked)} />
+      </label>
+      <p class="bm-hint">{status}</p>
+      <button type="button" class="bm-tertiary bm-consent-edit" onClick={onEdit}>
+        <Icon name="settings" size={14} />
+        Edit banner
+      </button>
     </div>
   )
 }

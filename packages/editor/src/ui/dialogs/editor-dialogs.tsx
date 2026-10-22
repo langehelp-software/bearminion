@@ -1,14 +1,16 @@
 import type { JSX } from 'preact'
 import { describePageChanges, describeSiteChanges } from '../../changes.js'
-import type { PageDraft } from '../../draft.js'
+import { getAt, type PageDraft } from '../../draft.js'
 import { isSystemPage } from '../../page.js'
 import { text } from '../shared.js'
+import { consentReopenOf, consentTextOf } from '../site-draft.js'
 import { type Editor, useEditor } from '../state/editor.js'
 import { ScrollLock } from '../scroll-lock.js'
 import type { EditorDialog } from '../state/ui.js'
 import type { Catalog, ConfirmAction } from '../types.js'
 import { ChangesDialog } from './changes-dialog.js'
 import { CommitDialog } from './commit-dialog.js'
+import { ConsentDialog } from './consent-dialog.js'
 import { ConfirmDialog, LeaveDialog } from './dialog.js'
 import { HistoryDialog } from './history-dialog.js'
 import { SeoDialog } from './seo-dialog.js'
@@ -126,6 +128,24 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
           onDeleted={doc.dropImage}
           onApply={(seo) => {
             edits.updatePage({ ...page, seo })
+            close()
+          }}
+          onClose={close}
+        />
+      )
+    }
+    case 'consent': {
+      const site = doc.site.value
+      if (!site) return null
+      return (
+        <ConsentDialog
+          consent={consentTextOf(site)}
+          reopen={consentReopenOf(site)}
+          onApply={(consent, reopen) => {
+            // Only the texts go into `consent`; `enabled` stays as the sidebar set it.
+            const enabled = getAt(site, 'consent.enabled')
+            const next = { ...(enabled === undefined ? {} : { enabled }), ...(reopen === 'icon' ? { reopen } : {}), ...consent }
+            edits.writeField('consent', Object.keys(next).length > 0 ? next : undefined)
             close()
           }}
           onClose={close}

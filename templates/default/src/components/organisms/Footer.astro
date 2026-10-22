@@ -2,15 +2,18 @@
 import type { Site } from './site-definition'
 import { markClass, splitMarkedText } from 'bearminion/marks'
 import { anchorAttrs } from '../../lib/link-attrs'
+import ConsentLink from '../atoms/ConsentLink.astro'
 import LogoMark from '../atoms/LogoMark.astro'
 import Typography from '../atoms/Typography.astro'
 import FooterLinks from './FooterLinks.astro'
 
 interface Props {
   site: Site
+  /** The label of the link that reopens the cookie banner. Unset when the page has no banner. */
+  consentLabel?: string
 }
 
-const { site } = Astro.props
+const { site, consentLabel } = Astro.props
 const { variant, tone, text, legal, badge, columns } = site.footer
 const flatLinks = columns
   .flatMap((column, columnIndex) => column.links.map((link, linkIndex) => ({ link, columnIndex, linkIndex })))
@@ -41,10 +44,11 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
             ))}
           </ul>
         </div>
-        {legal && (
-          <p class="mt-10 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted" data-field="footer.legal">
-            {legal}
-          </p>
+        {(legal || consentLabel) && (
+          <div class="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted">
+            {legal && <p data-field="footer.legal">{legal}</p>}
+            {consentLabel && <ConsentLink label={consentLabel} />}
+          </div>
         )}
       </div>
     )
@@ -79,10 +83,11 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
             ))}
           </div>
         </div>
-        {legal && (
-          <p class="mt-12 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted" data-field="footer.legal">
-            {legal}
-          </p>
+        {(legal || consentLabel) && (
+          <div class="mt-12 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted">
+            {legal && <p data-field="footer.legal">{legal}</p>}
+            {consentLabel && <ConsentLink label={consentLabel} />}
+          </div>
         )}
       </div>
     )
@@ -111,14 +116,17 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
           </div>
         </div>
         <div class="mt-[clamp(3rem,6cqi,5rem)] flex flex-wrap justify-between gap-x-8 gap-y-2 text-[0.8125rem] text-muted">
-          {legal && <p data-field="footer.legal">{legal}</p>}
+          <div class="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+            {legal && <p data-field="footer.legal">{legal}</p>}
+            {consentLabel && <ConsentLink label={consentLabel} />}
+          </div>
           <a href="#content" class="transition-colors hover:text-fg">
             Back to top ↑
           </a>
         </div>
         <p
           aria-hidden="true"
-          class="mt-4 text-[clamp(4rem,0.5rem+18.2cqi,15.5rem)] leading-[0.78] font-bold tracking-[-0.07em] whitespace-nowrap translate-y-[0.12em]"
+          class="pointer-events-none mt-4 text-[clamp(4rem,0.5rem+18.2cqi,15.5rem)] leading-[0.78] font-bold tracking-[-0.07em] whitespace-nowrap translate-y-[0.12em]"
         >
           {
             wordmark.map((run) => {

@@ -67,6 +67,14 @@ From then on: edit, save, commit, push. Your host rebuilds the site on every pus
 
 Paste the snippet your analytics tool gives you under **Site → Analytics & scripts**, save, commit and push. It runs on your live site only: not while you edit, and not on Vercel or Netlify preview deployments, so your own testing stays out of the numbers. There is nothing to configure. If your host does not mark its previews, or you want to force it either way, set the environment variable `BEARMINION_ANALYTICS` to `off` or `on` for that build (see the [template guide](../templates/default/README.md#analytics)).
 
+### Cookie banner
+
+With a snippet set, your live site shows a cookie banner and holds the snippet back until the visitor accepts. Rejecting loads nothing. A footer link ("Cookie settings") or, if you choose it in the dialog, a small cookie icon in the bottom-left corner lets visitors change their mind, and withdrawing clears the Google Analytics cookies and reloads the page without the snippet. Google tags get [Consent Mode v2](https://developers.google.com/tag-platform/security/guides/consent): every signal is `denied` before anything loads, and `analytics_storage` becomes `granted` on accept. The ad signals stay `denied`.
+
+Under **Site → Cookie banner**, the switch turns the banner on and off, and **Edit banner** changes its words and adds a link to your privacy policy. Visitors are asked again after 180 days.
+
+The banner is a tool, not legal advice. Switch it off only when your analytics sets no cookies and you know the rules that apply to you. Cookieless tools (Plausible, Umami, Fathom, Vercel Web Analytics) often need no banner, but that depends on the tool and on where your visitors are. The banner also shows while you edit and on previews, so you see what visitors get; the snippets still load on the live site only.
+
 ## What is in your site
 
 | Path | What it is |

@@ -148,7 +148,7 @@ export function DesignPanel({ site }: { site: SiteDraft }) {
 }
 
 export function SitePanel({ site, catalog }: { site: SiteDraft; catalog: Catalog }) {
-  const { doc, edits } = useEditor()
+  const { doc, edits, ui } = useEditor()
   return (
     <SiteForm
       site={site}
@@ -161,6 +161,15 @@ export function SitePanel({ site, catalog }: { site: SiteDraft; catalog: Catalog
         if (value !== '' || !path.startsWith('analytics.')) return
         const node = getAt(doc.site.peek(), 'analytics')
         if (typeof node === 'object' && node !== null && Object.keys(node).length === 0) edits.writeOrClear('analytics', '')
+      }}
+      onConsentEnabled={(enabled) => {
+        // Only `false` is stored. Switching back on removes the key, and the last key takes `consent` with it.
+        edits.writeField('consent.enabled', enabled ? undefined : false)
+        const node = getAt(doc.site.peek(), 'consent')
+        if (typeof node === 'object' && node !== null && Object.keys(node).length === 0) edits.writeOrClear('consent', '')
+      }}
+      onEditConsent={() => {
+        ui.dialog.value = { kind: 'consent' }
       }}
       onMarks={edits.applyMarksAt}
       onUploaded={doc.addImage}
