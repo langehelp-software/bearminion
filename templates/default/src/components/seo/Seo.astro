@@ -60,4 +60,9 @@ const jsonLd = {
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />
 {ogImage && <meta name="twitter:image" content={ogImage} />}
-<script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')} />
+{/* Custom JSON-LD replaces the generated WebPage block. `<` is escaped so a value cannot close the script tag. */}
+{
+  (page.seo.jsonLd ?? [jsonLd]).map((block) => (
+    <script type="application/ld+json" set:html={JSON.stringify(block).replace(/</g, '\\u003c')} />
+  ))
+}

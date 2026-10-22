@@ -90,9 +90,9 @@ export function PagesPanel({ catalog }: { catalog: Catalog }) {
           onChange={(next) => edits.updatePage(next)}
           savedSlug={savedSlug}
           onHomeChange={session.setHome}
-          images={doc.images.value}
-          onUploaded={doc.addImage}
-          onDeleted={doc.dropImage}
+          onEditSeo={() => {
+            ui.dialog.value = { kind: 'seo' }
+          }}
           onAddSection={(anchor) => {
             ui.picker.value = {
               id: page.sections[page.sections.length - 1]?.id ?? '',
@@ -154,7 +154,13 @@ export function SitePanel({ site, catalog }: { site: SiteDraft; catalog: Catalog
       options={catalog.siteOptions}
       images={doc.images.value}
       onField={edits.writeField}
-      onOptional={edits.writeOrClear}
+      onOptional={(path, value) => {
+        edits.writeOrClear(path, value)
+        // Clearing the last snippet leaves no empty `analytics` object in site.json.
+        if (value !== '' || !path.startsWith('analytics.')) return
+        const node = getAt(doc.site.peek(), 'analytics')
+        if (typeof node === 'object' && node !== null && Object.keys(node).length === 0) edits.writeOrClear('analytics', '')
+      }}
       onMarks={edits.applyMarksAt}
       onUploaded={doc.addImage}
       onDeleted={doc.dropImage}

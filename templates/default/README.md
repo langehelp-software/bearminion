@@ -184,7 +184,7 @@ The site's own images (`logo.png`, `favicon.png`, `og.png`, `hero.png`) live in 
 
 ## SEO and sitemap
 
-`Seo.astro` reads the page `seo` object and the site defaults in `site.json`. The document title is `seo.titleTemplate` with `%s` replaced by the page SEO title. Description falls back to the site description. The canonical URL is `seo.canonical` when set, otherwise the page path joined to `site.url`. Robots is `noindex` or `index`, plus `nofollow` or `follow`. Open Graph, Twitter, and WebPage JSON-LD use the same title, description, and image.
+`Seo.astro` reads the page `seo` object and the site defaults in `site.json`. The document title is `seo.titleTemplate` with `%s` replaced by the page SEO title. Description falls back to the site description. The canonical URL is `seo.canonical` when set, otherwise the page path joined to `site.url`. Robots is `noindex` or `index`, plus `nofollow` or `follow`. Open Graph, Twitter, and WebPage JSON-LD use the same title, description, and image. A page that sets `seo.jsonLd` gets those blocks instead of the generated WebPage block, one script tag per block. `site.analytics.head` and `site.analytics.bodyEnd` are emitted by `Base.astro` in production builds only.
 
 `astro.config.ts` sets `site` from `site.json` and adds `@astrojs/sitemap`. The filter keeps content pages whose `seo.noindex` is false. `content/pages/preview.json` is the sample noindex page: it is built, it emits `noindex`, and it is absent from the sitemap. `src/pages/robots.txt.ts` points crawlers at `sitemap-index.xml`.
 

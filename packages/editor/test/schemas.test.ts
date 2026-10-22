@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { defineSection, defineTheme, defineSite, defineWireframe, MAX_NAV_DEPTH, imageSchema, linkSchema, seoSchema } from '../src/index.js'
+import {
+  defineSection,
+  defineTheme,
+  defineSite,
+  defineWireframe,
+  MAX_NAV_DEPTH,
+  imageSchema,
+  linkSchema,
+  seoSchema,
+  siteAnalyticsSchema,
+} from '../src/index.js'
 import { bearminion } from '../src/astro.js'
 import { resolveEditorContext } from '../src/options.js'
 import { pruneSectionProps, isOptionalPath } from '../src/section-optional.js'
@@ -606,6 +616,16 @@ describe('defineSite', () => {
 })
 
 describe('seo schema', () => {
+  it('keeps custom JSON-LD as parsed blocks and rejects what is not an object', () => {
+    const block = { '@context': 'https://schema.org', '@type': 'Article', headline: 'Hi' }
+    expect(seoSchema.parse({ title: 'Home', description: '', jsonLd: [block] }).jsonLd).toEqual([block])
+    expect(seoSchema.safeParse({ title: 'Home', description: '', jsonLd: ['{"@type":"Article"}'] }).success).toBe(false)
+    expect(seoSchema.safeParse({ title: 'Home', description: '', jsonLd: Array.from({ length: 11 }, () => block) }).success).toBe(false)
+    expect(
+      seoSchema.safeParse({ title: 'Home', description: '', jsonLd: [{ '@type': 'Article', text: 'x'.repeat(50_001) }] }).success,
+    ).toBe(false)
+  })
+
   it('defaults noindex and nofollow to false', () => {
     const seo = seoSchema.parse({ title: 'Home', description: 'Hi' })
     expect(seo.noindex).toBe(false)
@@ -957,5 +977,15 @@ describe('steps section', () => {
   it('numbers steps unless switched off', () => {
     expect(steps.schema.parse(steps.defaults).numbered).toBe(true)
     expect(steps.schema.parse({ ...steps.defaults, numbered: false }).numbered).toBe(false)
+  })
+})
+
+describe('site analytics schema', () => {
+  it('is optional on the site and takes raw head and body snippets', () => {
+    expect(siteAnalyticsSchema.parse({})).toEqual({})
+    const analytics = { head: '<script async src="https://example.com/a.js"></script>', bodyEnd: '<noscript>x</noscript>' }
+    expect(siteAnalyticsSchema.parse(analytics)).toEqual(analytics)
+    expect(siteAnalyticsSchema.safeParse({ head: 'x'.repeat(20_001) }).success).toBe(false)
+    expect(siteAnalyticsSchema.safeParse({ footer: '<script></script>' }).success).toBe(false)
   })
 })

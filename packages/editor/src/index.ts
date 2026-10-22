@@ -71,7 +71,9 @@ export type { ContentMigration, ContentMigrator, ContentVersioning, DocumentKind
 
 export type * from './api-types.js'
 
-export { SYSTEM_PAGES, createPageSchema, isSystemPage, seoSchema } from './page.js'
+export { SYSTEM_PAGES, createPageSchema, isSystemPage, jsonLdSchema, seoSchema } from './page.js'
+export { formatJsonLd, jsonLdWarnings, parseJsonLdInput } from './json-ld.js'
+export type { JsonLdBlock, JsonLdResult } from './json-ld.js'
 export type { Page, Seo } from './page.js'
 
 export {
@@ -100,6 +102,7 @@ export {
   DEFAULT_MAX_HEADER_ACTIONS,
   brandLogoSchema,
   defineSite,
+  siteAnalyticsSchema,
   siteSeoSchema,
   themeColorsSchema,
   themeSchema,
@@ -127,6 +130,7 @@ export type {
   SiteConfig,
   SiteDefinition,
   SiteOf,
+  SiteAnalytics,
   SiteSeo,
   SiteWith,
   Theme,

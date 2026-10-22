@@ -1218,6 +1218,54 @@ describe('editor overlay', () => {
     })
     expect(restored.status).toBe(200)
   }, 60_000)
+
+  it('edits SEO and JSON-LD in a dialog and saves analytics from the Site tab', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'Editor', exact: true }).click()
+    await page.getByRole('tab', { name: 'Pages' }).click()
+    await page.getByRole('button', { name: 'Edit SEO' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Edit SEO' })
+    await dialog.locator('label', { hasText: 'Description' }).locator('textarea').fill('A custom description.')
+
+    // Invalid JSON blocks Apply and says why.
+    const json = dialog.locator('textarea.bm-seo-json')
+    await json.fill('{"@type": "Article",}')
+    await dialog.getByRole('alert').waitFor()
+    expect(await dialog.getByRole('button', { name: 'Apply', exact: true }).isDisabled()).toBe(true)
+
+    // A pasted script tag is unwrapped and stored as parsed JSON.
+    await json.fill(
+      '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"About us"}</script>',
+    )
+    await dialog.getByRole('button', { name: 'Apply', exact: true }).click()
+    await dialog.waitFor({ state: 'detached' })
+    await page.getByText('JSON-LD · 1', { exact: true }).waitFor()
+
+    // Cancel drops what the dialog changed.
+    await page.getByRole('button', { name: 'Edit SEO' }).click()
+    await dialog.locator('label', { hasText: 'Description' }).locator('textarea').fill('Never applied.')
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await dialog.waitFor({ state: 'detached' })
+
+    await page.getByRole('tab', { name: 'Site' }).click()
+    const snippet = '<script async src="https://stats.example/a.js"></script>'
+    await page.locator('label', { hasText: /^Head/ }).locator('textarea').fill(snippet)
+    await page.keyboard.press('Control+s')
+
+    const aboutPath = path.join(contentDir, 'pages', 'about.json')
+    const sitePath = path.join(contentDir, 'site.json')
+    await waitFor(() => fs.readFileSync(aboutPath, 'utf8').includes('"jsonLd"'), 'jsonLd missing from about.json')
+    await waitFor(() => fs.readFileSync(sitePath, 'utf8').includes('stats.example'), 'analytics missing from site.json')
+    const saved = JSON.parse(fs.readFileSync(aboutPath, 'utf8')) as { seo: { description: string; jsonLd: unknown } }
+    expect(saved.seo.description).toBe('A custom description.')
+    expect(saved.seo.jsonLd).toEqual([{ '@context': 'https://schema.org', '@type': 'Article', headline: 'About us' }])
+    expect(JSON.parse(fs.readFileSync(sitePath, 'utf8')).analytics).toEqual({ head: snippet })
+    expect(errors, logs).toEqual([])
+    await page.close()
+  }, 60_000)
 })
 
 async function openClean(page: Page): Promise<void> {

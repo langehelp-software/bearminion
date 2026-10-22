@@ -26,6 +26,7 @@ The home page uses slug `index`. Other slugs are lowercase kebab-case (`about`).
 - `url` — canonical origin, used for canonical URLs, the sitemap, and absolute Open Graph images
 - `lang` — optional BCP 47 language tag (`en`, `pl`, `pt-BR`) for `<html lang>`; the template defaults to `en`
 - `seo` — site defaults: optional `titleTemplate` (`%s` is replaced with the page SEO title), `description`, and `ogImage`
+- `analytics` — optional raw HTML snippets: `head` (added at the end of `<head>`) and `bodyEnd` (added before `</body>`), 20,000 characters each. The default template renders them in production builds only. They are not sanitised: the site owner is trusted, so keep write access to `site.json` to people you would trust with the site's code.
 - `favicon` — optional `{ src, alt }`, the browser tab icon. A legacy `logo` key is read as `favicon` and stored under the new name.
 - `brandLogo` — optional `{ src, alt, height? }`. Shown in the header and footer instead of the name; `height` is 16–64 px (28 when omitted). The icon box beside the name is gone: the brand is either the name or this image.
 - `theme.mode` is `light` or `dark`. A legacy `system` reads as `light`.
@@ -38,7 +39,7 @@ The home page uses slug `index`. Other slugs are lowercase kebab-case (`about`).
 Each `content/pages/*.json` file:
 
 - `slug`, `title`
-- `seo` — `title`, `description`, optional `ogImage`, `noindex` (default `false`), `nofollow` (default `false`), optional `canonical` (absolute URL or site-relative path)
+- `seo` — `title`, `description`, optional `ogImage`, `noindex` (default `false`), `nofollow` (default `false`), optional `canonical` (absolute URL or site-relative path), optional `jsonLd` (up to 10 JSON-LD objects, 50 KB in all; the default template renders them in place of its generated `WebPage` markup)
 - `sections` — ordered `{ id, type, variant, tone, motion?, props }`
 
 The `404` page is a system page: the editor lists it apart, edits its content, and refuses to create, delete, rename or promote it, and the starter serves it as `/404.html`. Section `id`s are unique within a page. `props` are checked against the Zod schema registered for `type`. `variant` and `tone` default per type (`tone` defaults to `base`). Headings stay plain strings. `marks` styles ranges inside `heading` the same way `nameMarks` styles the wordmark. A legacy `em` substring is accepted on input and stored as one serif italic mark. Links are `{ label, href, newTab?, id?, trackingId?, style? }`. `style` is `primary`, `secondary` or `tertiary` and applies to section buttons; the editor's link popover sets it, and leaving it unset keeps the look each section was designed with. `newTab` forces `target="_blank"` and `rel="noopener noreferrer"`. `id` is a lowercase slug, unique on the page, and it cannot match a section anchor. `trackingId` is still accepted and rendered as `data-analytics` when present in the JSON, but the editor no longer shows a field for it.

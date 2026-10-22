@@ -18,6 +18,8 @@ const ICON_TYPES: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg'
 const iconType = icon ? ICON_TYPES[icon.format] : undefined
 const paletteCss = themeCss(site.theme.colors)
 const themeColor = site.theme.mode === 'dark' ? '#1c1e24' : '#f7f8f8'
+// Analytics snippets run in production builds only, so editing in `astro dev` sends no visits.
+const analytics = import.meta.env.PROD ? site.analytics : undefined
 ---
 
 <!doctype html>
@@ -27,6 +29,7 @@ const themeColor = site.theme.mode === 'dark' ? '#1c1e24' : '#f7f8f8'
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <Seo site={site} page={page} pathname={Astro.url.pathname} />
     <meta name="theme-color" content={themeColor} />
+    {analytics?.head && <Fragment set:html={analytics.head} />}
     {/* Always present so the editor can update the palette live. */}
     <style id="bm-theme" is:inline set:html={paletteCss}></style>
     {icon && <link rel="icon" type={iconType} href={icon.src} />}
@@ -43,6 +46,7 @@ const themeColor = site.theme.mode === 'dark' ? '#1c1e24' : '#f7f8f8'
       <slot />
     </main>
     <Footer site={site} />
+    {analytics?.bodyEnd && <Fragment set:html={analytics.bodyEnd} />}
     <script>
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const observer =

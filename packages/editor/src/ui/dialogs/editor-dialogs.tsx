@@ -1,6 +1,8 @@
 import type { JSX } from 'preact'
 import { describePageChanges, describeSiteChanges } from '../../changes.js'
 import type { PageDraft } from '../../draft.js'
+import { isSystemPage } from '../../page.js'
+import { text } from '../shared.js'
 import { type Editor, useEditor } from '../state/editor.js'
 import type { EditorDialog } from '../state/ui.js'
 import type { Catalog, ConfirmAction } from '../types.js'
@@ -8,6 +10,7 @@ import { ChangesDialog } from './changes-dialog.js'
 import { CommitDialog } from './commit-dialog.js'
 import { ConfirmDialog, LeaveDialog } from './dialog.js'
 import { HistoryDialog } from './history-dialog.js'
+import { SeoDialog } from './seo-dialog.js'
 
 function parseJson(text: string): unknown {
   if (!text) return null
@@ -74,7 +77,7 @@ export function SessionDialogs() {
 }
 
 function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialog }) {
-  const { doc, ui, session } = editor
+  const { doc, ui, session, edits } = editor
   const close = () => {
     ui.dialog.value = null
   }
@@ -97,6 +100,27 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
       const git = ui.gitState.value
       if (!git) return null
       return <CommitDialog info={git} unsaved={doc.dirty.value} onDone={() => void session.loadGit()} onClose={close} />
+    }
+    case 'seo': {
+      const page = doc.page.value
+      if (!page) return null
+      return (
+        <SeoDialog
+          page={page}
+          siteName={text(doc.site.value?.name)}
+          siteUrl={text(doc.site.value?.url)}
+          system={isSystemPage(page.slug)}
+          images={doc.images.value}
+          issues={ui.issues.value.filter((issue) => issue.file !== 'site')}
+          onUploaded={doc.addImage}
+          onDeleted={doc.dropImage}
+          onApply={(seo) => {
+            edits.updatePage({ ...page, seo })
+            close()
+          }}
+          onClose={close}
+        />
+      )
     }
     case 'discard':
       return (
