@@ -140,7 +140,8 @@ export function SiteForm({
           mono
         />
         <p class="bm-hint">
-          Runs on the built site only, never while you edit. Most analytics tools need a consent banner for visitors in the EU.
+          Runs on your live site only: not while you edit, and not on Vercel or Netlify previews. Most analytics tools need a consent banner
+          for visitors in the EU.
         </p>
       </div>
       {SITE_GROUPS.map((group) => {

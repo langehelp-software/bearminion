@@ -190,6 +190,17 @@ The site's own images (`logo.png`, `favicon.png`, `og.png`, `hero.png`) live in 
 
 The style guide at `/style-guide` renders every typography size and button variant. `/variants` renders every section, header, and footer variant. They live in `src/dev/` and only `npm run dev` serves them (the `devPages` integration in `astro.config.ts`), so they never reach the built site. Delete that integration and the folder if you do not want them.
 
+## Analytics
+
+`site.analytics.head` and `site.analytics.bodyEnd` are raw HTML snippets (the editor's Site → Analytics & scripts). `Base.astro` writes `head` at the end of `<head>` and `bodyEnd` before `</body>`, and only when `analyticsEnabled()` in `src/lib/analytics.ts` says the build is the live site's:
+
+1. `BEARMINION_ANALYTICS=on` or `off` decides, when set. `1`, `true` and `yes` also mean on; `0`, `false` and `no` mean off.
+2. Otherwise a production build is required, so `npm run dev` sends no visits.
+3. Vercel (`VERCEL_ENV`) and Netlify (`NETLIFY`, `CONTEXT`) say which deployment is building, so only their production deployments include the snippets.
+4. On any other host every production build includes them. Cloudflare Pages and similar hosts do not say which build is a preview. Set `BEARMINION_ANALYTICS=off` in the host's preview environment (Cloudflare lets you set variables per environment), or `on` to test a snippet locally with `npm run dev`.
+
+People who only use the editor never set a variable: steps 2 and 3 cover the usual setup. The snippets are not sanitised, so give write access to `content/site.json` only to people you would trust with the site's code.
+
 ## Dev editor
 
 `astro.config.ts` registers `bearminion()`. It is active only while `pnpm dev` is running. The production build does not add editor routes, scripts, or the overlay.
