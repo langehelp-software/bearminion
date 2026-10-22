@@ -97,12 +97,22 @@ export { anchorSchema, createSectionSchema, sectionIdSchema } from './section-sc
 export type { BaseSection, PropsOf, SectionOf } from './section-schema.js'
 
 export {
+  CONSENT_COPY,
+  CONSENT_HREF,
+  CONSENT_LIMITS,
+  consentCopy,
+  consentTextIssues,
+} from './consent.js'
+export type { ConsentCopy, ConsentText, ConsentTextKey } from './consent.js'
+
+export {
   BRAND_LOGO_HEIGHT,
   DEFAULT_MAX_FOOTER_COLUMNS,
   DEFAULT_MAX_HEADER_ACTIONS,
   brandLogoSchema,
   defineSite,
   siteAnalyticsSchema,
+  siteConsentSchema,
   siteSeoSchema,
   themeColorsSchema,
   themeSchema,
@@ -131,6 +141,7 @@ export type {
   SiteDefinition,
   SiteOf,
   SiteAnalytics,
+  SiteConsent,
   SiteSeo,
   SiteWith,
   Theme,

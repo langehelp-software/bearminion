@@ -22,6 +22,7 @@ export type EditorDialog =
   | { kind: 'history' }
   | { kind: 'commit' }
   | { kind: 'seo' }
+  | { kind: 'consent' }
   | { kind: 'leave'; href: string | null }
   | { kind: 'home'; title: string; previousSlug: string }
 

@@ -208,9 +208,10 @@ The editor's own colors are separate and unaffected.
 | Identity | Name (with style buttons for the selected text and a wordmark preview), URL, favicon |
 | Search defaults | Title template, description, og image |
 | Analytics & scripts | Raw snippets for the page head and the end of the body |
+| Cookie banner | A switch, and a dialog for the banner's text and privacy policy link |
 | Theme | Options from `siteOptions` |
 
-Analytics snippets run on your live site only: not in dev, and not on Vercel or Netlify previews. See [Analytics](getting-started.md#analytics) for how the template decides, and the `BEARMINION_ANALYTICS` override.
+Analytics snippets run on your live site only: not in dev, and not on Vercel or Netlify previews. See [Analytics](getting-started.md#analytics) for how the template decides, and the `BEARMINION_ANALYTICS` override. With the cookie banner on, which is the default, they also wait until the visitor accepts: see [Cookie banner](getting-started.md#cookie-banner).
 
 ## Images
 

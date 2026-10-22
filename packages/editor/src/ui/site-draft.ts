@@ -1,4 +1,5 @@
 import { getAt, type NavLink } from '../draft.js'
+import type { ConsentText, ConsentTextKey } from '../consent.js'
 import type { ThemeColors } from '../theme-colors.js'
 import { isRecord } from './shared.js'
 import type { SiteDraft } from './types.js'
@@ -40,4 +41,31 @@ export function imageSrcAt(doc: unknown, path: string): string {
   const value = getAt(doc, path)
   if (typeof value === 'string') return value
   return isRecord(value) && typeof value.src === 'string' ? value.src : ''
+}
+
+const CONSENT_KEYS: readonly ConsentTextKey[] = ['title', 'body', 'accept', 'reject', 'settings', 'policyLabel', 'policyHref']
+
+/** The banner texts stored in a site draft. Anything else in `consent`, such as `enabled`, is left out. */
+export function consentTextOf(site: SiteDraft): ConsentText {
+  const stored = getAt(site, 'consent')
+  const text: ConsentText = {}
+  if (!isRecord(stored)) return text
+  for (const key of CONSENT_KEYS) {
+    const value = stored[key]
+    if (typeof value === 'string') text[key] = value
+  }
+  return text
+}
+
+/** Whether the draft asks visitors before analytics runs. Only an explicit `false` turns it off. */
+export function consentEnabled(site: SiteDraft): boolean {
+  return getAt(site, 'consent.enabled') !== false
+}
+
+/** Whether the draft holds an analytics snippet that the banner would guard. */
+export function hasAnalyticsSnippet(site: SiteDraft): boolean {
+  return ['analytics.head', 'analytics.bodyEnd'].some((path) => {
+    const value = getAt(site, path)
+    return typeof value === 'string' && value.trim() !== ''
+  })
 }

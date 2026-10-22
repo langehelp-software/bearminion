@@ -1,0 +1,54 @@
+---
+import type { SiteConsent } from 'bearminion'
+import { consentCopy } from '../../lib/consent'
+import { button } from '../atoms/button'
+import Typography from '../atoms/Typography.astro'
+
+interface Props {
+  consent?: SiteConsent
+}
+
+const copy = consentCopy(Astro.props.consent)
+const choiceClass = button({ variant: 'secondary', size: 'sm' })
+---
+
+{/* Hidden until the script finds no stored choice, so a returning visitor never sees it flash. */}
+<div
+  data-organism="consent-banner"
+  data-consent-banner
+  data-tone="base"
+  role="region"
+  aria-label={copy.title}
+  tabindex="-1"
+  hidden
+  class="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-xl flex-col gap-4 rounded-2xl bg-bg p-5 text-fg shadow-xl ring-line outline-none sm:right-auto sm:left-6 sm:mx-0 sm:w-[26rem]"
+>
+  <div class="flex flex-col gap-1.5">
+    <Typography as="p" size="h3">{copy.title}</Typography>
+    <Typography as="p" size="small" color="muted">
+      {copy.body}
+      {
+        copy.policyHref && (
+          <>
+            {' '}
+            <a href={copy.policyHref} class="underline underline-offset-4 hover:text-fg">
+              {copy.policyLabel}
+            </a>
+          </>
+        )
+      }
+    </Typography>
+  </div>
+  {/* Same look and size on both: refusing must be as easy as accepting. */}
+  <div class="flex flex-wrap gap-3">
+    <button type="button" class={choiceClass} data-consent-accept>{copy.accept}</button>
+    <button type="button" class={choiceClass} data-consent-reject>{copy.reject}</button>
+  </div>
+</div>
+
+<script>
+  import { initConsent } from '../../lib/consent-client'
+
+  const banner = document.querySelector<HTMLElement>('[data-consent-banner]')
+  if (banner) initConsent(banner)
+</script>

@@ -1,0 +1,16 @@
+---
+interface Props {
+  label: string
+  class?: string
+}
+
+const { label, class: className } = Astro.props
+---
+
+<button
+  type="button"
+  data-consent-open
+  class:list={['cursor-pointer text-left underline-offset-4 transition-colors hover:text-fg hover:underline', className]}
+>
+  {label}
+</button>

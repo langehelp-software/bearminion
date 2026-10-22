@@ -10,6 +10,8 @@ import {
   linkSchema,
   seoSchema,
   siteAnalyticsSchema,
+  siteConsentSchema,
+  CONSENT_LIMITS,
 } from '../src/index.js'
 import { bearminion } from '../src/astro.js'
 import { resolveEditorContext } from '../src/options.js'
@@ -987,5 +989,54 @@ describe('site analytics schema', () => {
     expect(siteAnalyticsSchema.parse(analytics)).toEqual(analytics)
     expect(siteAnalyticsSchema.safeParse({ head: 'x'.repeat(20_001) }).success).toBe(false)
     expect(siteAnalyticsSchema.safeParse({ footer: '<script></script>' }).success).toBe(false)
+  })
+})
+
+describe('site consent schema', () => {
+  it('is optional on the site and takes only the banner copy and the on/off switch', () => {
+    expect(siteConsentSchema.parse({})).toEqual({})
+    const consent = {
+      enabled: false,
+      title: 'Cookies',
+      body: 'We count visits.',
+      accept: 'OK',
+      reject: 'No',
+      settings: 'Cookie settings',
+      policyLabel: 'Privacy',
+      policyHref: '/privacy',
+    }
+    expect(siteConsentSchema.parse(consent)).toEqual(consent)
+    expect(siteConsentSchema.safeParse({ position: 'top' }).success).toBe(false)
+    expect(siteConsentSchema.safeParse({ enabled: 'yes' }).success).toBe(false)
+  })
+
+  it('refuses empty and overlong copy', () => {
+    expect(siteConsentSchema.safeParse({ title: '' }).success).toBe(false)
+    expect(siteConsentSchema.safeParse({ body: 'x'.repeat(CONSENT_LIMITS.body + 1) }).success).toBe(false)
+    expect(siteConsentSchema.safeParse({ accept: 'x'.repeat(CONSENT_LIMITS.button + 1) }).success).toBe(false)
+  })
+
+  it('takes a policy link to a path, an anchor or an http(s) address, and nothing that runs script', () => {
+    for (const policyHref of ['/privacy', '#privacy', 'https://example.com/privacy', 'http://example.com/p']) {
+      expect(siteConsentSchema.safeParse({ policyHref }).success).toBe(true)
+    }
+    for (const policyHref of ['javascript:alert(1)', 'data:text/html,x', 'mailto:a@b.c', 'privacy']) {
+      expect(siteConsentSchema.safeParse({ policyHref }).success).toBe(false)
+    }
+  })
+
+  it('is part of the site', () => {
+    expect(
+      siteSchema.safeParse({
+        ...{ name: 'BearMinion', ...siteDefaults, header: { links: [] }, footer: { columns: [] } },
+        consent: { enabled: false },
+      }).success,
+    ).toBe(true)
+    expect(
+      siteSchema.safeParse({
+        ...{ name: 'BearMinion', ...siteDefaults, header: { links: [] }, footer: { columns: [] } },
+        consent: { policyHref: 'javascript:x' },
+      }).success,
+    ).toBe(false)
   })
 })

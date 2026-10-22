@@ -1266,6 +1266,67 @@ describe('editor overlay', () => {
     await page.close()
   }, 60_000)
 
+  it('switches the cookie banner from the sidebar and edits its text in a dialog', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
+    await page.getByRole('button', { name: 'Editor', exact: true }).click()
+    await page.getByRole('tab', { name: 'Site' }).click()
+    const sitePath = path.join(contentDir, 'site.json')
+    const saved = () => JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { consent?: Record<string, unknown> }
+
+    const row = page.locator('label.bm-switch-row', { hasText: 'Ask before analytics runs' })
+    const toggle = row.getByRole('switch')
+    expect(await toggle.isChecked()).toBe(true)
+    await toggle.uncheck()
+    await page.getByText(/^Off\. Your snippets run for every visitor/).waitFor()
+
+    // The text lives in a dialog. A policy link that could run script is refused.
+    await page.getByRole('button', { name: 'Edit banner' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Edit cookie banner' })
+    await dialog
+      .locator('label', { hasText: /^Title/ })
+      .locator('input')
+      .fill('Ciasteczka')
+    const policy = dialog.locator('label', { hasText: 'Policy page' }).locator('input')
+    await policy.fill('javascript:alert(1)')
+    await dialog.getByRole('alert').waitFor()
+    expect(await dialog.getByRole('button', { name: 'Apply', exact: true }).isDisabled()).toBe(true)
+    await policy.fill('/polityka')
+    await dialog.getByRole('button', { name: 'Apply', exact: true }).click()
+    await dialog.waitFor({ state: 'detached' })
+
+    // Cancel drops what the dialog changed.
+    await page.getByRole('button', { name: 'Edit banner' }).click()
+    await dialog
+      .locator('label', { hasText: /^Title/ })
+      .locator('input')
+      .fill('Never applied')
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await dialog.waitFor({ state: 'detached' })
+
+    await page.keyboard.press('Control+s')
+    await waitFor(() => saved().consent?.title === 'Ciasteczka', 'consent missing from site.json')
+    // Only what differs from the default is stored, and an off switch is stored as `false`.
+    expect(saved().consent).toEqual({ enabled: false, policyHref: '/polityka', title: 'Ciasteczka' })
+
+    // Switching back on drops `enabled`; the texts stay.
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
+    await page
+      .getByRole('button', { name: 'Editor', exact: true })
+      .click()
+      .catch(() => undefined)
+    await page.getByRole('tab', { name: 'Site' }).click()
+    await row.getByRole('switch').check()
+    await page.keyboard.press('Control+s')
+    await waitFor(() => saved().consent?.enabled === undefined, 'enabled still in site.json')
+    expect(saved().consent).toEqual({ policyHref: '/polityka', title: 'Ciasteczka' })
+    expect(errors, logs).toEqual([])
+    await page.close()
+  }, 90_000)
+
   it('locks page scroll behind a dialog without shifting the layout, and restores it', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })

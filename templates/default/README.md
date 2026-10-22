@@ -184,7 +184,7 @@ The site's own images (`logo.png`, `favicon.png`, `og.png`, `hero.png`) live in 
 
 ## SEO and sitemap
 
-`Seo.astro` reads the page `seo` object and the site defaults in `site.json`. The document title is `seo.titleTemplate` with `%s` replaced by the page SEO title. Description falls back to the site description. The canonical URL is `seo.canonical` when set, otherwise the page path joined to `site.url`. Robots is `noindex` or `index`, plus `nofollow` or `follow`. Open Graph, Twitter, and WebPage JSON-LD use the same title, description, and image. A page that sets `seo.jsonLd` gets those blocks instead of the generated WebPage block, one script tag per block. `site.analytics.head` and `site.analytics.bodyEnd` are emitted by `Base.astro` in production builds only.
+`Seo.astro` reads the page `seo` object and the site defaults in `site.json`. The document title is `seo.titleTemplate` with `%s` replaced by the page SEO title. Description falls back to the site description. The canonical URL is `seo.canonical` when set, otherwise the page path joined to `site.url`. Robots is `noindex` or `index`, plus `nofollow` or `follow`. Open Graph, Twitter, and WebPage JSON-LD use the same title, description, and image. A page that sets `seo.jsonLd` gets those blocks instead of the generated WebPage block, one script tag per block. `site.analytics.head` and `site.analytics.bodyEnd` are emitted by `Base.astro` in production builds only, behind the [cookie banner](#cookie-banner) unless it is switched off.
 
 `astro.config.ts` sets `site` from `site.json` and adds `@astrojs/sitemap`. The filter keeps content pages whose `seo.noindex` is false. `content/pages/preview.json` is the sample noindex page: it is built, it emits `noindex`, and it is absent from the sitemap. `src/pages/robots.txt.ts` points crawlers at `sitemap-index.xml`.
 
@@ -200,6 +200,20 @@ The style guide at `/style-guide` renders every typography size and button varia
 4. On any other host every production build includes them. Cloudflare Pages and similar hosts do not say which build is a preview. Set `BEARMINION_ANALYTICS=off` in the host's preview environment (Cloudflare lets you set variables per environment), or `on` to test a snippet locally with `npm run dev`.
 
 People who only use the editor never set a variable: steps 2 and 3 cover the usual setup. The snippets are not sanitised, so give write access to `content/site.json` only to people you would trust with the site's code.
+
+## Cookie banner
+
+When the build ships snippets (the rules above) and `site.consent.enabled` is not `false`, `consentRequired()` in `src/lib/consent.ts` is true and `Base.astro` changes three things:
+
+- **Before any snippet:** an inline script sets Google Consent Mode v2 to `denied` for `ad_storage`, `ad_user_data`, `ad_personalization` and `analytics_storage`.
+- **The snippets** move into `<template data-consent-snippet="head|body">`, so they are inert. Nothing in them loads or runs.
+- **`ConsentBanner.astro`** and a footer link (`ConsentLink.astro`, label `site.consent.settings`) are rendered.
+
+`src/lib/consent-client.ts` shows the banner when there is no stored choice, and keeps the choice in `localStorage` (`bm-consent`, 180 days, bump `CONSENT_VERSION` in `consent-store.ts` to ask everyone again). On accept it sends `gtag('consent', 'update', { analytics_storage: 'granted' })`, then rebuilds the held-back scripts into the page, so they run after the update and work for any vendor, not only Google. Withdrawing deletes `_ga`, `_ga_*`, `_gid` and `_gat*` on the host and its parent domains and reloads, because a loaded script cannot be unloaded. Cookies that other tools set are not cleared. The banner has one category, analytics, and Accept and Reject look the same on purpose.
+
+The banner shows on the live site's build only, since that is where the snippets are. Run the build with `BEARMINION_ANALYTICS=on` to see it. `<noscript>` fallbacks in `bodyEnd`, such as the Google Tag Manager iframe, cannot wait for consent and never run while the banner is on.
+
+A theme with its own layout needs three things: render the `template` elements and a banner element carrying `data-consent-banner` (hidden by default) with `data-consent-accept` and `data-consent-reject` buttons, put `data-consent-open` on any element that should reopen it, and import `initConsent` from the script. The default words come from `consentCopy(site.consent)`, which `bearminion` exports.
 
 ## Dev editor
 
