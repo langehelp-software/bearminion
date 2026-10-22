@@ -45,7 +45,7 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
           </ul>
         </div>
         {(legal || consentLabel) && (
-          <div class="mt-10 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted">
+          <div class="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted">
             {legal && <p data-field="footer.legal">{legal}</p>}
             {consentLabel && <ConsentLink label={consentLabel} />}
           </div>
@@ -84,7 +84,7 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
           </div>
         </div>
         {(legal || consentLabel) && (
-          <div class="mt-12 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted">
+          <div class="mt-12 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted">
             {legal && <p data-field="footer.legal">{legal}</p>}
             {consentLabel && <ConsentLink label={consentLabel} />}
           </div>
@@ -116,8 +116,10 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
           </div>
         </div>
         <div class="mt-[clamp(3rem,6cqi,5rem)] flex flex-wrap justify-between gap-x-8 gap-y-2 text-[0.8125rem] text-muted">
-          {legal && <p data-field="footer.legal">{legal}</p>}
-          {consentLabel && <ConsentLink label={consentLabel} />}
+          <div class="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+            {legal && <p data-field="footer.legal">{legal}</p>}
+            {consentLabel && <ConsentLink label={consentLabel} />}
+          </div>
           <a href="#content" class="transition-colors hover:text-fg">
             Back to top ↑
           </a>
