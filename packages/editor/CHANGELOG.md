@@ -1,5 +1,16 @@
 # bearminion
 
+## 1.3.0
+
+### Minor Changes
+
+- 4de8434: Custom JSON-LD and analytics snippets. A page's `seo.jsonLd` holds parsed JSON-LD blocks that replace the generated `WebPage` markup, and `site.analytics` (`head`, `bodyEnd`) holds raw snippets the template emits on the live site only: not in `astro dev`, and not in Vercel or Netlify preview deployments. Nothing needs configuring; `BEARMINION_ANALYTICS=on|off` overrides the choice for hosts that cannot be told apart. The Pages tab shows an SEO card (search result preview and badges) with an Edit SEO button that opens a dialog for every SEO field, including JSON-LD with validation and script-tag unwrapping. The Site tab has an Analytics & scripts group. `parseJsonLdInput`, `formatJsonLd`, `jsonLdWarnings`, `jsonLdSchema` and `siteAnalyticsSchema` are exported. Themes need to render the two new fields (see the theme docs).
+
+### Patch Changes
+
+- 826b0ac: `create-bearminion` speaks in the BearMinion voice: the prompts, progress lines, errors, next steps and `--help` text. The messages say the same things, with fewer words and a grumpier bear.
+- 2032a4a: Template: footer columns stay left-aligned on small screens instead of piling up on the right. They stack in one column on phones, two columns on larger phones, three columns on tablets, and sit beside the brand block from wide layouts up.
+
 ## 1.2.1
 
 ### Patch Changes
