@@ -10,12 +10,15 @@ export function SeoCard({
   page,
   siteName,
   siteUrl,
+  siteOgImage,
   system,
   onEdit,
 }: {
   page: PageDraft
   siteName: string
   siteUrl: string
+  /** The site's default social image, which a page without its own uses. */
+  siteOgImage: string
   system: boolean
   onEdit: () => void
 }) {
@@ -26,12 +29,18 @@ export function SeoCard({
     system || seo.noindex === true ? 'noindex' : '',
     !system && seo.nofollow === true ? 'nofollow' : '',
     text(seo.canonical) ? 'canonical' : '',
-    text(seo.ogImage) ? 'OG image' : '',
     jsonLd > 0 ? `JSON-LD · ${jsonLd}` : '',
   ].filter(Boolean)
   return (
     <div class="bm-seo-card">
-      <SerpPreview seo={seo} pageTitle={page.title} slug={page.slug} siteName={siteName} siteUrl={siteUrl} />
+      <SerpPreview
+        seo={seo}
+        pageTitle={page.title}
+        slug={page.slug}
+        siteName={siteName}
+        siteUrl={siteUrl}
+        image={text(seo.ogImage) || siteOgImage || undefined}
+      />
       {badges.length > 0 && (
         <ul class="bm-seo-badges" aria-label="SEO settings in use">
           {badges.map((badge) => (

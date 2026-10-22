@@ -1224,6 +1224,7 @@ describe('editor overlay', () => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
     await page.getByRole('button', { name: 'Editor', exact: true }).click()
     await page.getByRole('tab', { name: 'Pages' }).click()
     await page.getByRole('button', { name: 'Edit SEO' }).click()
@@ -1268,6 +1269,7 @@ describe('editor overlay', () => {
   it('locks page scroll behind a dialog without shifting the layout, and restores it', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
     await page.getByRole('button', { name: 'Editor', exact: true }).click()
     await page.getByRole('tab', { name: 'Pages' }).click()
     const lockState = () =>

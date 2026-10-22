@@ -1,4 +1,4 @@
-import { useEffect } from 'preact/hooks'
+import { useLayoutEffect } from 'preact/hooks'
 
 let locks = 0
 let saved: { overflow: string; gutter: string } | null = null
@@ -26,7 +26,7 @@ function unlock() {
 
 /** While mounted, the page behind a modal does not scroll and does not shift. Nested modals share one lock. */
 export function ScrollLock() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     lock()
     return unlock
   }, [])

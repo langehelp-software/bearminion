@@ -2884,6 +2884,26 @@ details[open] > summary .bm-chevron {
   border-radius: 10px;
   background: var(--fill-soft);
 }
+.bm-serp-image {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+.bm-serp-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.bm-serp-thumb {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--fill);
+}
 .bm-serp-title {
   font-size: 15px;
   font-weight: 500;

@@ -11,6 +11,7 @@ export function PageForm({
   labels,
   siteName,
   siteUrl,
+  siteOgImage,
   selectedId,
   onChange,
   savedSlug,
@@ -27,6 +28,7 @@ export function PageForm({
   labels: Record<string, string>
   siteName: string
   siteUrl: string
+  siteOgImage: string
   selectedId: string | null
   onChange: (page: PageDraft) => void
   /** Slug on disk. It differs from `page.slug` while a rename or a new home page is waiting for save. */
@@ -93,7 +95,7 @@ export function PageForm({
       </div>
       <div class="bm-stack">
         <p class="bm-group">SEO</p>
-        <SeoCard page={page} siteName={siteName} siteUrl={siteUrl} system={isSystem} onEdit={onEditSeo} />
+        <SeoCard page={page} siteName={siteName} siteUrl={siteUrl} siteOgImage={siteOgImage} system={isSystem} onEdit={onEditSeo} />
       </div>
       <div class="bm-stack bm-stack-tight">
         <p class="bm-group">Sections · {page.sections.length}</p>

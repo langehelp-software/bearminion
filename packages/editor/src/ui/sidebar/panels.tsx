@@ -86,6 +86,7 @@ export function PagesPanel({ catalog }: { catalog: Catalog }) {
           labels={catalog.sectionLabels}
           siteName={text(site?.name)}
           siteUrl={text(site?.url)}
+          siteOgImage={text(getAt(site, 'seo.ogImage'))}
           selectedId={ui.selectedId.value}
           onChange={(next) => edits.updatePage(next)}
           savedSlug={savedSlug}
