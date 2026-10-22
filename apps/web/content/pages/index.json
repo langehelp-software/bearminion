@@ -54,7 +54,7 @@
         "heading": "One minute. No sales call.",
         "intro": false,
         "kind": "video",
-        "label": "A 40-second recording of the BearMinion editor: edit the heading, add a section, switch its layout, repaint the palette, save",
+        "label": "A 25-second demo of BearMinion: create a site from the terminal, edit the heading, add a section, switch its layout, repaint the palette, save and ship",
         "marks": [
           {
             "end": 26,
