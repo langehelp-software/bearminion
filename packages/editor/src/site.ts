@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CONSENT_HREF, CONSENT_HREF_MESSAGE, CONSENT_LIMITS } from './consent.js'
+import { CONSENT_HREF, CONSENT_HREF_MESSAGE, CONSENT_LIMITS, CONSENT_REOPEN } from './consent.js'
 import { addMarkIssues, imageSchema, linkSchema, textMarkSchema, textSchema, toneSchema } from './fields.js'
 import { walkLinkIds } from './link-ids.js'
 import { marksFromEmphasis, type TextMark } from './marks.js'
@@ -153,11 +153,13 @@ export const siteConsentSchema = z
   .object({
     /** Only `false` turns the banner off. Absent means on. */
     enabled: z.boolean().optional(),
+    /** Where visitors reopen the banner. Absent means a link in the footer. */
+    reopen: z.enum(CONSENT_REOPEN).optional(),
     title: z.string().min(1).max(CONSENT_LIMITS.title).optional(),
     body: z.string().min(1).max(CONSENT_LIMITS.body).optional(),
     accept: z.string().min(1).max(CONSENT_LIMITS.button).optional(),
     reject: z.string().min(1).max(CONSENT_LIMITS.button).optional(),
-    /** The footer link that reopens the banner. */
+    /** The footer link that reopens the banner, and the label of the corner icon. */
     settings: z.string().min(1).max(CONSENT_LIMITS.link).optional(),
     policyLabel: z.string().min(1).max(CONSENT_LIMITS.link).optional(),
     /** A path on this site or an http(s) address. Nothing else, so the link cannot run script. */

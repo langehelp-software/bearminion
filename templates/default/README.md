@@ -207,7 +207,7 @@ When snippets are set and `site.consent.enabled` is not `false`, `consentRequire
 
 - **Before any snippet:** an inline script sets Google Consent Mode v2 to `denied` for `ad_storage`, `ad_user_data`, `ad_personalization` and `analytics_storage`.
 - **The snippets** move into `<template data-consent-snippet="head|body">`, so they are inert. Nothing in them loads or runs.
-- **`ConsentBanner.astro`** and a footer link (`ConsentLink.astro`, label `site.consent.settings`) are rendered.
+- **`ConsentBanner.astro`** is rendered, with a way to reopen it: a footer link (`ConsentLink.astro`, label `site.consent.settings`), or with `site.consent.reopen: "icon"` a fixed rounded cookie icon in the bottom-left corner (`data-consent-icon`, shown only while the banner is closed, labelled by the same text).
 
 `src/lib/consent-client.ts` shows the banner when there is no stored choice, and keeps the choice in `localStorage` (`bm-consent`, 180 days, bump `CONSENT_VERSION` in `consent-store.ts` to ask everyone again). On accept it sends `gtag('consent', 'update', { analytics_storage: 'granted' })`, then rebuilds the held-back scripts into the page, so they run after the update and work for any vendor, not only Google. Withdrawing deletes `_ga`, `_ga_*`, `_gid` and `_gat*` on the host and its parent domains and reloads, because a loaded script cannot be unloaded. Cookies that other tools set are not cleared. The banner has one category, analytics, and Accept and Reject look the same on purpose.
 

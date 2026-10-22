@@ -10,6 +10,7 @@ interface Props {
 
 const copy = consentCopy(Astro.props.consent)
 const choiceClass = button({ variant: 'secondary', size: 'sm' })
+const icon = Astro.props.consent?.reopen === 'icon'
 ---
 
 {/* Hidden until the script finds no stored choice, so a returning visitor never sees it flash. */}
@@ -45,6 +46,28 @@ const choiceClass = button({ variant: 'secondary', size: 'sm' })
     <button type="button" class={choiceClass} data-consent-reject>{copy.reject}</button>
   </div>
 </div>
+
+{/* The corner icon reopens the banner once it is closed, in place of the footer link. */}
+{
+  icon && (
+    <button
+      type="button"
+      data-consent-open
+      data-consent-icon
+      hidden
+      aria-label={copy.settings}
+      title={copy.settings}
+      class="fixed bottom-4 left-4 z-40 grid size-11 cursor-pointer place-items-center rounded-xl bg-bg text-fg shadow-lg ring-line transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg sm:bottom-6 sm:left-6"
+    >
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3a9 9 0 1 0 9 9 4 4 0 0 1-4-4 4 4 0 0 1-5-5z" />
+        <circle cx="8.5" cy="11" r="0.7" fill="currentColor" />
+        <circle cx="12" cy="16" r="0.7" fill="currentColor" />
+        <circle cx="15.5" cy="14" r="0.7" fill="currentColor" />
+      </svg>
+    </button>
+  )
+}
 
 <script>
   import { initConsent } from '../../lib/consent-client'

@@ -55,7 +55,7 @@ const gated = asks && analyticsOn
     <main id="content">
       <slot />
     </main>
-    <Footer site={site} consentLabel={asks ? consentCopy(site.consent).settings : undefined} />
+    <Footer site={site} consentLabel={asks && site.consent?.reopen !== 'icon' ? consentCopy(site.consent).settings : undefined} />
     {analytics?.bodyEnd && !asks && <Fragment set:html={analytics.bodyEnd} />}
     {gated && analytics?.bodyEnd && <template data-consent-snippet="body" set:html={analytics.bodyEnd} />}
     {asks && <ConsentBanner consent={site.consent} />}

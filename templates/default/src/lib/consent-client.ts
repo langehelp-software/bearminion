@@ -65,12 +65,19 @@ function signal(analytics: boolean): void {
 /** Shows the banner until the visitor has chosen, applies a stored choice, and wires the buttons and the footer link. */
 export function initConsent(banner: HTMLElement): void {
   let opener: HTMLElement | null = null
+  // The corner icon, when the site uses one, shows only while the banner is closed.
+  const icon = document.querySelector<HTMLElement>('[data-consent-icon]')
+  const sync = () => {
+    if (icon) icon.hidden = !banner.hidden
+  }
   const open = () => {
     banner.hidden = false
+    sync()
     banner.focus()
   }
   const close = () => {
     banner.hidden = true
+    sync()
     opener?.focus()
     opener = null
   }
@@ -78,6 +85,7 @@ export function initConsent(banner: HTMLElement): void {
   const previous = stored()
   if (previous) signal(previous.analytics)
   else banner.hidden = false
+  sync()
 
   function choose(analytics: boolean): void {
     const wasOn = stored()?.analytics === true || activated

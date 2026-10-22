@@ -100,10 +100,11 @@ export {
   CONSENT_COPY,
   CONSENT_HREF,
   CONSENT_LIMITS,
+  CONSENT_REOPEN,
   consentCopy,
   consentTextIssues,
 } from './consent.js'
-export type { ConsentCopy, ConsentText, ConsentTextKey } from './consent.js'
+export type { ConsentCopy, ConsentReopen, ConsentText, ConsentTextKey } from './consent.js'
 
 export {
   BRAND_LOGO_HEIGHT,

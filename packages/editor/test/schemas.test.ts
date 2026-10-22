@@ -1010,6 +1010,12 @@ describe('site consent schema', () => {
     expect(siteConsentSchema.safeParse({ enabled: 'yes' }).success).toBe(false)
   })
 
+  it('takes a footer link or a corner icon to reopen the banner, and nothing else', () => {
+    expect(siteConsentSchema.parse({ reopen: 'icon' })).toEqual({ reopen: 'icon' })
+    expect(siteConsentSchema.parse({ reopen: 'footer' })).toEqual({ reopen: 'footer' })
+    expect(siteConsentSchema.safeParse({ reopen: 'top' }).success).toBe(false)
+  })
+
   it('refuses empty and overlong copy', () => {
     expect(siteConsentSchema.safeParse({ title: '' }).success).toBe(false)
     expect(siteConsentSchema.safeParse({ body: 'x'.repeat(CONSENT_LIMITS.body + 1) }).success).toBe(false)

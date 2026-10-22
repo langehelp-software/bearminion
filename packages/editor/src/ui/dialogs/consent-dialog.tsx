@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { CONSENT_COPY, CONSENT_LIMITS, type ConsentText, type ConsentTextKey, consentCopy, consentTextIssues } from '../../consent.js'
+import {
+  CONSENT_COPY,
+  CONSENT_LIMITS,
+  type ConsentReopen,
+  type ConsentText,
+  type ConsentTextKey,
+  consentCopy,
+  consentTextIssues,
+} from '../../consent.js'
 import { Field } from '../forms/fields.js'
+import { Segmented } from '../forms/segmented.js'
 import { DialogClose } from './dialog.js'
 
 const KEYS: readonly ConsentTextKey[] = ['title', 'body', 'accept', 'reject', 'settings', 'policyLabel', 'policyHref']
@@ -40,15 +49,18 @@ export function savedConsentText(draft: Draft): ConsentText {
  */
 export function ConsentDialog({
   consent,
+  reopen: startReopen,
   onApply,
   onClose,
 }: {
   consent: ConsentText
-  onApply: (text: ConsentText) => void
+  reopen: ConsentReopen
+  onApply: (text: ConsentText, reopen: ConsentReopen) => void
   onClose: () => void
 }) {
   const root = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState<Draft>(() => startDraft(consent))
+  const [reopen, setReopen] = useState<ConsentReopen>(startReopen)
   const saved = savedConsentText(draft)
   const issues = consentTextIssues(saved)
   const valid = Object.keys(issues).length === 0
@@ -115,9 +127,21 @@ export function ConsentDialog({
             {field('policyLabel', 'Policy link text')}
           </div>
           <div class="bm-stack">
-            <p class="bm-group">Footer</p>
-            {field('settings', 'Footer link text', {
-              hint: 'Visitors use this link to change their mind. It stays in the footer after they choose.',
+            <p class="bm-group">Changing the choice</p>
+            <Segmented
+              label="Visitors reopen it with"
+              value={reopen}
+              options={[
+                { value: 'footer', label: 'Footer link' },
+                { value: 'icon', label: 'Corner icon' },
+              ]}
+              onChange={(value) => setReopen(value === 'icon' ? 'icon' : 'footer')}
+            />
+            {field('settings', reopen === 'icon' ? 'Icon label' : 'Footer link text', {
+              hint:
+                reopen === 'icon'
+                  ? 'A small cookie icon in the bottom-left corner, shown once the banner is closed. The label is read out by screen readers.'
+                  : 'The link stays in the footer after visitors choose, so they can change their mind.',
             })}
           </div>
           {Object.entries(issues).map(([key, message]) => (
@@ -127,7 +151,7 @@ export function ConsentDialog({
           ))}
         </div>
         <div class="bm-actions">
-          <button type="button" class="bm-primary" disabled={!valid} onClick={() => onApply(saved)}>
+          <button type="button" class="bm-primary" disabled={!valid} onClick={() => onApply(saved, reopen)}>
             Apply
           </button>
           <button type="button" class="bm-tertiary" onClick={onClose}>
@@ -144,7 +168,7 @@ const KEY_LABEL: Record<ConsentTextKey, string> = {
   body: 'Message',
   accept: 'Accept button',
   reject: 'Reject button',
-  settings: 'Footer link text',
+  settings: 'Footer link text or icon label',
   policyLabel: 'Policy link text',
   policyHref: 'Policy page',
 }

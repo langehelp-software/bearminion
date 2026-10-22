@@ -1,6 +1,10 @@
 /** Longest copy the consent banner takes, in characters. The editor shows the same limits. */
 export const CONSENT_LIMITS = { title: 80, body: 400, button: 30, link: 40 } as const
 
+/** Where visitors reopen the banner: a link in the footer, or a small fixed icon in the bottom-left corner. */
+export const CONSENT_REOPEN = ['footer', 'icon'] as const
+export type ConsentReopen = (typeof CONSENT_REOPEN)[number]
+
 /** A policy link points to a path on this site, an anchor or an http(s) address, so it cannot run script. */
 export const CONSENT_HREF = /^(\/|#|https?:\/\/)/
 export const CONSENT_HREF_MESSAGE = 'Use a path on this site or an http(s) address'
@@ -11,7 +15,7 @@ export interface ConsentText {
   body?: string
   accept?: string
   reject?: string
-  /** The footer link that reopens the banner. */
+  /** The footer link that reopens the banner, and the label of the corner icon. */
   settings?: string
   policyLabel?: string
   policyHref?: string

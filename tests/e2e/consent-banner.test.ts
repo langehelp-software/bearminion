@@ -189,6 +189,34 @@ describe('cookie consent on a built site', () => {
     await page.close()
   }, 120_000)
 
+  it('can reopen the banner from a corner icon instead of the footer', async () => {
+    const sitePath = path.join(String(buildEnv.BEARMINION_CONTENT_DIR), 'site.json')
+    const site = JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { consent: Record<string, unknown> }
+    site.consent = { reopen: 'icon', settings: 'Cookie choices' }
+    fs.writeFileSync(sitePath, JSON.stringify(site, null, 2))
+    execFileSync(process.execPath, [astroBin, 'build'], { cwd: starter, env: buildEnv, stdio: 'pipe' })
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    await page.goto(origin)
+    const icon = page.locator('[data-consent-icon]')
+    expect(await page.locator('footer [data-consent-open]').count()).toBe(0)
+    // Banner open: no icon on top of it.
+    expect(await icon.isVisible()).toBe(false)
+    await page.locator('[data-consent-banner] [data-consent-reject]').click()
+    await icon.waitFor({ state: 'visible' })
+    expect(await icon.getAttribute('aria-label')).toBe('Cookie choices')
+    const box = await icon.boundingBox()
+    expect(box && box.x < 40 && box.y > 900 - 80).toBe(true)
+    await icon.click()
+    expect((await state(page)).bannerHidden).toBe(false)
+    expect(await icon.isVisible()).toBe(false)
+    await page.locator('[data-consent-banner] [data-consent-accept]').click()
+    await icon.waitFor({ state: 'visible' })
+    // The icon is the control that had focus, so focus returns to it.
+    expect(await page.evaluate(() => document.activeElement?.hasAttribute('data-consent-icon'))).toBe(true)
+    await page.screenshot({ path: path.join(os.tmpdir(), 'consent-icon.png') })
+    await page.close()
+  }, 120_000)
+
   async function waitForServer(): Promise<void> {
     const deadline = Date.now() + 60_000
     while (Date.now() < deadline) {

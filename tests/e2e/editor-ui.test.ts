@@ -1295,6 +1295,7 @@ describe('editor overlay', () => {
     await dialog.getByRole('alert').waitFor()
     expect(await dialog.getByRole('button', { name: 'Apply', exact: true }).isDisabled()).toBe(true)
     await policy.fill('/polityka')
+    await dialog.getByRole('radio', { name: 'Corner icon' }).click()
     await dialog.getByRole('button', { name: 'Apply', exact: true }).click()
     await dialog.waitFor({ state: 'detached' })
 
@@ -1310,7 +1311,7 @@ describe('editor overlay', () => {
     await page.keyboard.press('Control+s')
     await waitFor(() => saved().consent?.title === 'Ciasteczka', 'consent missing from site.json')
     // Only what differs from the default is stored, and an off switch is stored as `false`.
-    expect(saved().consent).toEqual({ enabled: false, policyHref: '/polityka', title: 'Ciasteczka' })
+    expect(saved().consent).toEqual({ enabled: false, policyHref: '/polityka', reopen: 'icon', title: 'Ciasteczka' })
 
     // Switching back on drops `enabled`; the texts stay.
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
@@ -1322,7 +1323,7 @@ describe('editor overlay', () => {
     await row.getByRole('switch').check()
     await page.keyboard.press('Control+s')
     await waitFor(() => saved().consent?.enabled === undefined, 'enabled still in site.json')
-    expect(saved().consent).toEqual({ policyHref: '/polityka', title: 'Ciasteczka' })
+    expect(saved().consent).toEqual({ policyHref: '/polityka', reopen: 'icon', title: 'Ciasteczka' })
     expect(errors, logs).toEqual([])
     await page.close()
   }, 90_000)

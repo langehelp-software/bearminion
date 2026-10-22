@@ -69,7 +69,7 @@ Paste the snippet your analytics tool gives you under **Site → Analytics & scr
 
 ### Cookie banner
 
-With a snippet set, your live site shows a cookie banner and holds the snippet back until the visitor accepts. Rejecting loads nothing. A footer link ("Cookie settings") lets visitors change their mind, and withdrawing clears the Google Analytics cookies and reloads the page without the snippet. Google tags get [Consent Mode v2](https://developers.google.com/tag-platform/security/guides/consent): every signal is `denied` before anything loads, and `analytics_storage` becomes `granted` on accept. The ad signals stay `denied`.
+With a snippet set, your live site shows a cookie banner and holds the snippet back until the visitor accepts. Rejecting loads nothing. A footer link ("Cookie settings") or, if you choose it in the dialog, a small cookie icon in the bottom-left corner lets visitors change their mind, and withdrawing clears the Google Analytics cookies and reloads the page without the snippet. Google tags get [Consent Mode v2](https://developers.google.com/tag-platform/security/guides/consent): every signal is `denied` before anything loads, and `analytics_storage` becomes `granted` on accept. The ad signals stay `denied`.
 
 Under **Site → Cookie banner**, the switch turns the banner on and off, and **Edit banner** changes its words and adds a link to your privacy policy. Visitors are asked again after 180 days.
 
