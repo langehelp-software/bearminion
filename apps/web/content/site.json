@@ -8,6 +8,9 @@
     "height": 32,
     "src": "src/assets/uploads/logo.png"
   },
+  "consent": {
+    "reopen": "icon"
+  },
   "favicon": {
     "alt": "",
     "src": "src/assets/uploads/favicon.png"
