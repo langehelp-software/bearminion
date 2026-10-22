@@ -68,9 +68,9 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
               </span>
             )}
           </div>
-          <div class="flex flex-wrap justify-end gap-x-8 gap-y-10 @min-[40rem]:ml-auto">
+          <div class="grid w-full grid-cols-1 gap-x-8 gap-y-10 @min-[26rem]:grid-cols-2 @min-[40rem]:grid-cols-3 @min-[56rem]:ml-auto @min-[56rem]:flex @min-[56rem]:w-auto @min-[56rem]:flex-wrap @min-[56rem]:justify-end">
             {columns.map((column, columnIndex) => (
-              <div class="flex w-40 min-w-32 flex-col gap-3.5">
+              <div class="flex min-w-0 flex-col gap-3.5 @min-[56rem]:w-40 @min-[56rem]:min-w-32">
                 <p class="font-mono text-[0.6875rem] tracking-[0.08em] text-muted uppercase" data-field={`footer.columns.${columnIndex}.title`}>
                   {column.title}
                 </p>
@@ -99,9 +99,9 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
               </Typography>
             )}
           </div>
-          <div class="flex flex-wrap justify-end gap-x-8 gap-y-8 @min-[40rem]:ml-auto">
+          <div class="grid w-full grid-cols-1 gap-x-8 gap-y-8 @min-[26rem]:grid-cols-2 @min-[40rem]:grid-cols-3 @min-[56rem]:ml-auto @min-[56rem]:flex @min-[56rem]:w-auto @min-[56rem]:flex-wrap @min-[56rem]:justify-end">
             {columns.map((column, columnIndex) => (
-              <div class="flex min-w-32 flex-col gap-3.5">
+              <div class="flex min-w-0 flex-col gap-3.5 @min-[56rem]:min-w-32">
                 <p class="font-mono text-[0.6875rem] tracking-[0.08em] text-muted uppercase" data-field={`footer.columns.${columnIndex}.title`}>
                   {column.title}
                 </p>
