@@ -208,10 +208,19 @@ The editor's own colors are separate and unaffected.
 | Identity | Name (with style buttons for the selected text and a wordmark preview), URL, favicon |
 | Search defaults | Title template, description, og image |
 | Analytics & scripts | Raw snippets for the page head and the end of the body |
+| Structured data | The JSON-LD every page carries, edited in a dialog. See [Site JSON-LD](#site-json-ld) |
 | Cookie banner | A switch, and a dialog for the banner's text and privacy policy link |
 | Theme | Options from `siteOptions` |
 
 Analytics snippets run on your live site only: not in dev, and not on Vercel or Netlify previews. See [Analytics](getting-started.md#analytics) for how the template decides, and the `BEARMINION_ANALYTICS` override. With the cookie banner on, which is the default, they also wait until the visitor accepts: see [Cookie banner](getting-started.md#cookie-banner).
+
+#### Site JSON-LD
+
+**Edit JSON-LD** in the Structured data group opens a dialog with the blocks every page carries. It takes an object, an array, or a pasted `<script type="application/ld+json">` tag, the same as the page SEO dialog, and Apply is blocked while the JSON is invalid.
+
+**Generate Organization and WebSite** fills both blocks from the site name, address and language (`en` when none is set). It never runs by itself. Blocks that already have the same `@id` are replaced and every other block is kept, so you can run it again after renaming the site. A logo is added only when the brand logo is a full `https://` address, because an uploaded image gets its public address when the site is built. Paste a `"logo"` URL by hand otherwise.
+
+While the site address is still `https://example.com`, the dialog warns you before you generate. There is no `SearchAction`: Google no longer shows the sitelinks search box, so the markup would have no effect.
 
 ## Images
 

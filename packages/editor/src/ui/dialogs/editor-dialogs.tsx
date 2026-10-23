@@ -1,9 +1,10 @@
 import type { JSX } from 'preact'
 import { describePageChanges, describeSiteChanges } from '../../changes.js'
 import { getAt, type PageDraft } from '../../draft.js'
+import type { JsonLdBlock } from '../../json-ld.js'
 import { isSystemPage } from '../../page.js'
 import { text } from '../shared.js'
-import { consentReopenOf, consentTextOf } from '../site-draft.js'
+import { consentReopenOf, consentTextOf, siteJsonLdOf, siteJsonLdSourceOf } from '../site-draft.js'
 import { type Editor, useEditor } from '../state/editor.js'
 import { ScrollLock } from '../scroll-lock.js'
 import type { EditorDialog } from '../state/ui.js'
@@ -14,6 +15,7 @@ import { ConsentDialog } from './consent-dialog.js'
 import { ConfirmDialog, LeaveDialog } from './dialog.js'
 import { HistoryDialog } from './history-dialog.js'
 import { SeoDialog } from './seo-dialog.js'
+import { SiteJsonLdDialog } from './site-jsonld-dialog.js'
 
 function parseJson(text: string): unknown {
   if (!text) return null
@@ -146,6 +148,21 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
             const enabled = getAt(site, 'consent.enabled')
             const next = { ...(enabled === undefined ? {} : { enabled }), ...(reopen === 'icon' ? { reopen } : {}), ...consent }
             edits.writeField('consent', Object.keys(next).length > 0 ? next : undefined)
+            close()
+          }}
+          onClose={close}
+        />
+      )
+    }
+    case 'siteJsonLd': {
+      const site = doc.site.value
+      if (!site) return null
+      return (
+        <SiteJsonLdDialog
+          blocks={siteJsonLdOf(site)}
+          source={siteJsonLdSourceOf(site)}
+          onApply={(blocks: JsonLdBlock[]) => {
+            edits.writeField('seo.jsonLd', blocks.length > 0 ? blocks : undefined)
             close()
           }}
           onClose={close}

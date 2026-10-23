@@ -1,4 +1,5 @@
 import { getAt, type NavLink } from '../draft.js'
+import type { JsonLdBlock, SiteJsonLdSource } from '../json-ld.js'
 import type { ConsentReopen, ConsentText, ConsentTextKey } from '../consent.js'
 import type { ThemeColors } from '../theme-colors.js'
 import { isRecord } from './shared.js'
@@ -73,4 +74,24 @@ export function hasAnalyticsSnippet(site: SiteDraft): boolean {
 /** Where the draft reopens the banner. Anything but `icon` is the footer link. */
 export function consentReopenOf(site: SiteDraft): ConsentReopen {
   return getAt(site, 'consent.reopen') === 'icon' ? 'icon' : 'footer'
+}
+
+/** The JSON-LD blocks every page carries, as the draft holds them. */
+export function siteJsonLdOf(site: SiteDraft): JsonLdBlock[] {
+  const stored = getAt(site, 'seo.jsonLd')
+  return Array.isArray(stored) ? stored.filter(isRecord) : []
+}
+
+/** What Generate reads from the draft. The logo counts only when it is a full https address. */
+export function siteJsonLdSourceOf(site: SiteDraft): SiteJsonLdSource {
+  const name = getAt(site, 'name')
+  const url = getAt(site, 'url')
+  const lang = getAt(site, 'lang')
+  const logo = getAt(site, 'brandLogo.src')
+  return {
+    name: typeof name === 'string' ? name : '',
+    url: typeof url === 'string' ? url : '',
+    lang: typeof lang === 'string' && lang !== '' ? lang : undefined,
+    logo: typeof logo === 'string' && /^https:\/\//i.test(logo) ? logo : undefined,
+  }
 }

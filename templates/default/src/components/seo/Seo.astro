@@ -1,5 +1,5 @@
 ---
-import type { Page } from 'bearminion'
+import { hasJsonLdId, mergeJsonLd, siteJsonLdIds, type Page } from 'bearminion'
 import type { Site } from '../organisms/site-definition'
 import { isRemote, resolveLocalAsset } from '../../lib/assets'
 
@@ -31,19 +31,21 @@ const robots = [page.seo.noindex ? 'noindex' : 'index', page.seo.nofollow ? 'nof
 const ogImageSrc = page.seo.ogImage ?? site.seo.ogImage
 const ogImage = ogImageSrc ? absoluteImage(ogImageSrc) : undefined
 
-const jsonLd = {
+// Blocks from site.seo.jsonLd go on every page. When the site describes itself, the generated WebPage points at those blocks.
+const siteBlocks = site.seo.jsonLd ?? []
+const ids = siteJsonLdIds(site.url)
+const webPage = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
   name: title,
   description,
   url: canonical,
   ...(ogImage ? { image: ogImage } : {}),
-  isPartOf: {
-    '@type': 'WebSite',
-    name: site.name,
-    url: site.url,
-  },
+  isPartOf: hasJsonLdId(siteBlocks, ids.website) ? { '@id': ids.website } : { '@type': 'WebSite', name: site.name, url: site.url },
+  ...(hasJsonLdId(siteBlocks, ids.organization) ? { publisher: { '@id': ids.organization } } : {}),
 }
+// A page's own JSON-LD replaces only the generated WebPage. Blocks with the same @id are emitted once, the page's first.
+const blocks = mergeJsonLd(siteBlocks, page.seo.jsonLd ?? [webPage])
 ---
 
 <title>{title}</title>
@@ -60,9 +62,9 @@ const jsonLd = {
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />
 {ogImage && <meta name="twitter:image" content={ogImage} />}
-{/* Custom JSON-LD replaces the generated WebPage block. `<` is escaped so a value cannot close the script tag. */}
+{/* `<` is escaped so a value cannot close the script tag. */}
 {
-  (page.seo.jsonLd ?? [jsonLd]).map((block) => (
+  blocks.map((block) => (
     <script type="application/ld+json" set:html={JSON.stringify(block).replace(/</g, '\\u003c')} />
   ))
 }
