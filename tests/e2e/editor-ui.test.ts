@@ -1266,6 +1266,81 @@ describe('editor overlay', () => {
     await page.close()
   }, 60_000)
 
+  it('generates sitewide JSON-LD in a dialog, saves it to site.json and emits it on the page', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
+    await page.getByRole('button', { name: 'Editor', exact: true }).click()
+    await page.getByRole('tab', { name: 'Site' }).click()
+    const sitePath = path.join(contentDir, 'site.json')
+    // Earlier tests save their own address into the shared content, so the ids follow whatever it is now.
+    const siteUrl = (JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { url: string }).url.replace(/\/+$/, '')
+
+    await page.getByText(/^None\. Add an Organization and a WebSite/).waitFor()
+    await page.getByRole('button', { name: 'Edit JSON-LD' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Edit site JSON-LD' })
+    const json = dialog.locator('textarea.bm-seo-json')
+
+    // Invalid JSON blocks both Generate and Apply.
+    await json.fill('{"@type": "Organization",}')
+    await dialog.getByRole('alert').first().waitFor()
+    expect(await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).isDisabled()).toBe(true)
+    expect(await dialog.getByRole('button', { name: 'Apply', exact: true }).isDisabled()).toBe(true)
+
+    // Generate keeps a block of the person's own and adds the two site blocks. The placeholder address is called out.
+    const event = { '@context': 'https://schema.org', '@type': 'Event', name: 'Launch' }
+    await json.fill(JSON.stringify(event))
+    await dialog.getByText(`The site address is still ${siteUrl}.`, { exact: false }).waitFor()
+    await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
+    const generated = JSON.parse(await json.inputValue()) as Record<string, unknown>[]
+    expect(generated.map((block) => block['@type'])).toEqual(['Event', 'Organization', 'WebSite'])
+    expect(generated[1]?.['@id']).toBe(`${siteUrl}/#organization`)
+    expect(generated[2]?.['@id']).toBe(`${siteUrl}/#website`)
+
+    // Running it again replaces the generated blocks instead of repeating them.
+    await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
+    expect(JSON.parse(await json.inputValue())).toHaveLength(3)
+
+    // Cancel drops the edit.
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await dialog.waitFor({ state: 'detached' })
+    await page.getByText(/^None\. Add an Organization and a WebSite/).waitFor()
+
+    await page.getByRole('button', { name: 'Edit JSON-LD' }).click()
+    await dialog.locator('textarea.bm-seo-json').fill(JSON.stringify(event))
+    await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
+    await dialog.getByRole('button', { name: 'Apply', exact: true }).click()
+    await dialog.waitFor({ state: 'detached' })
+    await page.getByText('On every page: Event, Organization, WebSite.').waitFor()
+    await page.keyboard.press('Control+s')
+
+    await waitFor(() => fs.readFileSync(sitePath, 'utf8').includes('"jsonLd"'), 'jsonLd missing from site.json')
+    const saved = JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { seo: { jsonLd: Record<string, unknown>[] } }
+    expect(saved.seo.jsonLd.map((block) => block['@type'])).toEqual(['Event', 'Organization', 'WebSite'])
+
+    // The dev server picks the saved files up a moment later, so poll instead of fetching once.
+    const emitted = async (route: string) => {
+      const html = await (await fetch(`http://127.0.0.1:${port}${route}`)).text()
+      return [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(
+        (match) => JSON.parse(match[1] ?? '{}') as Record<string, unknown>,
+      )
+    }
+    const types = async (route: string) => (await emitted(route)).map((block) => block['@type'])
+
+    // A page without markup of its own gets the site blocks, and its generated WebPage points at them.
+    await expect.poll(() => types('/'), { timeout: 20_000, interval: 250 }).toEqual(['Event', 'Organization', 'WebSite', 'WebPage'])
+    expect((await emitted('/'))[3]).toMatchObject({
+      isPartOf: { '@id': `${siteUrl}/#website` },
+      publisher: { '@id': `${siteUrl}/#organization` },
+    })
+    // About has its own JSON-LD from an earlier test. It replaces the generated WebPage and never the site's blocks.
+    expect(await types('/about')).toEqual(['Event', 'Organization', 'WebSite', 'Article'])
+    expect(errors, logs).toEqual([])
+    await page.close()
+  }, 60_000)
+
   it('switches the cookie banner from the sidebar and edits its text in a dialog', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     const errors: string[] = []

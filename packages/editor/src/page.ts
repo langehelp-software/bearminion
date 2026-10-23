@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { textSchema } from './fields.js'
+import { jsonLdSchema } from './json-ld.js'
 import { addLinkIdIssues } from './link-ids.js'
 import type { SectionRegistry } from './model.js'
 import { createSectionSchema, createTolerantSectionSchema, isOrphanSection, type BaseSection, type SectionOf } from './section-schema.js'
@@ -36,11 +37,7 @@ export function addSectionIdentityIssues(sections: readonly unknown[], ctx: z.Re
   addLinkIdIssues(sections, ctx)
 }
 
-/** Custom structured data. At most 10 blocks and 50 KB, so a stray paste cannot bloat every page. */
-export const jsonLdSchema = z
-  .array(z.record(z.string(), z.unknown()))
-  .max(10)
-  .refine((blocks) => JSON.stringify(blocks).length <= 50_000, 'JSON-LD is limited to 50 KB')
+export { jsonLdSchema }
 
 export const seoSchema = z
   .object({

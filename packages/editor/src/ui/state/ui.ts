@@ -23,6 +23,7 @@ export type EditorDialog =
   | { kind: 'commit' }
   | { kind: 'seo' }
   | { kind: 'consent' }
+  | { kind: 'siteJsonLd' }
   | { kind: 'leave'; href: string | null }
   | { kind: 'home'; title: string; previousSlug: string }
 

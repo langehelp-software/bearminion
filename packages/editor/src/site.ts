@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CONSENT_HREF, CONSENT_HREF_MESSAGE, CONSENT_LIMITS, CONSENT_REOPEN } from './consent.js'
+import { jsonLdSchema } from './json-ld.js'
 import { addMarkIssues, imageSchema, linkSchema, textMarkSchema, textSchema, toneSchema } from './fields.js'
 import { walkLinkIds } from './link-ids.js'
 import { marksFromEmphasis, type TextMark } from './marks.js'
@@ -131,6 +132,8 @@ export const siteSeoSchema = z
     titleTemplate: z.string().min(1).optional(),
     description: z.string().optional(),
     ogImage: z.string().min(1).optional(),
+    /** Structured data emitted on every page, such as `Organization` and `WebSite`. A page's own blocks add to it. */
+    jsonLd: jsonLdSchema.optional(),
   })
   .strict()
 

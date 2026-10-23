@@ -112,6 +112,23 @@
   "schemaVersion": 1,
   "seo": {
     "description": "The BearMinion for the bare minimum: a git-based CMS for Astro with no database, no admin panel and no server.",
+    "jsonLd": [
+      {
+        "@context": "https://schema.org",
+        "@id": "https://bearminion.com/#organization",
+        "@type": "Organization",
+        "name": "BearMinion git-based CMS for Astro",
+        "url": "https://bearminion.com/"
+      },
+      {
+        "@context": "https://schema.org",
+        "@id": "https://bearminion.com/#website",
+        "@type": "WebSite",
+        "inLanguage": "en",
+        "name": "BearMinion git-based CMS for Astro",
+        "url": "https://bearminion.com/"
+      }
+    ],
     "ogImage": "src/assets/uploads/og.png",
     "titleTemplate": "%s · BearMinion"
   },

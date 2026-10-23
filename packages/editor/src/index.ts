@@ -72,8 +72,18 @@ export type { ContentMigration, ContentMigrator, ContentVersioning, DocumentKind
 export type * from './api-types.js'
 
 export { SYSTEM_PAGES, createPageSchema, isSystemPage, jsonLdSchema, seoSchema } from './page.js'
-export { formatJsonLd, jsonLdWarnings, parseJsonLdInput } from './json-ld.js'
-export type { JsonLdBlock, JsonLdResult } from './json-ld.js'
+export {
+  formatJsonLd,
+  generateSiteJsonLd,
+  hasJsonLdId,
+  isPlaceholderSiteUrl,
+  jsonLdWarnings,
+  mergeJsonLd,
+  parseJsonLdInput,
+  siteJsonLdIds,
+  upsertJsonLd,
+} from './json-ld.js'
+export type { JsonLdBlock, JsonLdResult, SiteJsonLdIds, SiteJsonLdSource } from './json-ld.js'
 export type { Page, Seo } from './page.js'
 
 export {

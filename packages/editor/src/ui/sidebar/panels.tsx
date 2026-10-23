@@ -171,6 +171,9 @@ export function SitePanel({ site, catalog }: { site: SiteDraft; catalog: Catalog
       onEditConsent={() => {
         ui.dialog.value = { kind: 'consent' }
       }}
+      onEditJsonLd={() => {
+        ui.dialog.value = { kind: 'siteJsonLd' }
+      }}
       onMarks={edits.applyMarksAt}
       onUploaded={doc.addImage}
       onDeleted={doc.dropImage}
