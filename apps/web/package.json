@@ -18,7 +18,7 @@
     "@fontsource/instrument-serif": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@tailwindcss/vite": "^4.1.12",
-    "astro": "^7.3.8",
+    "astro": "^7.4.1",
     "bearminion": "^1.4.0",
     "class-variance-authority": "^0.7.1",
     "sharp": "^0.35.5",
@@ -27,7 +27,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.5",
+    "@astrojs/check": "^0.9.11",
     "@types/node": "^22.19.0",
     "bearminion-site": "workspace:*",
     "typescript": "~5.9.3"
