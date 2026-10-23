@@ -1275,6 +1275,8 @@ describe('editor overlay', () => {
     await page.getByRole('button', { name: 'Editor', exact: true }).click()
     await page.getByRole('tab', { name: 'Site' }).click()
     const sitePath = path.join(contentDir, 'site.json')
+    // Earlier tests save their own address into the shared content, so the ids follow whatever it is now.
+    const siteUrl = (JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { url: string }).url.replace(/\/+$/, '')
 
     await page.getByText(/^None\. Add an Organization and a WebSite/).waitFor()
     await page.getByRole('button', { name: 'Edit JSON-LD' }).click()
@@ -1290,12 +1292,12 @@ describe('editor overlay', () => {
     // Generate keeps a block of the person's own and adds the two site blocks. The placeholder address is called out.
     const event = { '@context': 'https://schema.org', '@type': 'Event', name: 'Launch' }
     await json.fill(JSON.stringify(event))
-    await dialog.getByText(/The site address is still https:\/\/example\.com/).waitFor()
+    await dialog.getByText(`The site address is still ${siteUrl}.`, { exact: false }).waitFor()
     await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
     const generated = JSON.parse(await json.inputValue()) as Record<string, unknown>[]
     expect(generated.map((block) => block['@type'])).toEqual(['Event', 'Organization', 'WebSite'])
-    expect(generated[1]?.['@id']).toBe('https://example.com/#organization')
-    expect(generated[2]?.['@id']).toBe('https://example.com/#website')
+    expect(generated[1]?.['@id']).toBe(`${siteUrl}/#organization`)
+    expect(generated[2]?.['@id']).toBe(`${siteUrl}/#website`)
 
     // Running it again replaces the generated blocks instead of repeating them.
     await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
@@ -1318,17 +1320,23 @@ describe('editor overlay', () => {
     const saved = JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { seo: { jsonLd: Record<string, unknown>[] } }
     expect(saved.seo.jsonLd.map((block) => block['@type'])).toEqual(['Event', 'Organization', 'WebSite'])
 
-    // The page emits the site blocks, and its generated WebPage points at them. Reloading after the save is not
-    // needed to see it: the dev server renders every request from the files.
-    const html = await (await fetch(`http://127.0.0.1:${port}/about`)).text()
-    const blocks = [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(
-      (match) => JSON.parse(match[1] ?? '{}') as Record<string, unknown>,
-    )
-    expect(blocks.map((block) => block['@type'])).toEqual(['Event', 'Organization', 'WebSite', 'WebPage'])
-    expect(blocks[3]).toMatchObject({
-      isPartOf: { '@id': 'https://example.com/#website' },
-      publisher: { '@id': 'https://example.com/#organization' },
+    // The dev server picks the saved files up a moment later, so poll instead of fetching once.
+    const emitted = async (route: string) => {
+      const html = await (await fetch(`http://127.0.0.1:${port}${route}`)).text()
+      return [...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(
+        (match) => JSON.parse(match[1] ?? '{}') as Record<string, unknown>,
+      )
+    }
+    const types = async (route: string) => (await emitted(route)).map((block) => block['@type'])
+
+    // A page without markup of its own gets the site blocks, and its generated WebPage points at them.
+    await expect.poll(() => types('/'), { timeout: 20_000, interval: 250 }).toEqual(['Event', 'Organization', 'WebSite', 'WebPage'])
+    expect((await emitted('/'))[3]).toMatchObject({
+      isPartOf: { '@id': `${siteUrl}/#website` },
+      publisher: { '@id': `${siteUrl}/#organization` },
     })
+    // About has its own JSON-LD from an earlier test. It replaces the generated WebPage and never the site's blocks.
+    expect(await types('/about')).toEqual(['Event', 'Organization', 'WebSite', 'Article'])
     expect(errors, logs).toEqual([])
     await page.close()
   }, 60_000)
