@@ -1,6 +1,6 @@
 {
   "name": "create-bearminion",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Create a BearMinion site: an Astro website you edit by clicking on it. No database, no server.",
   "license": "MIT",
   "author": "Jakub Lange",

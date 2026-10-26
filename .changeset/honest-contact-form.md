@@ -1,6 +1,0 @@
----
-'bearminion': minor
-'create-bearminion': minor
----
-
-The Contact form no longer says "Message sent." for a message that went nowhere. It posts with `fetch` to `/api/contact` and shows the states: sending, sent, an error from the handler, field errors under their fields, and no connection. A trap field and a 1.5 second minimum time drop what a script sends. While `src/forms/contact.ts` does not exist, `astro dev` and `astro build` print a warning (never an error), the section's settings in the editor show the same warning, and a visitor who sends the form gets an error. `bearminion` exports the types `FormSubmission` and `FormResult` for handlers you write yourself. `defineSection` takes a `form` option: the handler a section posts to, which the editor's sidebar reports on, and a new editor route `GET /forms` says whether its file exists. **Breaking for sites that set an endpoint:** the Contact section no longer has an `action` prop. Content version 3 drops `action` (and `format` and `turnstile`) from every Contact section, and the file is rewritten the next time it is saved. Copy a form service's address into a handler first: the Forms guide has complete files for Formspree and Web3Forms. New guide: Forms.
