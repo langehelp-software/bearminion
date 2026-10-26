@@ -22,6 +22,7 @@ export default defineConfig({
     content: 'src/content.ts',
     'rich-text': 'src/rich-text.ts',
     marks: 'src/marks.ts',
+    forms: 'src/forms/index.ts',
     // The overlay. `editor-client.ts` serves it to the dev server from `dist/ui/mount.js`.
     'ui/mount': 'src/ui/mount.tsx',
   },

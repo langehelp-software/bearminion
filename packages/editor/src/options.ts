@@ -5,6 +5,7 @@ import { asDirectory, resolveDir } from './security.js'
 import type { SiteDefinition } from './site.js'
 import { defaultTheme, type ThemeDefinition } from './theme.js'
 import { createFileStore, type ContentStore } from './store.js'
+import { resolveFormsConfig } from './forms-dev.js'
 
 export { API_PREFIX, DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR } from './model.js'
 export type { ContentModel, SectionRegistry } from './model.js'
@@ -23,6 +24,13 @@ export interface BearminionOptions extends ContentModel {
    * Default `/src/lib/render-preview.ts`. Preview never writes to disk.
    */
   previewModule?: string
+  /**
+   * The dev route for the forms in your site. A file `src/forms/contact.ts` that default-exports `defineForm(...)`
+   * answers at `/api/contact` during `astro dev`, as a dry run unless `BEARMINION_FORMS_LIVE=on`. `dir` is the folder
+   * (default `src/forms`) and `prefix` the path (default `/api`). `false` turns the route off, for a site whose
+   * Astro adapter serves the endpoint itself.
+   */
+  forms?: false | { dir?: string; prefix?: string }
   /**
    * Show Commit changes in the editor, which commits the changed content and uploads to the local git repository.
    * Off by default. It never pushes, and it does nothing outside a git work tree.
@@ -50,6 +58,8 @@ export interface EditorContext {
   migrator: ContentMigrator
   /** Commit changes is enabled. */
   git: boolean
+  /** The folder with the site's form handlers, or `null` when the `forms` option turns them off. */
+  formsDir?: string | null
 }
 
 export function resolveEditorContext(options: BearminionOptions | undefined, rootInput: string | URL): EditorContext {
@@ -75,5 +85,6 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
     store: options.store ?? createFileStore({ root, contentDir, uploadsDir, videosDir }),
     migrator: createMigrator(options),
     git: options?.git === true,
+    formsDir: resolveFormsConfig(options?.forms, root)?.dir ?? null,
   }
 }

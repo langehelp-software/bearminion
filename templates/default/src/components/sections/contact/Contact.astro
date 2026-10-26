@@ -17,6 +17,15 @@ const props = section.props
 const field = (path: string) => `sections.${index}.props.${path}`
 const reveal = section.motion ?? motion
 const formId = `contact-form-${section.id}`
+// The form always posts to /api/contact, where the site's own handler (src/forms/contact.ts) answers. The public
+// Turnstile site key comes from the environment at build time, so it never lives in the content files.
+const turnstileKey: string | undefined = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || undefined
+const formAttrs = {
+  'data-form-id': section.id,
+  'data-turnstile-key': turnstileKey,
+  action: '/api/contact',
+  method: 'post',
+}
 ---
 
 <SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
@@ -42,7 +51,7 @@ const formId = `contact-form-${section.id}`
           }
         </div>
         <div class="rounded-panel bg-surface p-6 ring-line @min-[700px]:p-8">
-          <form id={formId} class="grid gap-4 @min-[700px]:grid-cols-2" data-contact-form action={props.action} method="post" novalidate>
+          <form id={formId} class="grid gap-4 @min-[700px]:grid-cols-2" data-contact-form {...formAttrs} novalidate>
             <label class="flex flex-col gap-2 text-[0.8125rem]">
               Name
               <input class="bm-field" name="name" required autocomplete="name" />
@@ -67,12 +76,19 @@ const formId = `contact-form-${section.id}`
               Message
               <textarea class="bm-field h-32 py-3" name="message" required></textarea>
             </label>
+<div class="absolute -left-[9999px] size-px overflow-hidden" aria-hidden="true">
+              <label>
+                Leave this field empty
+                <input name="_gotcha" tabindex="-1" autocomplete="off" />
+              </label>
+            </div>
+            {turnstileKey && <div class="@min-[700px]:col-span-2" data-turnstile-widget></div>}
             <div class="@min-[700px]:col-span-2">
               <Button type="submit">Send message</Button>
               {props.note && <Typography as="p" size="small" color="muted" class="mt-3" data-field={field('note')} markdown={props.note} />}
             </div>
           </form>
-          <div data-contact-success hidden>
+          <div data-contact-success tabindex="-1" hidden>
             <p class="text-[1.5rem] font-semibold tracking-[-0.03em]">Message sent.</p>
             {props.thanks && <Typography as="p" size="body" color="muted" class="mt-3" data-field={field('thanks')} markdown={props.thanks} />}
             <Button type="button" variant="secondary" class="mt-6" data-contact-reset>
@@ -88,7 +104,7 @@ const formId = `contact-form-${section.id}`
       <div class="section-container" data-contact>
         <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} intro={props.body} introField="body" align="center" field={field} class="mx-auto max-w-2xl" />
         <div class="mx-auto mt-10 max-w-[42rem] rounded-panel bg-surface p-6 ring-line @min-[700px]:p-8">
-          <form id={formId} class="grid gap-4 @min-[700px]:grid-cols-2" data-contact-form action={props.action} method="post" novalidate>
+          <form id={formId} class="grid gap-4 @min-[700px]:grid-cols-2" data-contact-form {...formAttrs} novalidate>
             <label class="flex flex-col gap-2 text-[0.8125rem]">
               Name
               <input class="bm-field" name="name" required autocomplete="name" />
@@ -116,12 +132,19 @@ const formId = `contact-form-${section.id}`
               Message
               <textarea class="bm-field h-32 py-3" name="message" required></textarea>
             </label>
+<div class="absolute -left-[9999px] size-px overflow-hidden" aria-hidden="true">
+              <label>
+                Leave this field empty
+                <input name="_gotcha" tabindex="-1" autocomplete="off" />
+              </label>
+            </div>
+            {turnstileKey && <div class="@min-[700px]:col-span-2" data-turnstile-widget></div>}
             <div class="@min-[700px]:col-span-2">
               <Button type="submit" class="w-full">Send message</Button>
               {props.note && <Typography as="p" size="small" color="muted" class="mt-3 text-center" data-field={field('note')} markdown={props.note} />}
             </div>
           </form>
-          <div data-contact-success hidden>
+          <div data-contact-success tabindex="-1" hidden>
             <p class="text-[1.5rem] font-semibold tracking-[-0.03em]">Message sent.</p>
             {props.thanks && <Typography as="p" size="body" color="muted" class="mt-3" data-field={field('thanks')} markdown={props.thanks} />}
             <Button type="button" variant="secondary" class="mt-6" data-contact-reset>
@@ -142,7 +165,7 @@ const formId = `contact-form-${section.id}`
             </h2>
           )
         }
-        <form id={formId} class="mt-10 grid gap-8 @min-[760px]:grid-cols-2" data-contact-form action={props.action} method="post" novalidate>
+        <form id={formId} class="mt-10 grid gap-8 @min-[760px]:grid-cols-2" data-contact-form {...formAttrs} novalidate>
           <label class="flex flex-col gap-2">
             <span class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">Name</span>
             <input class="bm-underline" name="name" required autocomplete="name" />
@@ -155,6 +178,13 @@ const formId = `contact-form-${section.id}`
             <span class="font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase">Message</span>
             <textarea class="bm-underline" name="message" required rows="3"></textarea>
           </label>
+          <div class="absolute -left-[9999px] size-px overflow-hidden" aria-hidden="true">
+            <label>
+              Leave this field empty
+              <input name="_gotcha" tabindex="-1" autocomplete="off" />
+            </label>
+          </div>
+          {turnstileKey && <div class="@min-[760px]:col-span-2" data-turnstile-widget></div>}
           <div class="flex flex-wrap items-end justify-between gap-6 @min-[760px]:col-span-2">
             {
               props.details.length > 0 && (
@@ -171,7 +201,7 @@ const formId = `contact-form-${section.id}`
             <Button type="submit">Send</Button>
           </div>
         </form>
-        <div data-contact-success hidden>
+        <div data-contact-success tabindex="-1" hidden>
           <p class="text-[clamp(2rem,1rem+3cqi,3.5rem)] leading-[0.95] font-semibold tracking-[-0.04em]">Message sent.</p>
           {props.thanks && <Typography as="p" size="body" color="muted" class="mt-4" data-field={field('thanks')} markdown={props.thanks} />}
           <Button type="button" variant="secondary" class="mt-6" data-contact-reset>
@@ -184,44 +214,7 @@ const formId = `contact-form-${section.id}`
 </SectionShell>
 
 <script>
-  function bindContact() {
-  document.querySelectorAll('[data-contact]').forEach((root) => {
-    if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') return
-    root.dataset.bound = 'true'
-    const form = root.querySelector('[data-contact-form]')
-    const success = root.querySelector('[data-contact-success]')
-    const reset = root.querySelector('[data-contact-reset]')
-    const topicInput = root.querySelector('[data-topic-input]')
-    if (!(form instanceof HTMLFormElement) || !(success instanceof HTMLElement)) return
-
-    root.querySelectorAll('[data-topic]').forEach((chip) => {
-      chip.addEventListener('click', () => {
-        root.querySelectorAll('[data-topic]').forEach((item) => {
-          if (item instanceof HTMLButtonElement) item.setAttribute('aria-pressed', 'false')
-        })
-        if (chip instanceof HTMLButtonElement) chip.setAttribute('aria-pressed', 'true')
-        if (topicInput instanceof HTMLInputElement) topicInput.value = chip.textContent?.trim() ?? ''
-      })
-    })
-
-    form.addEventListener('submit', (event) => {
-      if (!form.reportValidity()) {
-        event.preventDefault()
-        return
-      }
-      if (form.getAttribute('action')) return
-      event.preventDefault()
-      form.hidden = true
-      success.hidden = false
-    })
-
-    reset?.addEventListener('click', () => {
-      form.reset()
-      form.hidden = false
-      success.hidden = true
-    })
-  })
-  }
-  bindContact()
-  document.addEventListener('bearminion:preview', bindContact)
+  import { bindContacts } from './form'
+  bindContacts()
+  document.addEventListener('bearminion:preview', bindContacts)
 </script>

@@ -30,6 +30,8 @@ export interface Catalog {
   fieldImages?: Record<string, readonly string[]>
   /** Props hidden while the section's options make them unused, from each section's `showWhen`. */
   showWhen?: Record<string, ShowWhen>
+  /** The form handler each section type posts to (`contact` is `src/forms/contact.ts`), from each section's `form`. */
+  sectionForms?: Record<string, string>
   sectionLabels: Record<string, string>
   /** One line per type for the Add section picker, from each section's definition. */
   sectionDescriptions?: Record<string, string>

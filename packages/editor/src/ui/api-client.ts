@@ -85,6 +85,8 @@ export function uploadVideo(file: File) {
 }
 
 export const getGit = () => request<GitInfo>('/git')
+/** Whether the form handlers the sections post to exist in `src/forms`. */
+export const getForms = () => request<{ enabled: boolean; handlers: Record<string, { file: string | null }> }>('/forms')
 export const commit = (body: CommitRequest) => request<CommitResult>('/git/commit', sendJson('POST', body))
 
 /** Saved versions of the site (`scope` site) or of one page. */

@@ -1,5 +1,8 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import type { AstroIntegration } from 'astro'
 import { editorClientPlugin } from './editor-client.js'
+import { createFormsMiddleware, formsAreLive, resolveFormsConfig } from './forms-dev.js'
 import { createEditorMiddleware } from './middleware.js'
 import { API_PREFIX, resolveEditorContext, type BearminionOptions } from './options.js'
 import { PreviewUnavailableError, loadThemePreview, type SitePreviewHtml } from './preview.js'
@@ -39,10 +42,23 @@ export function bearminion(options: BearminionOptions): BearminionIntegration {
         })
         injectScript('page', 'import "virtual:bearminion-editor"')
       },
-      'astro:server:setup'({ server }) {
+      'astro:server:setup'({ server, logger }) {
         const context = resolveEditorContext(options, server.config.root)
         const previewModule = options.previewModule ?? '/src/lib/render-preview.ts'
         const reloads = dropEarlyReloadAfterSave(server)
+        server.middlewares.use(announceVideoChanges(server, context.videosDir))
+        const forms = resolveFormsConfig(options.forms, context.root)
+        if (forms) {
+          server.middlewares.use(
+            createFormsMiddleware({
+              ...forms,
+              root: context.root,
+              live: formsAreLive(context.root),
+              load: (file) => loadModule(server.environments.ssr, file),
+              log: { info: (message) => logger.info(message), error: (message) => logger.error(message) },
+            }),
+          )
+        }
         server.middlewares.use((req, _res, next) => {
           if (req.method === 'POST' && (req.url ?? '').split('?')[0]?.replace(/\/$/, '') === `${API_PREFIX}/save`) reloads.saving()
           next()
@@ -56,6 +72,48 @@ export function bearminion(options: BearminionOptions): BearminionIntegration {
       },
     },
   }
+}
+
+/**
+ * The videos folder is ignored by the file watcher (see above), but Vite learns which files `public/` holds from that
+ * watcher, and answers 404 for any other path. So a video uploaded in the editor would not play in the dev site until
+ * the server restarted. After an upload or delete, tell Vite about exactly the files that appeared or went away.
+ * The event only refreshes Vite's list of public files; it does not reload the page, so the draft stays.
+ */
+export function announceVideoChanges(server: { watcher: { emit: (event: 'add' | 'unlink', file: string) => unknown } }, videosDir: string) {
+  const list = (): Set<string> => {
+    try {
+      return new Set(fs.readdirSync(videosDir))
+    } catch {
+      return new Set()
+    }
+  }
+  return (
+    req: { method?: string; url?: string },
+    res: { once: (event: 'finish', listener: () => void) => unknown },
+    next: () => void,
+  ): void => {
+    const route = (req.url ?? '').split('?')[0]?.replace(/\/$/, '') ?? ''
+    if (
+      (req.method === 'POST' || req.method === 'DELETE') &&
+      (route === `${API_PREFIX}/videos` || route.startsWith(`${API_PREFIX}/videos/`))
+    ) {
+      const before = list()
+      res.once('finish', () => {
+        const after = list()
+        for (const name of after) if (!before.has(name)) server.watcher.emit('add', path.join(videosDir, name))
+        for (const name of before) if (!after.has(name)) server.watcher.emit('unlink', path.join(videosDir, name))
+      })
+    }
+    next()
+  }
+}
+
+/** Loads a module through the dev server's SSR runner, so TypeScript works and an edit is picked up on the next call. */
+async function loadModule(environment: object, file: string): Promise<unknown> {
+  const runner = (environment as { runner?: { import?: (id: string) => Promise<unknown> } }).runner
+  if (!runner?.import) throw new Error('The SSR dev environment cannot load a form.')
+  return runner.import(file)
 }
 
 async function renderPreview(environment: object, previewModule: string, page: unknown, motion: boolean): Promise<string> {

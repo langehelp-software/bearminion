@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bearminion } from '../src/integration.js'
+import { announceVideoChanges, bearminion } from '../src/integration.js'
 import { createEditorMiddleware } from '../src/middleware.js'
 import { resolveEditorContext } from '../src/options.js'
 import { dropEarlyReloadAfterSave } from '../src/reload.js'
@@ -69,9 +69,82 @@ describe('dev integration hooks', () => {
         middlewares: { use: (handler: unknown) => used.push(handler) },
       },
     } as never)
-    // The save marker for the reload filter, then the editor API.
-    expect(used).toHaveLength(2)
+    // The save marker for the reload filter, the video watcher notice, the forms route, then the editor API.
+    expect(used).toHaveLength(4)
+
+    // `forms: false` leaves the forms route out.
+    const withoutForms: unknown[] = []
+    await bearminion({ contentDir: 'content', uploadsDir: 'src/assets/uploads', forms: false, ...contentModel }).hooks[
+      'astro:server:setup'
+    ]?.({
+      server: {
+        config: { root },
+        ws: { send: () => {} },
+        middlewares: { use: (handler: unknown) => withoutForms.push(handler) },
+      },
+    } as never)
+    expect(withoutForms).toHaveLength(3)
     fs.rmSync(root, { recursive: true, force: true })
+  })
+})
+
+describe('uploaded videos', () => {
+  it('tells Vite about a video the editor adds or removes, because the watcher ignores that folder', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bearminion-videos-'))
+    const watcher = new EventEmitter()
+    const seen: Array<[string, string]> = []
+    for (const event of ['add', 'unlink']) watcher.on(event, (file: string) => seen.push([event, path.basename(file)]))
+    const middleware = announceVideoChanges({ watcher } as never, dir)
+    const request = (method: string, url: string) => {
+      const response = new EventEmitter()
+      let passed = false
+      middleware({ method, url }, response as never, () => {
+        passed = true
+      })
+      return { finish: () => response.emit('finish'), passed: () => passed }
+    }
+
+    fs.writeFileSync(path.join(dir, 'old.mp4'), 'x')
+    const upload = request('POST', '/__bearminion/api/videos')
+    fs.writeFileSync(path.join(dir, 'new.mp4'), 'x')
+    expect(upload.passed()).toBe(true)
+    expect(seen).toEqual([])
+    upload.finish()
+    expect(seen).toEqual([['add', 'new.mp4']])
+
+    const removal = request('DELETE', '/__bearminion/api/videos/old.mp4')
+    fs.rmSync(path.join(dir, 'old.mp4'))
+    removal.finish()
+    expect(seen).toEqual([
+      ['add', 'new.mp4'],
+      ['unlink', 'old.mp4'],
+    ])
+
+    // Other requests, other methods, and a list of videos change nothing.
+    seen.length = 0
+    for (const [method, url] of [
+      ['GET', '/__bearminion/api/videos'],
+      ['POST', '/__bearminion/api/save'],
+      ['POST', '/videos'],
+    ] as const) {
+      const other = request(method, url)
+      fs.writeFileSync(path.join(dir, `${method}.mp4`), 'x')
+      other.finish()
+      expect(other.passed()).toBe(true)
+    }
+    expect(seen).toEqual([])
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('does nothing when the folder does not exist yet', () => {
+    const watcher = new EventEmitter()
+    const seen: string[] = []
+    watcher.on('add', (file: string) => seen.push(file))
+    const dir = path.join(os.tmpdir(), `bearminion-missing-${Date.now()}`)
+    const response = new EventEmitter()
+    announceVideoChanges({ watcher } as never, dir)({ method: 'POST', url: '/__bearminion/api/videos' }, response as never, () => undefined)
+    response.emit('finish')
+    expect(seen).toEqual([])
   })
 })
 

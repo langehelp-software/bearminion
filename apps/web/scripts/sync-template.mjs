@@ -14,8 +14,10 @@ const template = path.resolve(site, '../../templates/default')
 
 /** Template files and folders this site runs as they are. Everything else here belongs to the site. */
 const SYNCED = ['astro.config.ts', 'tsconfig.json', 'src']
-/** Never copied: the site's own images, and Storybook, which this site does not use. */
-const SKIPPED = ['src/assets', 'src/stories']
+/** Never copied: the site's own images and form handlers, and Storybook, which this site does not use. */
+const SKIPPED = ['src/assets', 'src/forms', 'src/stories']
+/** Folders under `src/` that belong to this site: a sync leaves them alone. */
+const SITE_OWNED = ['assets', 'forms']
 const STORYBOOK = ['storybook', '@storybook/builder-vite', '@storybook-astro/framework']
 /**
  * This site's dependency on the template itself. Nothing imports it: it tells Vercel's "Skip deployment" (and pnpm)
@@ -73,7 +75,7 @@ function clean() {
     }
     if (!existsSync(target)) continue
     for (const child of readdirSync(target)) {
-      if (child !== 'assets') rmSync(path.join(target, child), { recursive: true, force: true })
+      if (!SITE_OWNED.includes(child)) rmSync(path.join(target, child), { recursive: true, force: true })
     }
   }
 }

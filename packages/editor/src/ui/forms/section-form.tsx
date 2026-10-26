@@ -8,6 +8,7 @@ import { text } from '../shared.js'
 import type { Catalog } from '../types.js'
 import { ChoiceField } from './choice-field.js'
 import { Field, OptionControl, MissingField, ValueEditor } from './fields.js'
+import { FormHandlerNote } from './form-handler.js'
 import { Segmented } from './segmented.js'
 
 const LAYOUT_OPTIONS = ['variant', 'tone', 'motion']
@@ -241,6 +242,7 @@ export function SectionForm({
           })}
         </FieldsContext.Provider>
       </OptionalContext.Provider>
+      {catalog.sectionForms?.[section.type] && <FormHandlerNote name={catalog.sectionForms[section.type] as string} />}
 
       <div class="bm-actions-split">
         <button type="button" onClick={onDuplicate}>

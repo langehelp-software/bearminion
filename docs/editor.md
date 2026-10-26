@@ -149,6 +149,8 @@ Choices with up to four values are segmented controls, longer lists are selects,
 
 **Links.** Link fields open the same [link control](#links-and-targets) as the Navigation tab.
 
+**Form handler.** A Contact section has no endpoint or key fields. Its settings end with a note about the code behind the form: a warning while `src/forms/contact.ts` does not exist, and once it does, a line saying the form posts to `/api/contact`, is handled by your own code, and has to be tested by hand because BearMinion cannot check it. The note reads the folder each time the section opens, so a new file shows up without a restart. See [Forms](forms.md).
+
 Duplicate section and Delete section sit at the bottom and ask for confirmation.
 
 ### Navigation

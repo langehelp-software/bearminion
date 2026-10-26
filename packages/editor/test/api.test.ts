@@ -949,3 +949,51 @@ describe('missing images', () => {
     expect((await call(context, 'PUT', `${API_PREFIX}/pages/index`, { json: page })).status).toBe(200)
   })
 })
+
+describe('the forms of the site', () => {
+  const contactLike = defineSection({
+    type: 'inquiry',
+    label: 'Inquiry',
+    description: 'A form.',
+    schema: z.object({ body: z.string().min(1) }).strict(),
+    defaults: { body: 'Write to us.' },
+    variants: ['plain'],
+    defaultVariant: 'plain',
+    optional: { props: [] },
+    wireframe: [[8, 8, 40, 8, 'title']],
+    form: 'contact',
+  })
+
+  it('names the handler of a section in the catalog', async () => {
+    const context = withRegistry(seed(), { inquiry: contactLike })
+    const schema = await call(context, 'GET', `${API_PREFIX}/schema`)
+    const catalog = (await schema.json()) as { sectionForms: Record<string, string> }
+    expect(catalog.sectionForms).toMatchObject({ inquiry: 'contact' })
+  })
+
+  it('says whether the handler file exists right now, so a new file shows up without a restart', async () => {
+    const context = withRegistry(seed(), { inquiry: contactLike })
+    const formsDir = path.join(context.root, 'src', 'forms')
+    const withForms = { ...context, formsDir }
+
+    const before = await call(withForms, 'GET', `${API_PREFIX}/forms`)
+    expect(before.status).toBe(200)
+    expect(await before.json()).toEqual({ enabled: true, handlers: { contact: { file: null } } })
+
+    fs.mkdirSync(formsDir, { recursive: true })
+    fs.writeFileSync(path.join(formsDir, 'contact.ts'), 'export default {}')
+    const after = await call(withForms, 'GET', `${API_PREFIX}/forms`)
+    expect(await after.json()).toEqual({ enabled: true, handlers: { contact: { file: 'src/forms/contact.ts' } } })
+  })
+
+  it('reports forms as off when the site turned them off', async () => {
+    const context = withRegistry(seed(), { inquiry: contactLike })
+    const off = await call({ ...context, formsDir: null }, 'GET', `${API_PREFIX}/forms`)
+    expect(await off.json()).toEqual({ enabled: false, handlers: expect.objectContaining({ contact: { file: null } }) })
+  })
+
+  it('answers GET only', async () => {
+    const response = await call(withRegistry(seed()), 'POST', `${API_PREFIX}/forms`, { json: {} })
+    expect(response.status).toBe(405)
+  })
+})

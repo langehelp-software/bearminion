@@ -20,8 +20,6 @@ export const contactSchema = withEmphasis({
   topics: z.array(textSchema),
   note: richTextSchema.optional(),
   thanks: richTextSchema.optional(),
-  /** Form endpoint. The starter still shows a success state and does not post anywhere by default. */
-  action: z.string().min(1).optional(),
 })
 
 export type ContactDetail = z.infer<typeof contactDetailSchema>
@@ -44,6 +42,8 @@ export const contact = defineSection({
   },
   variants: contactVariants,
   defaultVariant: 'split',
+  // The form posts to /api/contact: the handler is `src/forms/contact.ts`, written in code, never configured here.
+  form: 'contact',
   optional: { props: ['eyebrow', 'heading', 'body', 'note', 'thanks'] },
   counts: { details: { recommended: 3 }, topics: { recommended: 3 } },
   wireframe: contactWireframe,

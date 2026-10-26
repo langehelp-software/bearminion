@@ -3,6 +3,7 @@ import { ContentReadError, ContentValidationError, type ContentIssue } from './e
 import { imageTooLarge, kindFromMime, sniffImage } from './images.js'
 import { sniffVideo, videoBodyLimit, videoKindFromMime } from './videos.js'
 import { API_PREFIX, type EditorContext, type SectionRegistry } from './options.js'
+import { formFile } from './forms-dev.js'
 import type { CountRule, Option } from './section-options.js'
 import type { OptionalContent } from './section-optional.js'
 import type { FieldChoices, FieldIcons, ShowWhen } from './field-rules.js'
@@ -86,6 +87,11 @@ export async function handleEditorRequest(request: Request, context: EditorConte
     return methodNotAllowed(['GET', 'POST'])
   }
 
+  if (parts.length === 1 && parts[0] === 'forms') {
+    if (method === 'GET') return getForms(context)
+    return methodNotAllowed(['GET'])
+  }
+
   if (parts.length === 1 && parts[0] === 'git') {
     if (method === 'GET') return getGit(context)
     return methodNotAllowed(['GET'])
@@ -164,6 +170,26 @@ export async function handleEditorRequest(request: Request, context: EditorConte
   return problem(404, 'not_found', 'Unknown editor API route.')
 }
 
+/**
+ * Which form handlers the sections post to, and whether their files exist right now. Read on every call, so a handler
+ * created while `astro dev` runs shows up at once.
+ */
+async function getForms(context: EditorContext): Promise<Response> {
+  const handlers: Record<string, { file: string | null }> = {}
+  for (const definition of Object.values(context.sections)) {
+    const name = definition.form
+    if (!name || handlers[name]) continue
+    const file = context.formsDir ? formFile(context.formsDir, name) : null
+    handlers[name] = { file: file ? relativeTo(context.root, file) : null }
+  }
+  return json(200, { enabled: context.formsDir != null, handlers })
+}
+
+function relativeTo(root: string, file: string): string {
+  const prefix = root.endsWith('/') || root.endsWith('\\') ? root : `${root}/`
+  return file.startsWith(prefix) ? file.slice(prefix.length).replaceAll('\\', '/') : file
+}
+
 async function getSchema(context: EditorContext): Promise<Response> {
   const sectionDefaults: Record<string, unknown> = {}
   const sectionLabels: Record<string, string> = {}
@@ -176,8 +202,10 @@ async function getSchema(context: EditorContext): Promise<Response> {
   const fieldIcons: Record<string, FieldIcons> = {}
   const showWhen: Record<string, ShowWhen> = {}
   const fieldImages: Record<string, string[]> = {}
+  const sectionForms: Record<string, string> = {}
   for (const definition of Object.values(context.sections)) {
     const type = definition.type
+    if (definition.form) sectionForms[type] = definition.form
     sectionDefaults[type] = definition.defaults
     sectionLabels[type] = definition.label
     sectionDescriptions[type] = definition.description
@@ -202,6 +230,7 @@ async function getSchema(context: EditorContext): Promise<Response> {
     fieldIcons,
     fieldImages,
     showWhen,
+    sectionForms,
     sectionDefaults,
     sectionLabels,
     sectionDescriptions,

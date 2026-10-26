@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "sections": [
     {
       "anchor": "hero",
@@ -7,7 +7,7 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.6",
+          "tag": "BearMinion 1.7",
           "text": "Available now"
         },
         "button": false,
