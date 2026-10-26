@@ -160,6 +160,8 @@ describe('editor API on a custom store', () => {
       root,
       contentDir: missing,
       uploadsDir: path.join(missing, 'uploads'),
+      videosDir: path.join(missing, 'videos'),
+      maxVideoBytes: 1,
       sections: sectionRegistry,
       site: siteDefinition,
       store,

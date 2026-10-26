@@ -1,63 +1,118 @@
-import { baseKeymap, chainCommands, liftEmptyBlock, toggleMark } from 'prosemirror-commands'
+import { baseKeymap, chainCommands, liftEmptyBlock, setBlockType, splitBlockAs, toggleMark } from 'prosemirror-commands'
 import { history, redo, undo } from 'prosemirror-history'
 import { keymap } from 'prosemirror-keymap'
-import { DOMParser as ModelParser, DOMSerializer, type Node as ModelNode, type NodeType, Schema, type Slice } from 'prosemirror-model'
+import {
+  DOMParser as ModelParser,
+  DOMSerializer,
+  type Node as ModelNode,
+  type NodeSpec,
+  type NodeType,
+  Schema,
+  type Slice,
+} from 'prosemirror-model'
 import { splitListItem, wrapInList } from 'prosemirror-schema-list'
 import { type Command, EditorState, TextSelection } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
-import { isSafeHref, markdownFromHtml, renderRichText, sanitizeRichHtml, stripPlainRich } from '../rich-text.js'
+import { isSafeHref, markdownFromHtml, type RichOptions, renderRichText, sanitizeRichHtml, stripPlainRich } from '../rich-text.js'
 
-/**
- * The rich-text subset as a ProseMirror schema: paragraphs, line breaks, flat bulleted and numbered lists, bold,
- * italic, inline code and links. Nothing else can exist in the document, so nothing else can be pasted or typed into it.
- * Storage stays the markdown subset of `rich-text.ts`; this module only converts at the edges.
- */
-export const richSchema = new Schema({
-  nodes: {
-    doc: { content: '(paragraph | bullet_list | ordered_list)+' },
+/** A schema type that every rich schema defines, narrowed from `| undefined`. */
+function need<T>(value: T | undefined): T {
+  if (value === undefined) throw new Error('Missing rich-text schema type')
+  return value
+}
+
+/** A heading the field allows: h2 or h3. The page title is the h1, and the markdown subset stops at three. */
+const headingNode: NodeSpec = {
+  attrs: { level: { default: 2 } },
+  content: 'inline*',
+  group: 'block',
+  defining: true,
+  parseDOM: [
+    { tag: 'h1', attrs: { level: 2 } },
+    { tag: 'h2', attrs: { level: 2 } },
+    { tag: 'h3', attrs: { level: 3 } },
+    { tag: 'h4', attrs: { level: 3 } },
+    { tag: 'h5', attrs: { level: 3 } },
+    { tag: 'h6', attrs: { level: 3 } },
+  ],
+  toDOM: (node) => [`h${node.attrs.level}`, 0],
+}
+
+function createSchema(headings: boolean): Schema {
+  const nodes: Record<string, NodeSpec> = {
+    doc: { content: headings ? '(paragraph | heading | bullet_list | ordered_list)+' : '(paragraph | bullet_list | ordered_list)+' },
     paragraph: { content: 'inline*', group: 'block', parseDOM: [{ tag: 'p' }], toDOM: () => ['p', 0] },
+    ...(headings ? { heading: headingNode } : {}),
     bullet_list: { content: 'list_item+', group: 'block', parseDOM: [{ tag: 'ul' }], toDOM: () => ['ul', 0] },
     ordered_list: { content: 'list_item+', group: 'block', parseDOM: [{ tag: 'ol' }], toDOM: () => ['ol', 0] },
     // One paragraph per item: the markdown subset has no nested lists.
     list_item: { content: 'paragraph', defining: true, parseDOM: [{ tag: 'li' }], toDOM: () => ['li', 0] },
     hard_break: { inline: true, group: 'inline', selectable: false, parseDOM: [{ tag: 'br' }], toDOM: () => ['br'] },
     text: { group: 'inline' },
-  },
-  marks: {
-    strong: { parseDOM: [{ tag: 'strong' }, { tag: 'b' }], toDOM: () => ['strong', 0] },
-    em: { parseDOM: [{ tag: 'em' }, { tag: 'i' }], toDOM: () => ['em', 0] },
-    // Markdown code is literal, so it carries no other mark, and typing at its end leaves it.
-    code: { excludes: '_', inclusive: false, parseDOM: [{ tag: 'code' }], toDOM: () => ['code', 0] },
-    link: {
-      // `newTab` mirrors `data-new-tab` in the markdown flags: null leaves it to the default (external links open a new tab).
-      attrs: { href: {}, newTab: { default: null } },
-      inclusive: false,
-      parseDOM: [
-        {
-          tag: 'a[href]',
-          getAttrs: (dom) => {
-            const href = dom.getAttribute('href') ?? ''
-            if (!isSafeHref(href)) return false
-            const tab = dom.getAttribute('data-new-tab')
-            return { href, newTab: tab === 'true' ? 'new' : tab === 'false' ? 'same' : null }
+  }
+  return new Schema({
+    nodes,
+    marks: {
+      strong: { parseDOM: [{ tag: 'strong' }, { tag: 'b' }], toDOM: () => ['strong', 0] },
+      em: { parseDOM: [{ tag: 'em' }, { tag: 'i' }], toDOM: () => ['em', 0] },
+      // Markdown code is literal, so it carries no other mark, and typing at its end leaves it.
+      code: { excludes: '_', inclusive: false, parseDOM: [{ tag: 'code' }], toDOM: () => ['code', 0] },
+      link: {
+        // `newTab` mirrors `data-new-tab` in the markdown flags: null leaves it to the default (external links open a new tab).
+        attrs: { href: {}, newTab: { default: null } },
+        inclusive: false,
+        parseDOM: [
+          {
+            tag: 'a[href]',
+            getAttrs: (dom) => {
+              const href = dom.getAttribute('href') ?? ''
+              if (!isSafeHref(href)) return false
+              const tab = dom.getAttribute('data-new-tab')
+              return { href, newTab: tab === 'true' ? 'new' : tab === 'false' ? 'same' : null }
+            },
           },
+        ],
+        toDOM: (mark) => {
+          const tab = mark.attrs.newTab
+          const attrs: Record<string, string> = { href: String(mark.attrs.href) }
+          if (tab === 'new') attrs['data-new-tab'] = 'true'
+          else if (tab === 'same') attrs['data-new-tab'] = 'false'
+          return ['a', attrs, 0]
         },
-      ],
-      toDOM: (mark) => {
-        const tab = mark.attrs.newTab
-        const attrs: Record<string, string> = { href: String(mark.attrs.href) }
-        if (tab === 'new') attrs['data-new-tab'] = 'true'
-        else if (tab === 'same') attrs['data-new-tab'] = 'false'
-        return ['a', attrs, 0]
       },
     },
-  },
-})
+  })
+}
 
-const { paragraph, bullet_list, ordered_list, list_item, hard_break } = richSchema.nodes
-const { strong, em, code, link } = richSchema.marks
-const parser = ModelParser.fromSchema(richSchema)
-const serializer = DOMSerializer.fromSchema(richSchema)
+/**
+ * The rich-text subset as a ProseMirror schema: paragraphs, line breaks, flat bulleted and numbered lists, bold,
+ * italic, inline code and links. Nothing else can exist in the document, so nothing else can be pasted or typed into it.
+ * Storage stays the markdown subset of `rich-text.ts`; this module only converts at the edges.
+ */
+export const richSchema = createSchema(false)
+
+/** The same, plus h2 and h3, for the fields that ask for headings (`data-rich-headings` on the field). */
+export const headingRichSchema = createSchema(true)
+
+interface Kit {
+  schema: Schema
+  parser: ModelParser
+  serializer: DOMSerializer
+  options: RichOptions
+}
+
+function kitOf(headings: boolean): Kit {
+  const schema = headings ? headingRichSchema : richSchema
+  return { schema, parser: ModelParser.fromSchema(schema), serializer: DOMSerializer.fromSchema(schema), options: { headings } }
+}
+
+const plainKit = kitOf(false)
+const headingKit = kitOf(true)
+
+/** The kit a document or a state belongs to. */
+function kitFor(schema: Schema): Kit {
+  return schema === headingRichSchema ? headingKit : plainKit
+}
 
 function container(html: string): HTMLElement {
   const node = document.createElement('div')
@@ -67,19 +122,21 @@ function container(html: string): HTMLElement {
 }
 
 /** Markdown → document, through the same renderer the page uses, so what you edit is what the page shows. */
-export function docFromMarkdown(markdown: string): ModelNode {
-  return parser.parse(container(renderRichText(markdown)))
+export function docFromMarkdown(markdown: string, headings = false): ModelNode {
+  const kit = headings ? headingKit : plainKit
+  return kit.parser.parse(container(renderRichText(markdown, kit.options)))
 }
 
 /** Document → markdown, through the same serializer the draft has always used. */
 export function markdownFromDoc(doc: ModelNode): string {
+  const kit = kitFor(doc.type.schema)
   const holder = document.createElement('div')
-  holder.append(serializer.serializeFragment(doc.content))
-  return markdownFromHtml(holder.innerHTML)
+  holder.append(kit.serializer.serializeFragment(doc.content))
+  return markdownFromHtml(holder.innerHTML, kit.options)
 }
 
-function sliceFromMarkdown(markdown: string): Slice {
-  return parser.parseSlice(container(renderRichText(markdown)))
+function sliceFromMarkdown(markdown: string, kit: Kit): Slice {
+  return kit.parser.parseSlice(container(renderRichText(markdown, kit.options)))
 }
 
 /** Document position of the `offset`-th character of the text; breaks and block edges count for nothing. */
@@ -102,8 +159,10 @@ export function posAtTextOffset(doc: ModelNode, offset: number): number {
   return found >= 0 ? found : end
 }
 
+/** A line break. A heading is one line of markdown, so Shift-Enter does nothing there. */
 const insertLineBreak: Command = (state, dispatch) => {
-  dispatch?.(state.tr.replaceSelectionWith(hard_break.create()).scrollIntoView())
+  if (state.selection.$from.parent.type.name === 'heading') return true
+  dispatch?.(state.tr.replaceSelectionWith(need(state.schema.nodes.hard_break).create()).scrollIntoView())
   return true
 }
 
@@ -113,6 +172,8 @@ const insertLineBreak: Command = (state, dispatch) => {
  */
 function wrapEachInList(kind: NodeType): Command {
   return (state, dispatch) => {
+    const { paragraph, list_item } = state.schema.nodes
+    if (!paragraph || !list_item) return false
     const range = state.selection.$from.blockRange(state.selection.$to)
     if (!range) return false
     const paragraphs: ModelNode[] = []
@@ -143,6 +204,7 @@ interface ListAt {
 
 /** The lists the selection touches (lists never nest). Works for a caret, a range and select-all alike. */
 function listsIn(state: EditorState): ListAt[] {
+  const { bullet_list, ordered_list } = state.schema.nodes
   const { from, to } = state.selection
   const found: ListAt[] = []
   state.doc.nodesBetween(from, to, (node, pos) => {
@@ -190,8 +252,10 @@ function unwrapSelected(lists: ListAt[], from: number, to: number): Command {
 }
 
 /** Toggle a list: unwrap the same kind, convert the other kind, otherwise wrap. */
-function toggleList(kind: NodeType): Command {
+function toggleList(name: 'bullet_list' | 'ordered_list'): Command {
   return (state, dispatch) => {
+    const kind = state.schema.nodes[name]
+    if (!kind) return false
     const lists = listsIn(state)
     if (lists.length === 0) return wrapInList(kind)(state, dispatch) || wrapEachInList(kind)(state, dispatch)
     if (lists.every((list) => list.node.type === kind))
@@ -209,34 +273,58 @@ function toggleList(kind: NodeType): Command {
 function setLink(href: string): Command {
   return (state, dispatch) => {
     const { from, to, empty } = state.selection
-    if (empty || !isSafeHref(href)) return false
+    const link = state.schema.marks.link
+    if (empty || !link || !isSafeHref(href)) return false
     dispatch?.(state.tr.addMark(from, to, link.create({ href })))
     return true
   }
 }
 
-export type RichCommand = 'bold' | 'italic' | 'code' | 'bulletList' | 'orderedList' | 'link'
-
-/** The editing command behind a toolbar button. `url` is for `link`. */
-export function commandFor(command: RichCommand, url = ''): Command {
-  switch (command) {
-    case 'bold':
-      return toggleMark(strong)
-    case 'italic':
-      return toggleMark(em)
-    case 'code':
-      return toggleMark(code)
-    case 'bulletList':
-      return toggleList(bullet_list)
-    case 'orderedList':
-      return toggleList(ordered_list)
-    case 'link':
-      return setLink(url)
+/** Make the selected block a heading of this level, or a paragraph again when it already is one. */
+function toggleHeading(level: 2 | 3): Command {
+  return (state, dispatch) => {
+    const { heading, paragraph } = state.schema.nodes
+    if (!heading || !paragraph) return false
+    const parent = state.selection.$from.parent
+    const same = parent.type === heading && parent.attrs.level === level
+    return (same ? setBlockType(paragraph) : setBlockType(heading, { level }))(state, dispatch)
   }
 }
 
+export type RichCommand = 'bold' | 'italic' | 'code' | 'bulletList' | 'orderedList' | 'link' | 'heading2' | 'heading3'
+
+/** The editing command behind a toolbar button. `url` is for `link`. It reads the node and mark types from the state it runs on. */
+export function commandFor(command: RichCommand, url = ''): Command {
+  switch (command) {
+    case 'bold':
+      return (state, dispatch) => toggleMark(need(state.schema.marks.strong))(state, dispatch)
+    case 'italic':
+      return (state, dispatch) => toggleMark(need(state.schema.marks.em))(state, dispatch)
+    case 'code':
+      return (state, dispatch) => toggleMark(need(state.schema.marks.code))(state, dispatch)
+    case 'bulletList':
+      return toggleList('bullet_list')
+    case 'orderedList':
+      return toggleList('ordered_list')
+    case 'link':
+      return setLink(url)
+    case 'heading2':
+      return toggleHeading(2)
+    case 'heading3':
+      return toggleHeading(3)
+  }
+}
+
+/** Enter at the end of a heading starts a paragraph, not another heading. In the middle it splits the heading. */
+const enterInHeading: Command = (state, dispatch) => {
+  const { heading, paragraph } = state.schema.nodes
+  if (!heading || !paragraph || state.selection.$from.parent.type !== heading) return false
+  return splitBlockAs((_node, atEnd) => (atEnd ? { type: paragraph } : null))(state, dispatch)
+}
+
 /** Enter is a line break, a new item inside a list, and leaves the list from an empty item. */
-export const enterCommand: Command = chainCommands(splitListItem(list_item), liftEmptyBlock, insertLineBreak)
+export const enterCommand: Command = (state, dispatch) =>
+  chainCommands(enterInHeading, splitListItem(need(state.schema.nodes.list_item)), liftEmptyBlock, insertLineBreak)(state, dispatch)
 
 /** Which toolbar buttons are on at the selection. */
 export interface RichActive {
@@ -246,13 +334,24 @@ export interface RichActive {
   link: boolean
   bulletList: boolean
   orderedList: boolean
+  /** The level of the heading the caret is in, or 0. */
+  heading: 0 | 2 | 3
+  /** Whether this field has headings at all, so the bar knows to show their buttons. */
+  headings: boolean
 }
 
 export function activeOf(state: EditorState): RichActive {
   const { $from, from, to, empty } = state.selection
+  const { strong, em, code, link } = state.schema.marks
+  const { bullet_list, ordered_list, heading } = state.schema.nodes
   const marked = (type: typeof strong) =>
-    empty ? type.isInSet(state.storedMarks ?? $from.marks()) !== undefined : state.doc.rangeHasMark(from, to, type)
+    type === undefined
+      ? false
+      : empty
+        ? type.isInSet(state.storedMarks ?? $from.marks()) !== undefined
+        : state.doc.rangeHasMark(from, to, type)
   const lists = listsIn(state)
+  const level = heading !== undefined && $from.parent.type === heading ? $from.parent.attrs.level : 0
   return {
     bold: marked(strong),
     italic: marked(em),
@@ -260,6 +359,8 @@ export function activeOf(state: EditorState): RichActive {
     link: marked(link),
     bulletList: lists.length > 0 && lists.every((item) => item.node.type === bullet_list),
     orderedList: lists.length > 0 && lists.every((item) => item.node.type === ordered_list),
+    heading: level === 2 || level === 3 ? level : 0,
+    headings: heading !== undefined,
   }
 }
 
@@ -270,7 +371,9 @@ function sameActive(a: RichActive, b: RichActive): boolean {
     a.code === b.code &&
     a.link === b.link &&
     a.bulletList === b.bulletList &&
-    a.orderedList === b.orderedList
+    a.orderedList === b.orderedList &&
+    a.heading === b.heading &&
+    a.headings === b.headings
   )
 }
 
@@ -293,6 +396,8 @@ export function richEditorOf(field: Element): RichEditor | undefined {
 
 export interface RichEditorOptions {
   markdown: string
+  /** The field allows h2 and h3 (`data-rich-headings` on its element). */
+  headings?: boolean
   /** Where the caret or selection was in the page's own markup, as character offsets into the field's text. */
   selection?: { anchor: number; head: number }
   /** Called with the new markdown after every change to the document (not for selection moves). */
@@ -311,18 +416,20 @@ export interface RichEditorOptions {
  */
 export function mountRichEditor(
   field: HTMLElement,
-  { markdown, selection, onChange, onActive, keepsEdit, onDestroy }: RichEditorOptions,
+  { markdown, headings = false, selection, onChange, onActive, keepsEdit, onDestroy }: RichEditorOptions,
 ): RichEditor {
   const existing = mounted.get(field)
   if (existing) return existing
+  const kit = headings ? headingKit : plainKit
+  const { strong, em } = kit.schema.marks
   const stateFor = (source: string) =>
     EditorState.create({
-      doc: docFromMarkdown(source),
+      doc: docFromMarkdown(source, headings),
       plugins: [
         history(),
         keymap({
-          'Mod-b': toggleMark(strong),
-          'Mod-i': toggleMark(em),
+          'Mod-b': toggleMark(need(strong)),
+          'Mod-i': toggleMark(need(em)),
           'Mod-z': undo,
           'Mod-y': redo,
           'Shift-Mod-z': redo,
@@ -355,8 +462,8 @@ export function mountRichEditor(
         onChange(lastMarkdown)
       },
       // Pasted HTML is parsed and reduced to the markdown subset first; plain text is read as that markdown.
-      transformPastedHTML: (html) => sanitizeRichHtml(html),
-      clipboardTextParser: (text) => sliceFromMarkdown(stripPlainRich(text)),
+      transformPastedHTML: (html) => sanitizeRichHtml(html, kit.options),
+      clipboardTextParser: (text) => sliceFromMarkdown(stripPlainRich(text, kit.options), kit),
     },
   )
 
@@ -399,7 +506,7 @@ export function mountRichEditor(
       field.removeAttribute('contenteditable')
       field.removeAttribute('translate')
       if (!field.getAttribute('class')) field.removeAttribute('class')
-      field.innerHTML = renderRichText(lastMarkdown)
+      field.innerHTML = renderRichText(lastMarkdown, kit.options)
       onDestroy?.()
     },
   }

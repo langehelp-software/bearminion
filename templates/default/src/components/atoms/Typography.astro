@@ -18,6 +18,8 @@ interface Props {
   id?: string
   /** Markdown subset (bold, italic, links, lists, paragraphs). Renders sanitized HTML. */
   markdown?: string
+  /** The markdown may hold `##` and `###` headings, and the editor offers them. */
+  richHeadings?: boolean
   'data-field'?: string
 }
 
@@ -30,10 +32,11 @@ const {
   align,
   class: className,
   markdown,
+  richHeadings = false,
   ...rest
 } = Astro.props
 
-const html = markdown !== undefined ? renderRichText(markdown) : undefined
+const html = markdown !== undefined ? renderRichText(markdown, { headings: richHeadings }) : undefined
 // Rich text is `<p>`s and lists, which a `<p>`, `<span>` or heading cannot hold. A `blockquote`, `li` or `figcaption` can.
 const Tag = html !== undefined && PHRASING_ONLY.has(TagName) ? 'div' : TagName
 const classes = cn(typography({ size, color, weight, font, align }), className)
@@ -41,7 +44,7 @@ const classes = cn(typography({ size, color, weight, font, align }), className)
 
 {
   html !== undefined ? (
-    <Tag class={classes} data-field-kind="rich" set:html={html} {...rest} />
+    <Tag class={classes} data-field-kind="rich" data-rich-headings={richHeadings ? 'true' : undefined} set:html={html} {...rest} />
   ) : (
     <TagName class={classes} {...rest}>
       <slot />

@@ -6,6 +6,7 @@ import { API_PREFIX } from './options.js'
 import { handleEditorRequest, type HandleMeta } from './api.js'
 import { assetFile } from './asset-refs.js'
 import { isLocalRequest, JSON_BODY_LIMIT, MULTIPART_BODY_LIMIT } from './security.js'
+import { videoBodyLimit } from './videos.js'
 
 type Next = (error?: unknown) => void
 
@@ -59,10 +60,16 @@ async function dispatch(
   const headers = headersFrom(req)
   const method = (req.method ?? 'GET').toUpperCase()
   const multipart = (headers.get('content-type') ?? '').toLowerCase().includes('multipart/form-data')
-  const limit = multipart ? MULTIPART_BODY_LIMIT : JSON_BODY_LIMIT
+  const videoUpload = multipart && stripTrailingSlash(rawUrl.split('?')[0] ?? '') === `${API_PREFIX}/videos`
+  const limit = videoUpload ? videoBodyLimit(context.maxVideoBytes) : multipart ? MULTIPART_BODY_LIMIT : JSON_BODY_LIMIT
+  const tooLargeMessage = videoUpload
+    ? 'Upload exceeds the video size limit.'
+    : multipart
+      ? 'Upload exceeds the 5MB image limit.'
+      : 'JSON body exceeds 1MB.'
   const advertised = Number(headers.get('content-length') ?? '')
   if (Number.isFinite(advertised) && advertised > limit) {
-    await send(res, jsonProblem(413, 'too_large', multipart ? 'Upload exceeds the 5MB image limit.' : 'JSON body exceeds 1MB.'))
+    await send(res, jsonProblem(413, 'too_large', tooLargeMessage))
     return
   }
 
@@ -72,7 +79,7 @@ async function dispatch(
       body = await readBody(req, limit)
     } catch (error) {
       if (error instanceof PayloadTooLargeError) {
-        await send(res, jsonProblem(413, 'too_large', multipart ? 'Upload exceeds the 5MB image limit.' : 'JSON body exceeds 1MB.'))
+        await send(res, jsonProblem(413, 'too_large', tooLargeMessage))
         return
       }
       throw error

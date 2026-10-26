@@ -13,6 +13,7 @@ interface Props {
   poster?: Image
   image?: Image
   label?: string
+  playback?: MediaProps['playback']
   /** `data-field` path for the image, so a click on the frame opens the image picker. */
   imageField: string
   /** Near the top of the page: the cover loads at once instead of lazily, since it is likely the largest thing on screen. */
@@ -20,7 +21,7 @@ interface Props {
   class?: string
 }
 
-const { kind, aspect, video, poster, image, label, imageField, eager = false, class: className } = Astro.props
+const { kind, aspect, video, poster, image, label, playback = 'controls', imageField, eager = false, class: className } = Astro.props
 const ASPECT = { '16:9': 'aspect-video', '4:3': 'aspect-[4/3]', '21:9': 'aspect-[21/9]', '1:1': 'aspect-square' } as const
 const frame = cn(
   'relative w-full min-h-48 overflow-hidden rounded-[clamp(1rem,2cqi,1.5rem)] bg-surface shadow-[inset_0_0_0_1px_var(--line),0_40px_80px_-48px_oklch(0.2_0.02_255/0.35)]',
@@ -35,6 +36,9 @@ const coverSrcset = source ? await imageSrcset(poster) : undefined
 // The frame is at most 68rem wide and the full width of a phone.
 const coverSizes = '(min-width: 72rem) 68rem, 100vw'
 const name = label || 'Video'
+// A video file on loop starts muted and without controls once the page script sees it on screen. Until then, and without
+// JavaScript or with reduced motion, it keeps its controls so it can still be played.
+const looping = source?.kind === 'file' && playback === 'loop'
 ---
 
 {
@@ -63,6 +67,10 @@ const name = label || 'Video'
       class="shadow-[inset_0_0_0_1px_var(--line),0_40px_80px_-48px_oklch(0.2_0.02_255/0.35)]"
       data-field={imageField}
     />
+  ) : looping && source?.kind === 'file' ? (
+    <div class={frame}>
+      <video class="absolute inset-0 size-full object-cover" src={source.src} poster={cover} preload="metadata" playsinline muted loop controls aria-label={name} data-video-loop />
+    </div>
   ) : (
     source && (
       <div
@@ -145,4 +153,24 @@ const name = label || 'Video'
   }
   bindMediaPlayers()
   document.addEventListener('bearminion:preview', bindMediaPlayers)
+
+  /** Looping videos play while at least a quarter of them is on screen, and not at all with reduced motion. */
+  function bindLoopingVideos() {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    for (const video of document.querySelectorAll<HTMLVideoElement>('video[data-video-loop]')) {
+      if (video.dataset.bound === 'true') continue
+      video.dataset.bound = 'true'
+      if (reduced) continue
+      video.controls = false
+      new IntersectionObserver(
+        ([entry]) => {
+          if (entry?.isIntersecting) void video.play().catch(() => (video.controls = true))
+          else video.pause()
+        },
+        { threshold: 0.25 },
+      ).observe(video)
+    }
+  }
+  bindLoopingVideos()
+  document.addEventListener('bearminion:preview', bindLoopingVideos)
 </script>

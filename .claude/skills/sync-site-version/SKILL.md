@@ -14,7 +14,7 @@ node -p "require('./packages/editor/package.json').version"   # the version in t
 npm view bearminion version                                    # the version on npm
 ```
 
-A public page may claim a version only when `npm view` shows it. While a "Version Packages" PR is open, the repo version is ahead of npm: do not update public claims yet.
+The hero badge shows the version the pull request releases, not the one before it. The site is published after the release, so a badge on the old version is wrong from the day it ships. Work it out as the repo version plus the highest pending changeset bump (`minor` on 1.5.0 means "BearMinion 1.6"), and set it in the same pull request as the changeset. If the bump level changes, fix the badge. Other claims (features, options, flags) follow the same rule: describe what this pull request ships. Prose avoids version numbers altogether.
 
 ## Find stale version strings
 
@@ -24,7 +24,7 @@ grep -rnE "BearMinion v?[0-9]+\.[0-9]+|bearminion@[0-9^~]|create-bearminion@[0-9
   templates/default/README.md packages/*/README.md CONTRIBUTING.md
 ```
 
-Ignore: `0.0.0` placeholders, tarball example file names (`bearminion-1.0.0.tgz`), dependency ranges in `package.json` and changelogs. Everything else must match the current version or be rewritten without a number ("latest").
+Ignore: `0.0.0` placeholders, tarball example file names (`bearminion-1.0.0.tgz`), dependency ranges in `package.json` and changelogs. Everything else must match the version this pull request releases or be rewritten without a number ("latest").
 
 Known place: the hero badge in `apps/web/content/pages/index.json` (`tag`, for example "BearMinion 1.4 · Available now"; its `href` points at the GitHub releases page).
 
@@ -38,7 +38,7 @@ Known place: the hero badge in `apps/web/content/pages/index.json` (`tag`, for e
 | `bearminion({...})` options, env variables | `docs/integration.md` |
 | Dev API endpoints or responses | `docs/dev-api.md` |
 | `create-bearminion` flags, prompts, output | `docs/getting-started.md`, `packages/create-bearminion/README.md` |
-| New or changed template section | `templates/default/README.md`, then `apps/web` content if the site should use it |
+| New or changed template section | `docs/sections.md` (layouts, options, content, and the screenshots in `docs/images/sections/`), `templates/default/README.md`, then `apps/web` content if the site should use it |
 | Any user-facing feature | Claims on bearminion.com: features, FAQ, stats, hero, video label |
 
 Rules:

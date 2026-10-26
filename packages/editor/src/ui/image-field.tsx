@@ -24,6 +24,8 @@ export interface LibraryImage {
 export interface ImageValue {
   src: string
   alt: string
+  /** Gallery pictures: shown under the picture in the lightbox. Omitted when empty. */
+  caption?: string
   /** Omitted at the default, cover. */
   fit?: ImageFit
   /** Omitted at the default, center. */
@@ -124,13 +126,14 @@ export function ImageField({
   withAlt = true,
   layout = true,
   hideable = false,
+  captionable = false,
   onChange,
   onUploaded,
   onDeleted,
 }: {
   label: string
   path: string
-  value: { src?: string; alt?: string; fit?: unknown; position?: unknown; hidden?: unknown } | undefined
+  value: { src?: string; alt?: string; caption?: unknown; fit?: unknown; position?: unknown; hidden?: unknown } | undefined
   images: LibraryImage[]
   /** False for fields that store a path only, such as an OG image. */
   withAlt?: boolean
@@ -138,6 +141,8 @@ export function ImageField({
   layout?: boolean
   /** Adds a "Show in section" switch, for images that sit in a section. */
   hideable?: boolean
+  /** Adds a Caption input under the alt text, for images the section can caption. */
+  captionable?: boolean
   onChange: (next: ImageValue) => void
   onUploaded: (image: LibraryImage) => void
   onDeleted: (image: LibraryImage) => void
@@ -153,9 +158,14 @@ export function ImageField({
   const position: ImagePosition = isImagePosition(value?.position) ? value.position : DEFAULT_IMAGE_POSITION
   const showLayout = layout && withAlt
   const hidden = hideable && value?.hidden === true
-  const current: ImageValue = { src, alt, fit, position, ...(hidden ? { hidden } : {}) }
+  const caption = typeof value?.caption === 'string' ? value.caption : ''
+  const current: ImageValue = { src, alt, ...(caption ? { caption } : {}), fit, position, ...(hidden ? { hidden } : {}) }
   /** Emit the whole image object. A new file or alt keeps the fit and position already chosen. */
-  const emit = (patch: Partial<ImageValue>) => onChange(compact({ ...current, ...patch }))
+  const emit = (patch: Partial<ImageValue>) => {
+    const next = { ...current, ...patch }
+    if (next.caption === '') delete next.caption
+    onChange(compact(next))
+  }
   const empty = src === '' || src === 'placeholder'
   const shown = previewSrc(src)
   const missing = useMissingFile(empty ? '' : src)
@@ -220,10 +230,7 @@ export function ImageField({
       }}
     >
       <span class="bm-label">
-        <span class="bm-label-row">
-          <span class="bm-label-text">{label}</span>
-          {withAlt && !empty && <span class="bm-meta-tag">alt required</span>}
-        </span>
+        <span class="bm-label-text">{label}</span>
       </span>
       {hideable && (
         <label class="bm-switch-row">
@@ -320,13 +327,35 @@ export function ImageField({
             )}
           </div>
           {withAlt && (
-            <input
-              class="bm-alt"
-              aria-label="Alt"
-              placeholder="Alt text: describe the image"
-              value={alt}
-              onInput={(event) => emit({ alt: event.currentTarget.value })}
-            />
+            <div class="bm-stack bm-stack-tight">
+              <span class="bm-label bm-label-row" aria-hidden="true">
+                <span class="bm-label-text">Alt text</span>
+                <span class="bm-meta-tag">required</span>
+              </span>
+              <input
+                class="bm-alt"
+                aria-label="Alt"
+                placeholder="Describe the image"
+                value={alt}
+                onInput={(event) => emit({ alt: event.currentTarget.value })}
+              />
+              {captionable && (
+                <>
+                  <span class="bm-label bm-label-row" aria-hidden="true">
+                    <span class="bm-label-text">Caption</span>
+                    <span class="bm-meta-tag">optional, shown when opened large</span>
+                  </span>
+                  <textarea
+                    class="bm-alt"
+                    rows={2}
+                    aria-label="Caption"
+                    placeholder="Shown under the picture. Empty uses the alt text."
+                    value={caption}
+                    onInput={(event) => emit({ caption: event.currentTarget.value })}
+                  />
+                </>
+              )}
+            </div>
           )}
         </>
       )}

@@ -4,6 +4,7 @@ import { assetFile } from './asset-refs.js'
 import { writeTextAtomic } from './atomic-write.js'
 import { deleteImage, listImages, saveImage, type ImageKind, type ListedImage, type SavedImage } from './images.js'
 import { resolveInside } from './security.js'
+import { deleteVideo, listVideos, saveVideo, type ListedVideo, type SavedVideo, type VideoKind } from './videos.js'
 
 /**
  * Where the editor reads and writes content. The editor API talks only to this interface, so the
@@ -30,6 +31,8 @@ export interface ContentStore {
   apply(operations: readonly StoreOperation[]): Promise<void>
   /** Uploaded images. */
   readonly uploads: UploadStore
+  /** Uploaded videos, served from `public/`. Absent in stores that only hold images. */
+  readonly videos?: VideoStore
   /**
    * Whether the image file an image field points at (`src/assets/...`) exists. Saves that point at a missing file
    * fail validation. A store without it skips that check.
@@ -44,6 +47,12 @@ export interface UploadStore {
   /** Store the bytes under a unique, sanitised name and return where it went. `path` is what image fields hold. */
   save(input: { originalName: string; bytes: Uint8Array; kind: ImageKind }): Promise<SavedImage>
   /** Delete one upload by file name. False when there is no such upload. */
+  remove(filename: string): Promise<boolean>
+}
+
+export interface VideoStore {
+  list(): Promise<ListedVideo[]>
+  save(input: { originalName: string; bytes: Uint8Array; kind: VideoKind }): Promise<SavedVideo>
   remove(filename: string): Promise<boolean>
 }
 
@@ -68,10 +77,12 @@ export interface FileStoreOptions {
   root: string
   contentDir: string
   uploadsDir: string
+  /** Where uploaded videos go. Without it the store takes no video uploads. */
+  videosDir?: string
 }
 
 /** The content store for a local project: content as JSON files, uploads in a folder. */
-export function createFileStore({ root, contentDir, uploadsDir }: FileStoreOptions): ContentStore {
+export function createFileStore({ root, contentDir, uploadsDir, videosDir }: FileStoreOptions): ContentStore {
   function resolve(key: string): string {
     const parts = key.split('/')
     if (key === '' || parts.some((part) => part === '' || part === '.' || part === '..')) throw new StoreKeyError(key)
@@ -132,6 +143,17 @@ export function createFileStore({ root, contentDir, uploadsDir }: FileStoreOptio
         () => false,
       )
     },
+
+    ...(videosDir === undefined
+      ? {}
+      : {
+          videos: {
+            list: () => listVideos(root, videosDir),
+            save: ({ originalName, bytes, kind }: { originalName: string; bytes: Uint8Array; kind: VideoKind }) =>
+              saveVideo({ root, videosDir, originalName, bytes, kind }),
+            remove: (filename: string) => deleteVideo(videosDir, filename),
+          } satisfies VideoStore,
+        }),
 
     uploads: {
       async list() {

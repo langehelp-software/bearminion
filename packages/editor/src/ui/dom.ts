@@ -114,7 +114,7 @@ export function paintPage(draft: PageDraft) {
       // A field being edited keeps its editor; replacing its markup would orphan the view.
       const editing = richEditorOf(node)
       if (editing) editing.setMarkdown(value)
-      else node.innerHTML = renderRichText(value)
+      else node.innerHTML = renderRichText(value, { headings: node.getAttribute('data-rich-headings') === 'true' })
     } else if (isHeadingField(path)) {
       node.innerHTML = renderMarkedHtml(value, marksAt(draft, path))
     } else {

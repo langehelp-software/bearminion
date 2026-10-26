@@ -229,6 +229,31 @@
     color: var(--fg);
     white-space: nowrap;
   }
+  /* Headings in long-form text (the Text section). Sized for reading, below the section heading. */
+  [data-rich-headings="true"] h2,
+  [data-rich-headings="true"] h3 {
+    color: var(--fg);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  [data-rich-headings="true"] h2 {
+    margin: 1.75em 0 0.5em;
+    font-size: 1.625em;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+  }
+  [data-rich-headings="true"] h3 {
+    margin: 1.5em 0 0.4em;
+    font-size: 1.25em;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+  [data-rich-headings="true"] > :first-child {
+    margin-top: 0;
+  }
+  [data-rich-headings="true"] :is(h2, h3) + p {
+    margin-top: 0;
+  }
   blockquote[data-field-kind="rich"]::before {
     content: "“";
   }
@@ -319,6 +344,142 @@
   .bm-underline:focus {
     outline: none;
     border-bottom-color: var(--fg);
+  }
+  /* The gallery lightbox: a native <dialog> over the whole screen, one picture at a time. */
+  .bm-lightbox {
+    /* 100%, not 100vw: vw counts the page scrollbar, which pushed the close button off the right edge. */
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    overscroll-behavior: contain;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: rgb(0 0 0 / 0.94);
+    color: #fff;
+    overflow: hidden;
+  }
+  .bm-lightbox::backdrop {
+    background: rgb(0 0 0 / 0.94);
+  }
+  .bm-lightbox[open] {
+    display: block;
+  }
+  /* The page behind does not scroll while a picture is open. */
+  html:has(.bm-lightbox[open]) {
+    overflow: hidden;
+  }
+  .bm-lightbox-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: clamp(3.5rem, 8vh, 5rem) clamp(1rem, 9vw, 6.5rem);
+    touch-action: pan-y;
+  }
+  /* The picture takes whatever height the caption leaves, so a tall picture and a long caption both stay whole. */
+  .bm-lightbox-figure {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    justify-items: center;
+    gap: 0.875rem;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+  }
+  .bm-lightbox-image {
+    display: block;
+    align-self: center;
+    max-width: 100%;
+    max-height: 100%;
+    min-height: 0;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    transition: opacity 0.2s ease;
+  }
+  .bm-lightbox[data-loading] .bm-lightbox-image {
+    opacity: 0;
+  }
+  .bm-lightbox-caption {
+    width: min(100%, 46rem);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    text-align: center;
+    color: rgb(255 255 255 / 0.82);
+    text-wrap: pretty;
+    max-height: 7.5rem;
+    overflow-y: auto;
+  }
+  .bm-lightbox-counter {
+    position: absolute;
+    top: 1.375rem;
+    left: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: rgb(255 255 255 / 0.7);
+  }
+  .bm-lightbox-close,
+  .bm-lightbox-nav {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.12);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  .bm-lightbox-icon {
+    display: block;
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .bm-lightbox-close:hover,
+  .bm-lightbox-nav:hover {
+    background: rgb(255 255 255 / 0.24);
+  }
+  .bm-lightbox-close:focus-visible,
+  .bm-lightbox-nav:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+  .bm-lightbox-close {
+    top: 0.875rem;
+    right: 0.875rem;
+  }
+  .bm-lightbox-nav {
+    top: 50%;
+    translate: 0 -50%;
+  }
+  .bm-lightbox-prev {
+    left: 0.875rem;
+  }
+  .bm-lightbox-next {
+    right: 0.875rem;
+  }
+  .bm-lightbox[data-single] .bm-lightbox-nav,
+  .bm-lightbox[data-single] .bm-lightbox-counter {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bm-lightbox-image,
+    .bm-lightbox-close,
+    .bm-lightbox-nav {
+      transition: none;
+    }
   }
   .bm-marquee-mask {
     mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);

@@ -1,11 +1,12 @@
 import { createMigrator, type ContentMigrator } from './migrate.js'
-import { DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, type ContentModel, type SectionRegistry } from './model.js'
+import { DEFAULT_VIDEO_BYTE_LIMIT } from './videos.js'
+import { DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR, type ContentModel, type SectionRegistry } from './model.js'
 import { asDirectory, resolveDir } from './security.js'
 import type { SiteDefinition } from './site.js'
 import { defaultTheme, type ThemeDefinition } from './theme.js'
 import { createFileStore, type ContentStore } from './store.js'
 
-export { API_PREFIX, DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR } from './model.js'
+export { API_PREFIX, DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR } from './model.js'
 export type { ContentModel, SectionRegistry } from './model.js'
 
 export interface BearminionOptions extends ContentModel {
@@ -13,6 +14,10 @@ export interface BearminionOptions extends ContentModel {
   contentDir?: string
   /** Directory for uploaded images. Default `src/assets/uploads`. */
   uploadsDir?: string
+  /** Directory for uploaded videos. It must be inside `public/`, which serves them as they are. Default `public/videos`. */
+  videosDir?: string
+  /** Largest video the editor accepts, in bytes. Default 50 MB. */
+  maxVideoBytes?: number
   /**
    * Vite module id loaded by the dev server to render a draft page.
    * Default `/src/lib/render-preview.ts`. Preview never writes to disk.
@@ -35,6 +40,8 @@ export interface EditorContext {
   root: string
   contentDir: string
   uploadsDir: string
+  videosDir: string
+  maxVideoBytes: number
   sections: SectionRegistry
   site: SiteDefinition
   theme: ThemeDefinition
@@ -55,14 +62,17 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
   const root = asDirectory(rootInput)
   const contentDir = resolveDir(root, options?.contentDir, DEFAULT_CONTENT_DIR)
   const uploadsDir = resolveDir(root, options?.uploadsDir, DEFAULT_UPLOADS_DIR)
+  const videosDir = resolveDir(root, options?.videosDir, DEFAULT_VIDEOS_DIR)
   return {
     root,
     contentDir,
     uploadsDir,
+    videosDir,
+    maxVideoBytes: options?.maxVideoBytes ?? DEFAULT_VIDEO_BYTE_LIMIT,
     sections: options.sections,
     site: options.site,
     theme: options.theme ?? defaultTheme,
-    store: options.store ?? createFileStore({ root, contentDir, uploadsDir }),
+    store: options.store ?? createFileStore({ root, contentDir, uploadsDir, videosDir }),
     migrator: createMigrator(options),
     git: options?.git === true,
   }

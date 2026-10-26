@@ -18,6 +18,8 @@ beforeEach(() => {
     root,
     contentDir: root,
     uploadsDir: root,
+    videosDir: root,
+    maxVideoBytes: 1,
     sections: {},
     site: siteDefinition,
     store: createFileStore({ root, contentDir: root, uploadsDir: root }),

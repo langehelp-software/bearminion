@@ -56,6 +56,7 @@ describe('dev integration hooks', () => {
     // New uploads and the undo history must not trigger a full reload and drop the draft.
     expect(ignored).toEqual([
       `${path.join(root, 'src/assets/uploads').replaceAll('\\', '/')}/**`,
+      `${path.join(root, 'public/videos').replaceAll('\\', '/')}/**`,
       `${root.replaceAll('\\', '/')}/.editor/**`,
     ])
     expect(scripts).toEqual(['page:import "virtual:bearminion-editor"'])

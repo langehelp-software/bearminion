@@ -1,22 +1,44 @@
 /**
  * The subset the editor toolbar writes: paragraphs, line breaks, bold, italic, inline code (backticks),
- * links, and bulleted or numbered lists. Headings and images are not supported.
+ * links, and bulleted or numbered lists. Images are not supported. Headings are not either, unless a field asks
+ * for them (`{ headings: true }`): then `## ` and `### ` lines are h2 and h3, and nothing else is a heading.
  * Stored as markdown. Rendered as a fixed set of tags, with text escaped.
  *
- * The output is always block content (`<p>`, `<ul>`, `<ol>`), so the element that holds it must accept blocks:
- * a `div` or a `blockquote`, never a `<p>` or a heading.
+ * The output is always block content (`<p>`, `<ul>`, `<ol>`, with headings `<h2>`, `<h3>`), so the element that
+ * holds it must accept blocks: a `div` or a `blockquote`, never a `<p>` or a heading.
  */
+
+/** What a rich field allows beyond the base subset. */
+export interface RichOptions {
+  /** Allow h2 and h3 as `## ` and `### ` lines. Page titles are h1, so nothing above h2 exists, and nothing below h3. */
+  headings?: boolean
+}
+
+const HEADING_LINE = /^(#{2,3})[ \t]+(\S.*)$/
 
 const BLOCKED_PROTOCOL = /^(?:javascript|data|vbscript):/i
 
-export function renderRichText(markdown: string): string {
-  const blocks = markdown
-    .replace(/\r\n/g, '\n')
-    .split(/\n{2,}/)
-    .filter((block) => block.trim() !== '')
+export function renderRichText(markdown: string, options: RichOptions = {}): string {
+  const headings = options.headings === true
+  const text = markdown.replace(/\r\n/g, '\n')
+  // A heading is a block of its own, even when it is typed right above a paragraph.
+  const source = headings
+    ? text
+        .split('\n')
+        .map((line) => (HEADING_LINE.test(line.trim()) ? `\n\n${line.trim()}\n\n` : line))
+        .join('\n')
+    : text
+  const blocks = source.split(/\n{2,}/).filter((block) => block.trim() !== '')
   return blocks
-    .map((block) => renderBlock(block))
-    .map((html) => (isListHtml(html) ? html : `<p>${html}</p>`))
+    .map((block) => {
+      const heading = headings ? HEADING_LINE.exec(block.trim()) : null
+      if (heading) {
+        const tag = heading[1]?.length === 2 ? 'h2' : 'h3'
+        return `<${tag}>${renderInline((heading[2] ?? '').trim())}</${tag}>`
+      }
+      const html = renderBlock(block)
+      return isListHtml(html) ? html : `<p>${html}</p>`
+    })
     .join('')
 }
 
@@ -25,13 +47,18 @@ export function renderRichText(markdown: string): string {
  * markdown subset, and rendered again, so only the renderer's own tags survive: no attributes, handlers or
  * elements from the clipboard reach the page. Headings and images are dropped. Browser only.
  */
-export function sanitizeRichHtml(html: string): string {
-  return renderRichText(markdownFromHtml(html))
+export function sanitizeRichHtml(html: string, options: RichOptions = {}): string {
+  return renderRichText(markdownFromHtml(html, options), options)
 }
 
-/** Drop markdown headings and images from pasted plain text. */
-export function stripPlainRich(text: string): string {
-  return text.replace(/!\[[^\]]*\]\([^)\n]*\)/g, '').replace(/^#{1,6}[ \t]+.*$/gm, '')
+/**
+ * Drop markdown images from pasted plain text, and headings too unless the field allows them. Then a heading of any
+ * level becomes the nearest one the field has: `#` is `##`, and `####` and deeper are `###`.
+ */
+export function stripPlainRich(text: string, options: RichOptions = {}): string {
+  const withoutImages = text.replace(/!\[[^\]]*\]\([^)\n]*\)/g, '')
+  if (options.headings !== true) return withoutImages.replace(/^#{1,6}[ \t]+.*$/gm, '')
+  return withoutImages.replace(/^#{4,6}([ \t]+)/gm, '###$1').replace(/^#([ \t]+)/gm, '##$1')
 }
 
 function renderBlock(block: string): string {
@@ -162,7 +189,7 @@ function escapeAttr(value: string): string {
   return escapeHtml(value)
 }
 
-type Mark = 'strong' | 'em' | 'code' | 'link' | 'ul' | 'ol' | 'li' | 'block'
+type Mark = 'strong' | 'em' | 'code' | 'link' | 'ul' | 'ol' | 'li' | 'block' | 'h2' | 'h3'
 
 interface HtmlNode {
   mark: Mark | 'text' | 'root'
@@ -176,40 +203,24 @@ interface HtmlNode {
  * Turn the formatted DOM of a rich field back into the stored markdown subset. The HTML is parsed with
  * `DOMParser`, which never runs scripts or loads resources. Browser only (the editor overlay).
  */
-export function markdownFromHtml(html: string): string {
-  return cleanup(serialize(parseHtml(html)))
+export function markdownFromHtml(html: string, options: RichOptions = {}): string {
+  return cleanup(serialize(parseHtml(html, options.headings === true)))
 }
 
 /** Elements whose content is dropped with them. */
-const DROPPED = new Set([
-  'script',
-  'style',
-  'template',
-  'noscript',
-  'iframe',
-  'object',
-  'svg',
-  'math',
-  'img',
-  'picture',
-  'video',
-  'audio',
-  'h1',
-  'h2',
-  'h3',
-  'h4',
-  'h5',
-  'h6',
-])
+const DROPPED = new Set(['script', 'style', 'template', 'noscript', 'iframe', 'object', 'svg', 'math', 'img', 'picture', 'video', 'audio'])
 
-function parseHtml(html: string): HtmlNode {
+/** Headings a field without them drops, with their text. */
+const HEADING_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+
+function parseHtml(html: string, headings: boolean): HtmlNode {
   const root: HtmlNode = { mark: 'root', children: [] }
   const body = new DOMParser().parseFromString(`<!doctype html><body>${html}`, 'text/html').body
-  appendChildren(body, root)
+  appendChildren(body, root, headings)
   return root
 }
 
-function appendChildren(parent: Node, into: HtmlNode): void {
+function appendChildren(parent: Node, into: HtmlNode, headings: boolean): void {
   for (const child of Array.from(parent.childNodes)) {
     if (child.nodeType === TEXT_NODE) {
       into.children.push({ mark: 'text', text: child.nodeValue ?? '', children: [] })
@@ -219,6 +230,7 @@ function appendChildren(parent: Node, into: HtmlNode): void {
     const element = child as Element
     const name = element.tagName.toLowerCase()
     if (DROPPED.has(name)) continue
+    if (HEADING_TAGS.has(name) && !headings) continue
     if (name === 'br') {
       into.children.push({ mark: 'text', text: '\n', children: [] })
       continue
@@ -226,7 +238,7 @@ function appendChildren(parent: Node, into: HtmlNode): void {
     const mark = blockOf(name) ?? markOf(name, element.getAttribute('style') ?? '')
     // An element the subset has no mark for (a plain span, a font tag) keeps its text.
     if (!mark) {
-      appendChildren(element, into)
+      appendChildren(element, into, headings)
       continue
     }
     const tab = mark === 'link' ? element.getAttribute('data-new-tab') : null
@@ -237,7 +249,7 @@ function appendChildren(parent: Node, into: HtmlNode): void {
       newTab: tab === 'true' ? 'new' : tab === 'false' ? 'same' : undefined,
     }
     into.children.push(node)
-    appendChildren(element, node)
+    appendChildren(element, node, headings)
   }
 }
 
@@ -245,6 +257,9 @@ const ELEMENT_NODE = 1
 const TEXT_NODE = 3
 
 function blockOf(name: string): Mark | null {
+  // h1 and h2 are the field's top level, h3 to h6 its lower one. Only reached when the field allows headings.
+  if (name === 'h1' || name === 'h2') return 'h2'
+  if (name === 'h3' || name === 'h4' || name === 'h5' || name === 'h6') return 'h3'
   if (name === 'ul') return 'ul'
   if (name === 'ol') return 'ol'
   if (name === 'li') return 'li'
@@ -277,6 +292,17 @@ function serializeFlow(nodes: readonly HtmlNode[]): string {
       if (list === '') continue
       if (out.trim() !== '' && !out.endsWith('\n\n')) out = out.replace(/\n*$/, '\n\n')
       out += `${list}\n\n`
+      continue
+    }
+    if (node.mark === 'h2' || node.mark === 'h3') {
+      const text = node.children
+        .map((child) => serializeInline(child))
+        .join('')
+        .replace(/\s*\n+\s*/g, ' ')
+        .trim()
+      if (text === '') continue
+      if (out.trim() !== '' && !out.endsWith('\n\n')) out = out.replace(/\n*$/, '\n\n')
+      out += `${node.mark === 'h2' ? '##' : '###'} ${text}\n\n`
       continue
     }
     if (node.mark === 'block') {
@@ -319,7 +345,9 @@ function serializeInline(node: HtmlNode): string {
     return text.trim() === '' ? text : `\`${text}\``
   }
   if (node.mark === 'ul' || node.mark === 'ol') return serializeList(node)
-  if (node.mark === 'li' || node.mark === 'block' || node.mark === 'root') return serializeFlow(node.children)
+  if (node.mark === 'li' || node.mark === 'block' || node.mark === 'root' || node.mark === 'h2' || node.mark === 'h3') {
+    return serializeFlow(node.mark === 'h2' || node.mark === 'h3' ? [node] : node.children)
+  }
   const inner = node.children.map((child) => serializeInline(child)).join('')
   if (!inner) return ''
   if (node.mark === 'strong') return `**${inner}**`

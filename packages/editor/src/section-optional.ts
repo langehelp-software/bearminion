@@ -60,10 +60,21 @@ export function isOptionalPath(content: OptionalContent | undefined, path: strin
   return false
 }
 
-/** Section content keys in the order the form lists them: defaults first, then any other optional prop. */
+/**
+ * Section content keys in the order the form lists them: defaults first. An optional prop the defaults leave out sits
+ * right after the optional prop listed before it (`body` after `heading`), or at the end when none of those exist.
+ */
 export function orderContentKeys(present: readonly string[], optional: readonly string[], defaultKeys: readonly string[]): string[] {
   const keys = [...new Set([...present, ...optional])]
-  const rank = [...defaultKeys, ...optional]
+  const rank = [...defaultKeys]
+  optional.forEach((key, position) => {
+    if (rank.includes(key)) return
+    const before = optional
+      .slice(0, position)
+      .reverse()
+      .find((name) => rank.includes(name))
+    rank.splice(before === undefined ? rank.length : rank.indexOf(before) + 1, 0, key)
+  })
   const at = (key: string) => {
     const found = rank.indexOf(key)
     return found === -1 ? Number.MAX_SAFE_INTEGER : found

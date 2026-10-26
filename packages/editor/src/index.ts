@@ -66,6 +66,8 @@ export { API_PREFIX } from './model.js'
 export type { ContentModel, SectionRegistry } from './model.js'
 
 export { withoutOrphanSections } from './page.js'
+export { VIDEO_FILE, parseMediaSource } from './media-source.js'
+export type { MediaSource } from './media-source.js'
 export { SCHEMA_VERSION_KEY, createMigrator } from './migrate.js'
 export type { ContentMigration, ContentMigrator, ContentVersioning, DocumentKind } from './migrate.js'
 

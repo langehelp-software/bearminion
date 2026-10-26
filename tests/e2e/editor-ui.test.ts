@@ -990,7 +990,7 @@ describe('editor overlay', () => {
     await page.close()
   }, 90_000)
 
-  it('adds a video section as an empty frame and plays the file linked in its settings', async () => {
+  it('adds a media section as an empty frame and plays the file linked in its settings', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
@@ -999,8 +999,8 @@ describe('editor overlay', () => {
     await page.locator('[data-section-id="hero"]').click({ position: { x: 24, y: 80 } })
     await toolbar.getByRole('button', { name: 'Add', exact: true }).click()
     await page.getByRole('menuitem', { name: 'Add below' }).click()
-    await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Video', exact: true }).click()
-    const section = page.locator('[data-section-id="video"]')
+    await page.getByRole('listbox', { name: 'Add section' }).getByRole('button', { name: 'Media', exact: true }).click()
+    const section = page.locator('[data-section-id="media"]')
     const empty = section.getByText('Add a video link in the section settings')
     await empty.waitFor()
     expect(await section.locator('video').count()).toBe(0)
@@ -1008,24 +1008,38 @@ describe('editor overlay', () => {
     // The frame's middle: the section's top edge can sit under the sticky header, depending on what is above it.
     await empty.click()
     // A click selects the section; the sidebar may already be open on it, otherwise Settings opens it.
-    const form = page.locator('[data-editor-field="section:video"]')
+    const form = page.locator('[data-editor-field="section:media"]')
     if (!(await form.isVisible())) await toolbar.getByRole('button', { name: 'Settings', exact: true }).click()
     await form.waitFor()
-    await page.getByLabel('Video', { exact: true }).fill('/videos/demo.webm')
+    // The label carries the optional field's help button, so its name is "Video About Video", not "Video".
+    await page.getByRole('textbox', { name: /^Video\b/ }).fill('/videos/demo.webm')
+    // A linked file waits behind a play button, like a YouTube link: nothing loads until the visitor presses it.
+    const player = section.locator('[data-media-player][data-kind="file"]')
+    await player.waitFor()
+    expect(await player.getAttribute('data-src')).toBe('/videos/demo.webm')
+    expect(await section.locator('video').count()).toBe(0)
+
+    // A looping video is muted and bound by the page script, which takes its controls away while it plays. The file
+    // here does not exist, so play() fails once it is on screen and the controls come back; that is not checked.
+    await choose(page, 'Video playback', 'Loop')
+    await section.locator('video[data-video-loop]').waitFor({ state: 'attached' })
+    await page.waitForFunction(() => {
+      const node = document.querySelector('[data-section-id="media"] video')
+      return node instanceof HTMLVideoElement && node.muted && node.loop && node.dataset.bound === 'true'
+    })
+
+    // Back to controls: the file plays from the button. While editing, a click selects what is under it; in preview
+    // the button works as on the live site.
+    await choose(page, 'Video playback', 'Controls')
+    await player.waitFor()
+    await page.getByRole('button', { name: 'Preview', exact: true }).click()
+    await page.getByRole('button', { name: 'Exit preview' }).waitFor()
+    await player.getByRole('button', { name: 'Play video: Product walkthrough' }).click()
     const video = section.locator('video')
     await video.waitFor({ state: 'attached' })
     expect(await video.getAttribute('src')).toBe('/videos/demo.webm')
     expect(await video.getAttribute('aria-label')).toBe('Product walkthrough')
     expect(await video.evaluate((node) => (node as HTMLVideoElement).controls)).toBe(true)
-
-    // A looping video is muted and bound by the page script, which takes its controls away while it plays. The file
-    // here does not exist, so play() fails once it is on screen and the controls come back; that is not checked.
-    await choose(page, 'Playback', 'Loop')
-    await section.locator('video[data-video-loop]').waitFor({ state: 'attached' })
-    await page.waitForFunction(() => {
-      const node = document.querySelector('[data-section-id="video"] video')
-      return node instanceof HTMLVideoElement && node.muted && node.loop && node.dataset.bound === 'true'
-    })
     expect(errors, logs).toEqual([])
     await page.close()
   }, 60_000)
@@ -1424,11 +1438,20 @@ describe('editor overlay', () => {
 
 async function openClean(page: Page): Promise<void> {
   await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' })
-  await page.evaluate(() => {
-    for (const key of Object.keys(localStorage)) {
-      if (key.startsWith('bearminion:draft:')) localStorage.removeItem(key)
+  // The dev server can reload the page once while it optimizes a dependency. Wait that out and clear the drafts again.
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await page.evaluate(() => {
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('bearminion:draft:')) localStorage.removeItem(key)
+        }
+      })
+      break
+    } catch (error) {
+      if (attempt >= 2 || !String(error).includes('navigation')) throw error
+      await page.waitForLoadState('networkidle')
     }
-  })
+  }
   await page.reload({ waitUntil: 'networkidle' })
   await page.getByRole('button', { name: 'Editor', exact: true }).waitFor()
   await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))

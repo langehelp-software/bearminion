@@ -109,7 +109,7 @@
       "start": 4
     }
   ],
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "seo": {
     "description": "The BearMinion for the bare minimum: a git-based CMS for Astro with no database, no admin panel and no server.",
     "jsonLd": [

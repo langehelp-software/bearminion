@@ -36,6 +36,16 @@ export interface UploadedImage {
   bytes?: number
 }
 
+/** `GET /videos` entries and the body of a successful `POST /videos`. */
+export interface UploadedVideo {
+  filename: string
+  /** Project-relative path of the file. */
+  path: string
+  /** What a Media section's `video` field holds, such as `/videos/demo-1a2b3c4d.mp4`. */
+  url: string
+  bytes?: number
+}
+
 /** `GET /history/site` and `GET /history/pages/:slug` entries. */
 export interface HistoryEntry {
   id: string

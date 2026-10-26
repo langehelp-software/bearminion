@@ -6,6 +6,8 @@ import { mediaWireframe } from './wireframe'
 
 export const mediaVariants = ['centered', 'wide', 'split'] as const
 export const mediaKinds = ['video', 'image'] as const
+/** `controls`: the visitor presses play. `loop`: a video file plays silently on repeat while it is on screen, like a moving image. */
+export const mediaPlayback = ['controls', 'loop'] as const
 export const mediaAspects = ['16:9', '4:3', '21:9', '1:1'] as const
 
 /** A YouTube or Vimeo link, a path in `public/` such as `/videos/demo.webm`, or an `https://` link to a video file. */
@@ -32,6 +34,7 @@ export const mediaSchema = withEmphasis({
   /** What the video shows, read out by screen readers. An image uses its own alt text. */
   label: textSchema.optional(),
   caption: textSchema.optional(),
+  playback: z.enum(mediaPlayback).default('controls'),
 })
 
 export type MediaProps = z.infer<typeof mediaSchema>
@@ -39,7 +42,7 @@ export type MediaProps = z.infer<typeof mediaSchema>
 export const media = defineSection({
   type: 'media',
   label: 'Media',
-  description: 'One video or image under a heading. YouTube, Vimeo or a video file.',
+  description: 'One video or image under a heading. YouTube, Vimeo or a video file, with a poster and a caption.',
   schema: mediaSchema,
   defaults: {
     eyebrow: 'Demo',
@@ -50,12 +53,14 @@ export const media = defineSection({
     aspect: '16:9',
     intro: true,
     label: 'Product walkthrough',
+    playback: 'controls',
   },
   variants: mediaVariants,
   defaultVariant: 'centered',
   options: [
     { name: 'kind', label: 'Type', type: 'enum', choices: mediaKinds, default: 'video' },
     { name: 'aspect', label: 'Shape', type: 'enum', choices: mediaAspects, default: '16:9' },
+    { name: 'playback', label: 'Video playback', type: 'enum', choices: mediaPlayback, default: 'controls' },
     { name: 'intro', label: 'Show heading', type: 'boolean', default: true },
   ],
   optional: { props: ['eyebrow', 'heading', 'body', 'video', 'poster', 'image', 'label', 'caption'] },

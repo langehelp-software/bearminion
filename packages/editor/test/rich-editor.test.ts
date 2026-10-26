@@ -33,7 +33,7 @@ describe('markdown ↔ ProseMirror document', () => {
   })
 
   it('does not allow nested lists', () => {
-    expect(richSchema.nodes.list_item.contentMatch.matchType(richSchema.nodes.bullet_list)).toBeNull()
+    expect(richSchema.nodes.list_item!.contentMatch.matchType(richSchema.nodes.bullet_list!)).toBeNull()
   })
 })
 
@@ -123,7 +123,16 @@ describe('commands', () => {
 describe('active state', () => {
   it('reports bold, italic and links at the selection', () => {
     const none = activeOf(at('Hello **world**', 2))
-    expect(none).toEqual({ bold: false, italic: false, code: false, link: false, bulletList: false, orderedList: false })
+    expect(none).toEqual({
+      bold: false,
+      italic: false,
+      code: false,
+      link: false,
+      bulletList: false,
+      orderedList: false,
+      heading: 0,
+      headings: false,
+    })
     expect(activeOf(at('Hello **world**', 8, 10)).bold).toBe(true)
     expect(activeOf(at('Hello **world**', 9)).bold).toBe(true)
     expect(activeOf(at('A *b* c', 4)).italic).toBe(true)
@@ -157,5 +166,39 @@ describe('posAtTextOffset', () => {
     // text "abcd": offset 2 is the end of "ab" (position 3), offset 3 is inside "cd" (position 6).
     expect(posAtTextOffset(doc, 2)).toBe(3)
     expect(posAtTextOffset(doc, 3)).toBe(6)
+  })
+})
+
+describe('headings', () => {
+  const headed = (markdown: string, pos: number) =>
+    EditorState.create({ doc: docFromMarkdown(markdown, true), selection: TextSelection.create(docFromMarkdown(markdown, true), pos) })
+  const apply = (state: EditorState, command: Command) => {
+    let next = state
+    command(state, (tr) => {
+      next = state.apply(tr)
+    })
+    return next
+  }
+
+  it('round-trips h2 and h3', () => {
+    const markdown = '## Title\n\nBody\n\n### Sub'
+    expect(markdownFromDoc(docFromMarkdown(markdown, true))).toBe(markdown)
+  })
+
+  it('leaves headings out of plain fields', () => {
+    expect(docFromMarkdown('## Title').firstChild?.type.name).toBe('paragraph')
+  })
+
+  it('toggles a heading from a paragraph and back', () => {
+    const on = apply(headed('Hello', 2), commandFor('heading2'))
+    expect(markdownFromDoc(on.doc)).toBe('## Hello')
+    expect(activeOf(on).heading).toBe(2)
+    expect(markdownFromDoc(apply(on, commandFor('heading2')).doc)).toBe('Hello')
+    expect(markdownFromDoc(apply(on, commandFor('heading3')).doc)).toBe('### Hello')
+  })
+
+  it('starts a paragraph on Enter at the end of a heading', () => {
+    const state = headed('## Hello', 6)
+    expect(apply(state, enterCommand).doc.children.map((node) => node.type.name)).toEqual(['heading', 'paragraph'])
   })
 })

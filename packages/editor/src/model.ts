@@ -8,6 +8,8 @@ import type { ThemeDefinition } from './theme.js'
 export const API_PREFIX = '/__bearminion/api'
 export const DEFAULT_CONTENT_DIR = 'content'
 export const DEFAULT_UPLOADS_DIR = 'src/assets/uploads'
+/** Videos are served as they are, so they live in `public/`. */
+export const DEFAULT_VIDEOS_DIR = 'public/videos'
 
 /** Section definitions by type. The site supplies it: each section lives in its own directory. */
 export type SectionRegistry = Record<string, SectionDefinition>

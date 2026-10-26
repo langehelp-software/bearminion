@@ -15,7 +15,7 @@ import {
 } from '../src/index.js'
 import { bearminion } from '../src/astro.js'
 import { resolveEditorContext } from '../src/options.js'
-import { pruneSectionProps, isOptionalPath } from '../src/section-optional.js'
+import { pruneSectionProps, isOptionalPath, orderContentKeys } from '../src/section-optional.js'
 import {
   contentCounts,
   heroSchema,
@@ -44,12 +44,13 @@ type SectionTypeName =
   | 'hero'
   | 'logoStrip'
   | 'steps'
+  | 'gallery'
   | 'features'
+  | 'text'
   | 'textImage'
   | 'stats'
   | 'testimonials'
   | 'pricing'
-  | 'video'
   | 'media'
   | 'faq'
   | 'cta'
@@ -65,12 +66,13 @@ describe('section schemas', () => {
       'hero',
       'logoStrip',
       'steps',
+      'gallery',
       'features',
+      'text',
       'textImage',
       'stats',
       'testimonials',
       'pricing',
-      'video',
       'media',
       'faq',
       'cta',
@@ -865,36 +867,13 @@ describe('astro integration', () => {
   })
 })
 
-describe('video section', () => {
-  const props = (video: string) => ({ ...sectionRegistry.video.defaults, video })
-
-  it('accepts a file in public/, an https link to a file and the placeholder', () => {
-    for (const video of ['/videos/demo.webm', '/demo.mp4', 'https://cdn.example.com/a/demo.MP4?v=2', 'placeholder']) {
-      expect(sectionRegistry.video.schema.safeParse(props(video)).success, video).toBe(true)
-    }
-  })
-
-  it('refuses page links, other schemes and paths that are not video files', () => {
-    for (const video of [
-      'https://www.youtube.com/watch?v=abc',
-      'https://vimeo.com/123',
-      'javascript:alert(1)//.mp4',
-      '//cdn.example.com/demo.mp4',
-      'videos/demo.webm',
-      '/videos/demo.gif',
-      '/videos/my demo.webm',
-    ]) {
-      const result = sectionRegistry.video.schema.safeParse(props(video))
-      expect(result.success, video).toBe(false)
-      if (!result.success) expect(result.error.issues[0]?.message).toMatch(/\.mp4 or \.webm/)
-    }
-  })
-
+describe('media playback', () => {
   it('defaults to controls and accepts loop playback', () => {
-    expect(sectionRegistry.video.schema.parse({ video: 'placeholder' }).playback).toBe('controls')
-    expect(sectionRegistry.video.schema.parse({ video: 'placeholder', playback: 'loop' }).playback).toBe('loop')
-    expect(sectionRegistry.video.schema.safeParse({ video: 'placeholder', playback: 'autoplay' }).success).toBe(false)
-    expect(sectionOptions.video.find((option) => option.name === 'playback')).toMatchObject({ type: 'enum', default: 'controls' })
+    const media = sectionRegistry.media
+    expect(media.schema.parse(media.defaults).playback).toBe('controls')
+    expect(media.schema.parse({ ...media.defaults, playback: 'loop' }).playback).toBe('loop')
+    expect(media.schema.safeParse({ ...media.defaults, playback: 'autoplay' }).success).toBe(false)
+    expect(sectionOptions.media.find((option) => option.name === 'playback')).toMatchObject({ type: 'enum', default: 'controls' })
   })
 })
 
@@ -958,7 +937,7 @@ describe('media section', () => {
     const parsed = media.schema.parse(media.defaults)
     expect([parsed.kind, parsed.aspect, parsed.intro]).toEqual(['video', '16:9', true])
     expect(parsed.video).toBeUndefined()
-    expect(sectionOptions.media.map((option) => option.name)).toEqual(['variant', 'tone', 'motion', 'kind', 'aspect', 'intro'])
+    expect(sectionOptions.media.map((option) => option.name)).toEqual(['variant', 'tone', 'motion', 'kind', 'aspect', 'playback', 'intro'])
   })
 })
 
@@ -1044,5 +1023,28 @@ describe('site consent schema', () => {
         consent: { policyHref: 'javascript:x' },
       }).success,
     ).toBe(false)
+  })
+})
+
+describe('orderContentKeys', () => {
+  it('puts an optional prop the defaults omit right after the optional prop listed before it', () => {
+    const defaults = ['eyebrow', 'heading', 'marks', 'images', 'columns']
+    expect(orderContentKeys(['eyebrow', 'heading', 'images', 'columns'], ['eyebrow', 'heading', 'body'], defaults)).toEqual([
+      'eyebrow',
+      'heading',
+      'body',
+      'images',
+      'columns',
+    ])
+    expect(orderContentKeys(['eyebrow', 'heading', 'body', 'images'], ['eyebrow', 'heading', 'body'], defaults)).toEqual([
+      'eyebrow',
+      'heading',
+      'body',
+      'images',
+    ])
+  })
+
+  it('falls back to the end when no earlier optional prop is ranked', () => {
+    expect(orderContentKeys(['a', 'extra'], ['extra'], ['a'])).toEqual(['a', 'extra'])
   })
 })

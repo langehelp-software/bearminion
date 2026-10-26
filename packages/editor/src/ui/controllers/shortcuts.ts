@@ -36,7 +36,8 @@ export function attachShortcuts(editor: Editor): Dispose {
       return
     }
     if (ui.previewing.peek()) {
-      if (event.key === 'Escape') {
+      // An open dialog (the gallery lightbox) takes Escape first.
+      if (event.key === 'Escape' && !document.querySelector('dialog[open]')) {
         event.preventDefault()
         chrome.exitPreview()
       }

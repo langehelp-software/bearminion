@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  A website you edit by clicking on it. No database, no admin panel, no server.<br />
+  The BearMinion for the bare minimum. A website you edit by clicking on it: no database to patch at 3 AM, no admin panel, no server.<br />
   Built on <a href="https://astro.build">Astro</a>.
 </p>
 
@@ -48,7 +48,7 @@ From then on: edit, save, commit, push. The site rebuilds by itself.
 ## What you can change
 
 - **Text** right on the page, with bold, italic, code, links and lists
-- **Sections**: thirteen ready-made types (hero, steps, features, pricing, video and media, FAQ, contact and more), each with three layouts
+- **Sections**: fourteen ready-made types (hero, steps, gallery, text, pricing, media, FAQ, contact and more), each with two or three layouts
 - **Pages**: create, rename, choose the home page, set titles and descriptions for search and sharing
 - **Menus and footer**: drag to reorder and nest
 - **Images**: upload, choose how they fill their frame and which part stays in view

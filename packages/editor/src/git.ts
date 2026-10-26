@@ -48,7 +48,7 @@ async function git(root: string, args: string[]): Promise<string> {
 
 /** The folders a commit may touch: the content and the uploads. Relative to the project root. */
 export function trackedPaths(context: EditorContext): string[] {
-  return [context.contentDir, context.uploadsDir]
+  return [context.contentDir, context.uploadsDir, context.videosDir]
     .filter((dir) => isInside(context.root, dir))
     .map((dir) => path.relative(context.root, dir).split(path.sep).join('/') || '.')
 }
