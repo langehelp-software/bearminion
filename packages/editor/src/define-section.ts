@@ -18,6 +18,7 @@ import { wireframeIssues, type Wireframe } from './wireframe.js'
  * - `wireframe` is the thumbnail in the Add section picker.
  * - `choices` lists every string enum in `props` (derived from the schema); the sidebar offers them as choices.
  * - `icons` draws those choices as icons in the sidebar's picker.
+ * - `form` names the handler in `src/forms` that receives what the section's form sends. The sidebar says whether it exists.
  * - `showWhen` hides props in the sidebar while the section's options make them unused.
  */
 export interface SectionDefinition<TType extends string = string, TSchema extends z.ZodType = z.ZodType, TVariant extends string = string> {
@@ -36,6 +37,7 @@ export interface SectionDefinition<TType extends string = string, TSchema extend
   readonly choices: FieldChoices
   readonly icons: FieldIcons
   readonly showWhen: ShowWhen
+  readonly form?: string
   /** Cross-field rules the schema cannot express, such as a variant that needs an exact item count. */
   refine?(section: { variant: TVariant; props: z.infer<TSchema> }, ctx: z.RefinementCtx): void
 }
@@ -64,6 +66,8 @@ export interface SectionConfig<TType extends string, TSchema extends z.ZodType, 
    * means any of its values; `variant`, `tone` and `motion` count as options. A hidden prop keeps its value in the file.
    */
   showWhen?: ShowWhen
+  /** The form handler this section posts to: the file `src/forms/<form>.ts`, answering at `/api/<form>`. */
+  form?: string
   refine?(section: { variant: TVariants[number]; props: z.infer<TSchema> }, ctx: z.RefinementCtx): void
 }
 
@@ -111,6 +115,7 @@ export function defineSection<
     choices,
     icons,
     showWhen,
+    form: config.form,
     refine: config.refine,
   })
 }

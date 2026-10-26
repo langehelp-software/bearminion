@@ -91,7 +91,7 @@ export const contentModel = {
 - Files are rewritten, stamped with the current version, when the editor saves them. Nothing is migrated on disk until then.
 - A file newer than the site (`schemaVersion` above the model's) is refused with a `schemaVersion` error rather than guessed at.
 
-The starter uses this itself. Content version 2 folded its Video section into Media: `migrations[1]` turns a `video` section into a `media` section of kind `video` (`intro` becomes `body`, the `framed` layout becomes `centered`, an empty `placeholder` link is dropped). Sites created before that keep working, and their files are rewritten at version 2 the next time they are saved.
+The starter uses this itself. Content version 2 folded its Video section into Media: `migrations[1]` turns a `video` section into a `media` section of kind `video` (`intro` becomes `body`, the `framed` layout becomes `centered`, an empty `placeholder` link is dropped). Sites created before that keep working, and their files are rewritten at version 2 the next time they are saved. Version 3 removed the Contact section's `action`, `format` and `turnstile`: `migrations[2]` drops them from every `contact` section, because the form now always posts to `/api/contact` and its keys live in code and the environment (see [Forms](forms.md)).
 
 ## Sections the site no longer defines
 

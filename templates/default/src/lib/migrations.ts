@@ -25,3 +25,20 @@ export const migrateVideoToMedia: ContentMigration = (document, kind) => {
     sections: document.sections.map((section) => (isRecord(section) && section.type === 'video' ? videoToMedia(section) : section)),
   }
 }
+
+/** Form settings the Contact section used to keep in the content file. The form now posts to `/api/contact`; the rest lives in code and the environment. */
+const CONTACT_FORM_SETTINGS = ['action', 'turnstile', 'format'] as const
+
+/** Version 2 to 3: a Contact section no longer stores its endpoint, Turnstile key or format. */
+export const migrateContactFormSettings: ContentMigration = (document, kind) => {
+  if (kind !== 'page' || !Array.isArray(document.sections)) return document
+  return {
+    ...document,
+    sections: document.sections.map((section) => {
+      if (!isRecord(section) || section.type !== 'contact' || !isRecord(section.props)) return section
+      const props = { ...section.props }
+      for (const key of CONTACT_FORM_SETTINGS) delete props[key]
+      return { ...section, props }
+    }),
+  }
+}

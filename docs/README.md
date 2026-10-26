@@ -10,6 +10,7 @@ BearMinion is three things: the [`bearminion`](https://www.npmjs.com/package/bea
 | [Getting started](getting-started.md) | Create a site with `npm create bearminion`, edit it, and deploy it to Vercel, Netlify or Cloudflare |
 | [Content files](content.md) | Edit `site.json` and page JSON by hand, understand what the editor writes, migrate content after a schema change |
 | [Sections](sections.md) | See every section and layout the starter ships, with screenshots, options and what each one holds |
+| [Forms](forms.md) | Make the Contact form send messages: the handler in `src/forms`, its keys in the environment, the glue for your host, form services, email, Turnstile and spam checks |
 | [Building a theme](themes.md) | Define section types, the header and footer, fonts, the live preview and content collections |
 | [The editor](editor.md) | Learn every editing feature: inline text, sections, the sidebar tabs, images, drafts, saving, history and git |
 | [Astro integration and package](integration.md) | Configure `bearminion()` in `astro.config.ts`, use the entry points, plug in a custom content store |

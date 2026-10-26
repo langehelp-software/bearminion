@@ -331,6 +331,88 @@
     outline: none;
     box-shadow: inset 0 0 0 2px var(--link);
   }
+  /* Colour alone never says a field is wrong: it gets a heavier edge and a message in words. */
+  .bm-field[aria-invalid="true"] {
+    box-shadow: inset 0 0 0 2px var(--fg);
+  }
+  .bm-underline[aria-invalid="true"] {
+    border-bottom: 2px solid var(--fg);
+  }
+  .bm-form-error {
+    border-inline-start: 2px solid var(--fg);
+    padding-inline-start: 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .bm-form-error[hidden] {
+    display: none;
+  }
+  /* Shown by the form script after a send. Without JavaScript the page's own :target rules show them (Base.astro). */
+  [data-contact-success],
+  [data-contact-failed] {
+    display: none;
+  }
+  [data-contact-success][data-shown] {
+    display: block;
+  }
+  /* A failed send stays on screen until the visitor closes it. */
+  .bm-toasts {
+    position: fixed;
+    inset: auto 1rem 1rem 1rem;
+    z-index: 2000;
+    width: auto;
+    height: auto;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    pointer-events: none;
+  }
+  .bm-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    max-width: min(26rem, 100%);
+    border-radius: var(--radius-field);
+    background: var(--fg);
+    padding: 0.875rem 0.5rem 0.875rem 1rem;
+    color: var(--bg);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.45;
+    box-shadow: 0 0.5rem 2rem oklch(0 0 0 / 0.25);
+  }
+  .bm-toast-text {
+    flex: 1;
+    margin-block: 0.125rem;
+  }
+  .bm-toast-close {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-chip);
+    font-size: 1.25rem;
+    line-height: 1;
+    color: inherit;
+    cursor: pointer;
+  }
+  .bm-toast-close:hover {
+    background: color-mix(in oklch, currentColor 18%, transparent);
+  }
+  .bm-toast-close:focus-visible {
+    outline: 2px solid var(--bg);
+    outline-offset: -2px;
+  }
   .bm-underline {
     width: 100%;
     border: 0;

@@ -28,7 +28,8 @@ export function attachShortcuts(editor: Editor): Dispose {
   }
 
   const onKey = (event: KeyboardEvent) => {
-    const key = event.key.toLowerCase()
+    // A browser's autofill dispatches keydown events with no `key` at all.
+    const key = (event.key ?? '').toLowerCase()
     const mod = event.metaKey || event.ctrlKey
     if (mod && key === 's') {
       event.preventDefault()

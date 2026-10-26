@@ -215,6 +215,12 @@ In dev and previews the banner and its choices work, and nothing is loaded or se
 
 A theme with its own layout needs three things: render the `template` elements and a banner element carrying `data-consent-banner` (hidden by default) with `data-consent-accept` and `data-consent-reject` buttons, put `data-consent-open` on any element that should reopen it, and import `initConsent` from the script. The default words come from `consentCopy(site.consent)`, which `bearminion` exports.
 
+## Contact form
+
+The Contact section always posts to `/api/contact` and never shows "sent" for a message that went nowhere. Nothing about the form is stored in the content files: the handler is code in `src/forms/contact.ts`, and the public Turnstile site key is `PUBLIC_TURNSTILE_SITE_KEY` in the environment. `src/lib/contact-form.ts` holds the rules (what is sent, how an answer is read, the `_gotcha` trap and the 1.5 s minimum time) and `src/components/sections/contact/form.ts` wires them to the page: sending, sent, a failure shown in a message at the bottom of the screen that stays until the visitor closes it, field errors under their fields, the Cloudflare Turnstile widget when `PUBLIC_TURNSTILE_SITE_KEY` is set at build time, and a success `message` from the handler in place of the thank-you text. The page sends JSON. While `src/forms/contact.ts` does not exist, `astro dev` and `astro build` print a warning (`src/lib/form-check.ts`, wired in `astro.config.ts`) and the section's settings in the editor say so; it never fails the build.
+
+The handler holds the keys that must stay private. Put `defineForm(...)` from `bearminion/forms` in `src/forms/contact.ts`; `astro dev` answers it at `/api/contact` (a dry run until `BEARMINION_FORMS_LIVE=on` is in `.env.local`), and a few lines of glue for Vercel, Netlify, Cloudflare or an Astro endpoint serve it once published. The template ships no `src/forms` folder and no server code, so the build stays static and warns until you add one. `.env.example` lists the environment variables the form uses (the Turnstile keys, `BEARMINION_FORMS_LIVE`); copy it to `.env`. `BEARMINION_VIDEOS_DIR` and `BEARMINION_FORMS_DIR` move the editor's video uploads and the dev forms folder for tests, like the content and uploads variables. See the [Forms guide](https://docs.bearminion.com/forms).
+
 ## Dev editor
 
 `astro.config.ts` registers `bearminion()`. It is active only while `pnpm dev` is running. The production build does not add editor routes, scripts, or the overlay.

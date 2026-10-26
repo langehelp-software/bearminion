@@ -5,6 +5,8 @@
 !/src/assets/
 /src/assets/*
 !/src/assets/uploads/
+# The site's own form handlers (bearminion/forms), never copied from the template.
+!/src/forms/
 
 node_modules/
 dist/

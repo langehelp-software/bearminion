@@ -29,7 +29,8 @@ After a content JSON file changes, the dev server invalidates its module graph, 
 
 | Method | Path | Body | Success |
 | --- | --- | --- | --- |
-| `GET` | `/schema` | | `{ sectionOptions, siteOptions, siteLimits, theme, contentCounts, … }` |
+| `GET` | `/schema` | | `{ sectionOptions, siteOptions, siteLimits, theme, contentCounts, sectionForms, … }`. `sectionForms` maps a section type to the form handler it posts to (its `form` option) |
+| `GET` | `/forms` | | `{ enabled, handlers: { contact: { file } } }`. For each handler a section names, the file in `src/forms` (relative to the project) or `null` while it does not exist. Read on every call. `enabled` is `false` when the `forms` option is `false` |
 | `POST` | `/save` | `{ page?: { from, document, previousHomeSlug? }, site? }` | `{ page?, site? }` as stored. Validates everything, then writes in one store `apply`. `from` is the stored slug; a different `document.slug` renames the page, and `index` makes it the home page (the old home moves to `previousHomeSlug`). Documents may carry `schemaVersion`; they are upgraded like a read. |
 | `GET` | `/site` | | The site document |
 | `PUT` | `/site` | `site.json` | The saved site document |

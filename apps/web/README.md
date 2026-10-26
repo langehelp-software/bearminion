@@ -6,6 +6,7 @@ The BearMinion website, built with BearMinion. It runs the code of the [default 
 | --- | --- | --- |
 | `content/` | The site's pages and settings, written by the editor | yes |
 | `src/assets/uploads/` | The site's images | yes |
+| `src/forms/` | The site's own form handlers (`defineForm` from `bearminion/forms`, see the Forms guide). The sync never touches it | yes |
 | `public/videos/` | The editor demo on the home page | yes |
 | `astro.config.ts`, `tsconfig.json`, the rest of `src/` | Copied from `templates/default` by `scripts/sync-template.mjs` before every `dev`, `build` and `typecheck` | no |
 
