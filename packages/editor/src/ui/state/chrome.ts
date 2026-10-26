@@ -46,9 +46,11 @@ export function createChrome(ui: UiState) {
     for (const node of document.querySelectorAll('[data-field][contenteditable]')) node.removeAttribute('contenteditable')
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
     document.documentElement.style.cursor = ''
+    document.documentElement.setAttribute('data-bearminion-preview', '')
   }
 
   function exitPreview() {
+    document.documentElement.removeAttribute('data-bearminion-preview')
     writeStorage(session, PREVIEW_KEY, null)
     batch(() => {
       ui.previewing.value = false

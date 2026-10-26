@@ -28,6 +28,8 @@ async function serve(): Promise<string> {
     root,
     contentDir,
     uploadsDir,
+    videosDir: path.join(root, 'public', 'videos'),
+    maxVideoBytes: 50 * 1_048_576,
     sections: sectionRegistry,
     site: siteDefinition,
     store: createFileStore({ root, contentDir, uploadsDir }),

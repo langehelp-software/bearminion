@@ -58,7 +58,7 @@ Fields whose path ends in `body`, `intro`, `sub`, `description`, `quote`, `note`
 
 The stored value is Markdown, with blank lines for paragraphs. Text in backticks is literal: nothing inside it is parsed.
 
-There are no heading or image buttons. Headings are fields, and images are [image slots](#images).
+Headings are fields, and images are [image slots](#images). Rich-text fields have no heading buttons, with one exception: a field the theme marks with `data-rich-headings="true"` (the starter's Text section) adds **H2** and **H3** buttons to the toolbar. They write `## heading` and `### heading` on their own line. Enter at the end of a heading starts a paragraph, and Shift+Enter does nothing in one. Pasted `h1` to `h6` become H2 or H3 there, and are dropped everywhere else.
 
 #### What the starter renders
 
@@ -66,7 +66,7 @@ The starter renders that Markdown as `strong`, `em`, `code`, `a`, `br`, `p`, `ul
 
 - `javascript:`, `data:` and `vbscript:` URLs are dropped.
 - `http` and `https` links get `target="_blank"` and `rel="noopener noreferrer"`, unless `{same}` is set.
-- Pasted HTML is parsed with `DOMParser`, read back as that Markdown subset and rendered again. Headings, images, attributes and event handlers from the clipboard are dropped.
+- Pasted HTML is parsed with `DOMParser`, read back as that Markdown subset and rendered again. Images, attributes and event handlers from the clipboard are dropped, and so are headings in a field that has none.
 
 ### Links and buttons
 
@@ -143,7 +143,7 @@ Choices with up to four values are segmented controls, longer lists are selects,
 
 **Anchor.** A lowercase slug, unique on the page. It is suggested from the heading (or the section type) when empty. The section element uses it as `id`. `data-section-id` stays the section id.
 
-**Lists.** Collapsible rows with move and remove.
+**Lists.** Collapsible rows. Drag a row by its grip, or use the up and down buttons: a row you move keeps its place on screen, stays open, and keeps focus on the button, so you can press it again. Each drag shows where the row will land. Remove deletes a row.
 
 **Optional text and buttons.** Clear an optional text field and it is hidden on the page and dropped from the file on save. A button has a Remove control and, once gone, an Add slot. A wrapper whose children are all gone (a section header, an actions row) is not rendered. What defines an item, such as a feature title or a question and its answer, stays required: remove the whole item instead. `section-optional.ts` lists the optional props.
 
@@ -227,7 +227,8 @@ While the site address is still `https://example.com`, the dialog warns you befo
 Every image field is the same control: sections, logo, OG images.
 
 - An empty slot, or a thumbnail with the file name.
-- Alt text (not on OG images).
+- Alt text, marked required (not on OG images).
+- A **Caption**, for pictures in a list that allows one, such as a Gallery. It shows under the picture in the lightbox, and an empty caption shows the alt text instead.
 - Fit (Cover, Contain, Auto) and Position (a 3×3 grid, disabled for Auto) for images that sit in a frame. Not for logos.
 - Change image and Remove.
 - **Show in section** for images that sit in a section. Off writes `hidden: true`, which removes the image and its frame from the page while the file and alt text stay.
@@ -238,6 +239,11 @@ Click the slot, or Change image, to open the picker. On the page, click an image
 
 - **Upload.** Drop a file or click to browse. New files go to `src/assets/uploads` and show in the library immediately.
 - **Library.** Pick an upload, or delete one from disk after a confirm. An image that saved content still uses cannot be deleted, and the error names where it is used.
+
+
+### Videos
+
+A Media section's **Video** field takes a YouTube or Vimeo link, a link to a video file, or a path in `public/`. Under it the editor says what the link is, or why it will not play (a page link, for example). While the field is empty it reminds you that a YouTube or Vimeo link works as it is. **Upload a video file** saves an `.mp4`, `.webm`, `.mov` or `.ogv` to `public/videos` and fills the field with its address, such as `/videos/demo-1a2b3c4d.mp4`. **Uploaded videos** lists the ones already there. The default limit is 50 MB (`maxVideoBytes`), and above 10 MB the editor warns that the file will be slow to load. Video bytes are checked against the file type, not the name. A video a saved page still links cannot be deleted from the API (`409`).
 
 Hovering a section image at least 260 × 64 px shows a bar with Fit, Position and Change.
 

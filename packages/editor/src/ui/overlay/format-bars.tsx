@@ -42,6 +42,31 @@ export function RichTextBar() {
   const run = (command: RichCommand) => (event: MouseEvent) => formatRich(editor, event, command)
   return (
     <div class="bm-rich" style={`top:${position.top}px;left:${position.left}px;`}>
+      {active?.headings && (
+        <>
+          <button
+            type="button"
+            class="bm-fmt-heading"
+            aria-label="Heading"
+            title="Heading"
+            aria-pressed={active.heading === 2}
+            onMouseDown={run('heading2')}
+          >
+            H2
+          </button>
+          <button
+            type="button"
+            class="bm-fmt-heading"
+            aria-label="Subheading"
+            title="Subheading"
+            aria-pressed={active.heading === 3}
+            onMouseDown={run('heading3')}
+          >
+            H3
+          </button>
+          <span class="bm-sep" aria-hidden="true" />
+        </>
+      )}
       <button
         type="button"
         class="bm-fmt-bold"

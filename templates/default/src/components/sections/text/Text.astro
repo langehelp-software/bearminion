@@ -1,0 +1,43 @@
+---
+import type { Section } from '../definitions'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+import { cn } from '../../../lib/cn'
+
+interface Props {
+  section: Extract<Section, { type: 'text' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const center = section.variant === 'center'
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  <div class={cn('section-container flex flex-col gap-[clamp(1.75rem,3.5cqi,2.75rem)]', center && 'items-center')}>
+    <div class={cn('flex w-full flex-col', props.narrow && 'max-w-[42rem]', center && 'items-center text-center')}>
+      <SectionHeader
+        eyebrow={props.eyebrow}
+        heading={props.heading}
+        marks={props.marks}
+        size="h2-md"
+        align={center ? 'center' : 'left'}
+        field={field}
+        class="gap-5"
+      />
+    </div>
+    <Typography
+      as="div"
+      size="lead"
+      class={cn('w-full', props.narrow && 'max-w-[42rem]', center && 'text-left')}
+      data-field={field('body')}
+      markdown={props.body}
+      richHeadings
+    />
+  </div>
+</SectionShell>

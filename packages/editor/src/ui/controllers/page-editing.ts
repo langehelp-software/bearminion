@@ -40,6 +40,7 @@ export function attachPageEditing(editor: Editor): Dispose {
     let stop: Dispose = () => {}
     const handle = mountRichEditor(field, {
       markdown: read(),
+      headings: field.getAttribute('data-rich-headings') === 'true',
       selection,
       onChange: (markdown) => edits.writeField(pathOf(field), markdown),
       keepsEdit: isInEditor,

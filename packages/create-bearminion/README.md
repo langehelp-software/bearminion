@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Create a website you edit by clicking on it. No database, no admin panel, no server.<br />
+  The BearMinion for the bare minimum. Create a website you edit by clicking on it: no database to patch at 3 AM, no admin panel, no server.<br />
   Built on <a href="https://astro.build">Astro</a>.
 </p>
 
@@ -50,11 +50,13 @@ Pass options after `--` with npm (`npm create bearminion@latest my-site -- --yes
 | `--no-git` | Skip creating a git repository |
 | `-y`, `--yes` | Ask nothing and use the defaults, for scripts and AI agents |
 
-The folder must be new or empty. Inside an existing git repository, the site is added as a folder and no new repository is made.
+> **Don't poke the bear:** the folder must be new or empty (`.git` and `.DS_Store` are fine). It refuses anything else, and neither of us wants to untangle that.
+
+Inside an existing git repository, the site is added as a folder and no new repository is made.
 
 ## What you get
 
-The [default BearMinion template](https://github.com/langehelp-software/bearminion/tree/main/templates/default): an Astro and Tailwind site with thirteen section types, the [`bearminion`](https://www.npmjs.com/package/bearminion) editor at the same version as this package, and content as JSON files you own and commit. The template ships inside this package, so it works offline and always matches its editor.
+The [default BearMinion template](https://github.com/langehelp-software/bearminion/tree/main/templates/default): an Astro and Tailwind site with fourteen section types, the [`bearminion`](https://www.npmjs.com/package/bearminion) editor at the same version as this package, and content as JSON files you own and commit. The template ships inside this package, so it works offline and always matches its editor.
 
 ## Learn more
 

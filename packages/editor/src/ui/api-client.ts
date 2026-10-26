@@ -11,6 +11,7 @@ import type {
   SaveResponse,
   SitePreview,
   UploadedImage,
+  UploadedVideo,
 } from '../api-types.js'
 import type { PageDraft } from '../draft.js'
 import type { Catalog, SiteDraft } from './types.js'
@@ -72,6 +73,15 @@ export function uploadImage(file: File) {
   const body = new FormData()
   body.set('file', file)
   return request<UploadedImage>('/images', { method: 'POST', body })
+}
+
+export const getVideos = () => request<{ videos: UploadedVideo[]; maxBytes: number }>('/videos')
+export const deleteVideo = (filename: string) =>
+  request<{ deleted: true; filename: string }>(`/videos/${segment(filename)}`, { method: 'DELETE' })
+export function uploadVideo(file: File) {
+  const body = new FormData()
+  body.set('file', file)
+  return request<UploadedVideo>('/videos', { method: 'POST', body })
 }
 
 export const getGit = () => request<GitInfo>('/git')

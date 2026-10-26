@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sections": [
     {
       "anchor": "hero",
@@ -7,7 +7,7 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.4",
+          "tag": "BearMinion 1.6",
           "text": "Available now"
         },
         "button": false,
@@ -63,6 +63,7 @@
             "start": 12
           }
         ],
+        "playback": "controls",
         "poster": {
           "alt": "",
           "src": "src/assets/uploads/editor-demo-poster.png"
@@ -135,7 +136,7 @@
             "title": "Text, in place"
           },
           {
-            "description": "Add them from a visual picker, reorder them, and switch each one between three layouts and four tones. No page-builder hangover.",
+            "description": "Add them from a visual picker, reorder them, and switch each one between its layouts and four tones. No page-builder hangover.",
             "image": {
               "alt": "The Add section picker: a wireframe, the variant count and a line for each section type",
               "fit": "cover",
@@ -199,6 +200,58 @@
       "variant": "bento"
     },
     {
+      "anchor": "tour",
+      "id": "tour",
+      "props": {
+        "body": "Every picture here is a screenshot of the editor running on a real site. Click one to look closer.",
+        "columns": "4",
+        "eyebrow": "The editor, up close",
+        "frame": false,
+        "heading": "Nine real screens. No mockups.",
+        "images": [
+          {
+            "alt": "The editor open on the home page: a section toolbar beside the page and the sidebar on the right",
+            "fit": "contain",
+            "src": "src/assets/uploads/editor-overview.webp"
+          },
+          {
+            "alt": "The Navigation tab: the header links, their order and the button",
+            "caption": "Navigation: header links and button",
+            "fit": "contain",
+            "src": "src/assets/uploads/editor-tab-navigation.webp"
+          },
+          {
+            "alt": "The Footer tab: layout, columns and links",
+            "fit": "contain",
+            "src": "src/assets/uploads/editor-tab-footer.webp"
+          },
+          {
+            "alt": "The Design tab: palette, fonts, corners and motion for the whole site",
+            "caption": "Design: palette, fonts and corners",
+            "fit": "contain",
+            "src": "src/assets/uploads/editor-tab-design.webp"
+          },
+          {
+            "alt": "The Site tab: name, address, language, social image, analytics and the cookie banner",
+            "fit": "contain",
+            "src": "src/assets/uploads/editor-tab-site.webp"
+          }
+        ],
+        "lightbox": true,
+        "marks": [
+          {
+            "end": 17,
+            "font": "serif",
+            "italic": true,
+            "start": 5
+          }
+        ]
+      },
+      "tone": "base",
+      "type": "gallery",
+      "variant": "featured"
+    },
+    {
       "anchor": "facts",
       "id": "facts",
       "props": {
@@ -207,11 +260,11 @@
         "items": [
           {
             "label": "section types to build pages from",
-            "value": "13"
+            "value": "14"
           },
           {
-            "label": "layouts, three for every section",
-            "value": "39"
+            "label": "layouts across them, to switch between",
+            "value": "41"
           },
           {
             "label": "color tones, each contrast-checked",

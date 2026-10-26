@@ -66,9 +66,11 @@ function seed(): EditorContext {
     root,
     contentDir,
     uploadsDir,
+    videosDir: path.join(root, 'public', 'videos'),
+    maxVideoBytes: 50 * 1_048_576,
     sections: sectionRegistry,
     site: siteDefinition,
-    store: createFileStore({ root, contentDir, uploadsDir }),
+    store: createFileStore({ root, contentDir, uploadsDir, videosDir: path.join(root, 'public', 'videos') }),
     migrator: createMigrator(),
     theme: defaultTheme,
     git: false,
@@ -288,6 +290,50 @@ describe('editor API', () => {
     expect(fs.existsSync(path.join(context.contentDir, 'pages', 'notes.json'))).toBe(false)
   })
 
+  it('checks video contents and size, serves the file from public/, and refuses to delete one a page uses', async () => {
+    const context = { ...withRegistry(seed()), maxVideoBytes: 1024 }
+    const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(8)])
+    const uploaded = await call(context, 'POST', `${API_PREFIX}/videos`, { form: fileForm(MP4, '../Demo Clip.mp4', 'video/mp4') })
+    expect(uploaded.status).toBe(201)
+    const body = (await uploaded.json()) as { filename: string; url: string; path: string }
+    expect(body.filename).toMatch(/^demo-clip-[a-f0-9]{8}\.mp4$/)
+    expect(body.url).toBe(`/videos/${body.filename}`)
+    expect(body.path).toBe(`public/videos/${body.filename}`)
+    expect(fs.readFileSync(path.join(context.videosDir, body.filename))).toEqual(MP4)
+
+    const listed = (await (await call(context, 'GET', `${API_PREFIX}/videos`)).json()) as { videos: { url: string }[]; maxBytes: number }
+    expect(listed.videos.map((video) => video.url)).toEqual([body.url])
+    expect(listed.maxBytes).toBe(1024)
+
+    for (const [bytes, name, type] of [
+      [Buffer.from('not a video at all'), 'note.mp4', 'video/mp4'],
+      [PNG, 'pic.mp4', 'video/mp4'],
+      [MP4, 'clip.webm', 'video/webm'],
+    ] as const) {
+      const response = await call(context, 'POST', `${API_PREFIX}/videos`, { form: fileForm(Buffer.from(bytes), name, type) })
+      expect(response.status, name).toBe(415)
+    }
+    const tooBig = await call(context, 'POST', `${API_PREFIX}/videos`, {
+      form: fileForm(Buffer.concat([MP4, Buffer.alloc(1024)]), 'big.mp4', 'video/mp4'),
+    })
+    expect(tooBig.status).toBe(413)
+    expect(fs.readdirSync(context.videosDir)).toEqual([body.filename])
+
+    // A saved page that links the file keeps it.
+    const page = JSON.parse(fs.readFileSync(path.join(context.contentDir, 'pages', 'index.json'), 'utf8')) as { sections: unknown[] }
+    page.sections.push({ id: 'clip', type: 'media', variant: 'centered', tone: 'base', props: { kind: 'video', video: body.url } })
+    fs.writeFileSync(path.join(context.contentDir, 'pages', 'index.json'), JSON.stringify(page))
+    const kept = await call(context, 'DELETE', `${API_PREFIX}/videos/${body.filename}`)
+    expect(kept.status).toBe(409)
+    expect(fs.existsSync(path.join(context.videosDir, body.filename))).toBe(true)
+
+    page.sections.pop()
+    fs.writeFileSync(path.join(context.contentDir, 'pages', 'index.json'), JSON.stringify(page))
+    const removed = await call(context, 'DELETE', `${API_PREFIX}/videos/${body.filename}`)
+    expect(removed.status).toBe(200)
+    expect(fs.existsSync(path.join(context.videosDir, body.filename))).toBe(false)
+  })
+
   it('checks image type and size, and stores a safe unique filename', async () => {
     const context = withRegistry(seed())
     const sentinel = path.join(context.root, 'secret.png')
@@ -424,6 +470,7 @@ describe('editor API', () => {
       footer: { columns: { recommended: 3, max: 3 } },
       logoStrip: { logos: { recommended: 6 } },
       steps: contentCounts.steps,
+      gallery: { images: { recommended: '6 to 12', min: 1, max: 24 } },
       features: contentCounts.features,
       textImage: { points: { recommended: 3 } },
       stats: { items: { recommended: 4 } },
@@ -554,7 +601,7 @@ describe('editor API', () => {
     expect(page.status).toBe(200)
     const savedPage = (await page.json()) as { sections: { id: string; variant: string }[] }
     expect(savedPage.sections.map((section) => section.id)).toEqual(sections.map((section) => section.id))
-    expect(savedPage.sections).toHaveLength(sectionTypes.length * 3)
+    expect(savedPage.sections).toHaveLength(sections.length)
 
     const site = await call(context, 'PUT', `${API_PREFIX}/site`, {
       json: {

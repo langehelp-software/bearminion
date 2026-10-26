@@ -27,7 +27,11 @@ export function bearminion(options: BearminionOptions): BearminionIntegration {
               watch: {
                 // New uploads match the image glob. Ignoring the folder keeps
                 // `astro dev` from full-reloading and dropping the draft.
-                ignored: [`${context.uploadsDir.replaceAll('\\', '/')}/**`, `${context.root.replaceAll('\\', '/')}/.editor/**`],
+                ignored: [
+                  `${context.uploadsDir.replaceAll('\\', '/')}/**`,
+                  `${context.videosDir.replaceAll('\\', '/')}/**`,
+                  `${context.root.replaceAll('\\', '/')}/.editor/**`,
+                ],
               },
             },
             plugins: [contentReloadPlugin([context.contentDir]), editorClientPlugin()],

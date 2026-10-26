@@ -1,0 +1,128 @@
+---
+import type { Section } from '../definitions'
+import Typography from '../../atoms/Typography.astro'
+import MediaFrame from '../../molecules/MediaFrame.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+import { isRemote, resolveLocalAsset } from '../../../lib/assets'
+import { imageUrl } from '../../../lib/image-url'
+import { cn } from '../../../lib/cn'
+
+interface Props {
+  section: Extract<Section, { type: 'gallery' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const images = props.images.filter((image) => !image.hidden)
+const featured = section.variant === 'featured'
+const masonry = section.variant === 'masonry'
+
+// Static class names, so Tailwind sees them.
+const gridColumns = {
+  '2': 'grid-cols-1 @min-[560px]:grid-cols-2',
+  '3': 'grid-cols-1 @min-[560px]:grid-cols-2 @min-[900px]:grid-cols-3',
+  '4': 'grid-cols-2 @min-[700px]:grid-cols-3 @min-[1000px]:grid-cols-4',
+} as const
+const masonryColumns = {
+  '2': 'columns-1 @min-[560px]:columns-2',
+  '3': 'columns-1 @min-[560px]:columns-2 @min-[900px]:columns-3',
+  '4': 'columns-2 @min-[700px]:columns-3 @min-[1000px]:columns-4',
+} as const
+
+/** The index of an image in the section's full list, so the editor's field paths stay right when some are hidden. */
+const pathIndex = (image: (typeof images)[number]) => props.images.indexOf(image)
+const aspect = (position: number) => {
+  if (featured && position === 0) return 'aspect-[4/3] @min-[900px]:aspect-auto @min-[900px]:h-full'
+  if (masonry) return position % 3 === 0 ? 'aspect-[3/4]' : position % 3 === 1 ? 'aspect-[4/3]' : 'aspect-square'
+  return 'aspect-[4/3]'
+}
+const tileClass = (position: number) =>
+  cn(featured && position === 0 && '@min-[900px]:col-span-2 @min-[900px]:row-span-2', masonry && 'mb-4 break-inside-avoid')
+
+/** A picture the lightbox can show: a real file or address, not the placeholder. */
+const viewable = (src: string) => src !== 'placeholder' && (isRemote(src) || Boolean(resolveLocalAsset(src)) || src.replace(/^\//, '').startsWith('src/assets/'))
+
+// The large file each link points at. With JavaScript off the link opens it; with JavaScript on it is what the lightbox loads.
+const larges = await Promise.all(images.map((image) => (props.lightbox && viewable(image.src) ? imageUrl(image) : undefined)))
+const lightbox = props.lightbox && larges.some(Boolean)
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  <div class="section-container flex flex-col gap-[clamp(2rem,4cqi,3.5rem)]">
+    <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} class="gap-5" />
+    {props.body && <Typography as="div" size="lead" color="muted" class="max-w-[40rem]" data-field={field('body')} markdown={props.body} />}
+    <ul
+      class={cn(
+        masonry ? masonryColumns[props.columns] : gridColumns[props.columns],
+        masonry ? 'gap-x-4' : cn('grid gap-4', featured && '@min-[900px]:auto-rows-fr'),
+      )}
+    >
+      {
+        images.map((image, position) => {
+          const frame = (
+            <MediaFrame
+              src={image.src}
+              alt={image.alt}
+              aspectClass={aspect(position)}
+              fit={masonry ? 'auto' : image.fit}
+              position={image.position}
+              class={cn(props.frame && 'border border-line bg-surface', larges[position] && 'transition-transform duration-300 hover:scale-[1.01] motion-reduce:transition-none')}
+              data-field={field(`images.${pathIndex(image)}.alt`)}
+            />
+          )
+          return (
+            <li class={tileClass(position)}>
+              {larges[position] ? (
+                <a
+                  href={larges[position]}
+                  class="block size-full cursor-zoom-in rounded-card-lg focus-visible:outline-offset-2"
+                  data-gallery-open
+                  data-alt={image.alt}
+                  data-caption={image.caption}
+                  aria-label={`View larger: ${image.alt}`}
+                >
+                  {frame}
+                </a>
+              ) : (
+                frame
+              )}
+            </li>
+          )
+        })
+      }
+    </ul>
+  </div>
+  {
+    lightbox && (
+      <dialog class="bm-lightbox" aria-label={props.heading ? `${props.heading}: pictures` : 'Pictures'} data-gallery-dialog>
+        <div class="bm-lightbox-stage" data-gallery-stage>
+          <button type="button" class="bm-lightbox-close" aria-label="Close" data-gallery-close>
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="bm-lightbox-icon"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+          <p class="bm-lightbox-counter" data-gallery-counter aria-hidden="true" />
+          <button type="button" class="bm-lightbox-nav bm-lightbox-prev" aria-label="Previous picture" data-gallery-step="-1">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="bm-lightbox-icon"><path d="M14.5 5.5L8 12l6.5 6.5" /></svg>
+          </button>
+          <figure class="bm-lightbox-figure" data-gallery-figure>
+            <img class="bm-lightbox-image" alt="" data-gallery-image decoding="async" />
+            <figcaption class="bm-lightbox-caption" data-gallery-caption hidden />
+          </figure>
+          <button type="button" class="bm-lightbox-nav bm-lightbox-next" aria-label="Next picture" data-gallery-step="1">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="bm-lightbox-icon"><path d="M9.5 5.5L16 12l-6.5 6.5" /></svg>
+          </button>
+          <p class="sr-only" role="status" aria-live="polite" data-gallery-status />
+        </div>
+      </dialog>
+    )
+  }
+</SectionShell>
+
+<script>
+  import { initGalleries } from './lightbox'
+  initGalleries()
+</script>

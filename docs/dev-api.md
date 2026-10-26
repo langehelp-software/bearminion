@@ -9,7 +9,7 @@ Base path: `/__bearminion/api`. Only loopback clients are accepted. `Host` must 
 
 Slugs are lowercase kebab-case. Encoded `..`, slashes, and backslashes are rejected. Upload filenames are reduced to a safe stem, then stored with a random suffix and an extension taken from the sniffed image type.
 
-JSON bodies are limited to 1MB. Images are limited to 5MB and must be png, jpeg, webp, gif, or avif, with a matching `Content-Type` and file signature.
+JSON bodies are limited to 1MB. Images are limited to 5MB and must be png, jpeg, webp, gif, or avif, with a matching `Content-Type` and file signature. Videos are limited to `maxVideoBytes` (50MB by default) and must be mp4, webm, mov or ogv, checked the same way.
 
 Every write is checked with the Zod schemas first. A failure is `400`:
 
@@ -44,6 +44,9 @@ After a content JSON file changes, the dev server invalidates its module graph, 
 | `GET` | `/images` | | `{ images: [{ filename, path }] }` |
 | `DELETE` | `/images/:filename` | | `{ deleted: true, filename }`. `404` for an unknown name or anything that is not a plain image file in the uploads directory. `409` `{ error: 'in_use', message, usages }` while `site.json` or a saved page points at the file; `usages` reads like `Home page › Hero` or `Site settings › brand logo`. |
 | `POST` | `/images` | multipart field `file` | `201` `{ filename, path, bytes }` |
+| `GET` | `/videos` | | `{ videos: [{ filename, path, url, bytes }], maxBytes }` |
+| `POST` | `/videos` | multipart field `file` | `201` `{ filename, path, url, bytes }`. `url` is the address on the site, such as `/videos/demo-1a2b3c4d.mp4`, and is what a Media section's `video` field holds. `404` when the store takes no videos. |
+| `DELETE` | `/videos/:filename` | | `{ deleted: true, filename }`. `409` `{ error: 'in_use', message, usages }` while saved content links the video. |
 
 `POST /pages` without `template` inserts one hero section (or the first registered section) using that type's design-system defaults, including the default `variant` and `tone` from the section's options. `template` may be any registered section type (`hero`, `logoStrip`, `features`, `textImage`, `stats`, `testimonials`, `pricing`, `faq`, `cta`, `contact`), which inserts that type's defaults, or an existing page slug, which copies that page's sections. A section type wins when a slug and a type share a name. The new file is `content/pages/<slug>.json`.
 

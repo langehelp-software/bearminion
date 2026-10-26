@@ -34,7 +34,7 @@ export default defineConfig({
 })
 ```
 
-`contentDir` defaults to `content`. `uploadsDir` defaults to `src/assets/uploads`. Both are resolved from the Astro project root unless they are already absolute. `sections` and `site` are required: the site's section definitions and its `defineSite` result. They validate page and site writes and feed the editor's catalog (labels, options, defaults, wireframes, header and footer controls and limits).
+`contentDir` defaults to `content`. `uploadsDir` defaults to `src/assets/uploads`. `videosDir` defaults to `public/videos` and must stay inside `public/`, which serves videos as they are. `maxVideoBytes` caps one video upload (default 50 MB). Both are resolved from the Astro project root unless they are already absolute. `sections` and `site` are required: the site's section definitions and its `defineSite` result. They validate page and site writes and feed the editor's catalog (labels, options, defaults, wireframes, header and footer controls and limits).
 
 The integration hooks `astro:config:setup` and `astro:server:setup`. Outside `astro dev` (`build`, `preview`, `sync`) it returns immediately: no routes, no injected scripts, no Vite plugin. Nothing from this API is added to the production build.
 

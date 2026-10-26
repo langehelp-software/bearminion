@@ -2339,6 +2339,12 @@ button.bm-pill-btn:focus-visible {
   flex-direction: column;
   gap: 8px;
 }
+.bm-array-row {
+  position: relative;
+}
+.bm-array-grip {
+  cursor: grab;
+}
 .bm-array-item {
   border: 1px solid var(--bm-border);
   border-radius: 10px;
@@ -2770,6 +2776,11 @@ details[open] > summary .bm-chevron {
 .bm-fmt-bold {
   font-weight: 700;
   font-size: 13px;
+}
+.bm-fmt-heading {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: -0.02em;
 }
 .bm-fmt-italic {
   font-family: var(--serif);

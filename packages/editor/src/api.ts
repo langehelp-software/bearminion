@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { ContentReadError, ContentValidationError, type ContentIssue } from './errors.js'
 import { imageTooLarge, kindFromMime, sniffImage } from './images.js'
+import { sniffVideo, videoBodyLimit, videoKindFromMime } from './videos.js'
 import { API_PREFIX, type EditorContext, type SectionRegistry } from './options.js'
 import type { CountRule, Option } from './section-options.js'
 import type { OptionalContent } from './section-optional.js'
@@ -103,6 +104,17 @@ export async function handleEditorRequest(request: Request, context: EditorConte
 
   if (parts.length === 2 && parts[0] === 'images') {
     if (method === 'DELETE') return removeImage(context, decodeSegment(parts[1] ?? ''))
+    return methodNotAllowed(['DELETE'])
+  }
+
+  if (parts.length === 1 && parts[0] === 'videos') {
+    if (method === 'GET') return getVideos(context)
+    if (method === 'POST') return postVideo(request, context)
+    return methodNotAllowed(['GET', 'POST'])
+  }
+
+  if (parts.length === 2 && parts[0] === 'videos') {
+    if (method === 'DELETE') return removeVideo(context, decodeSegment(parts[1] ?? ''))
     return methodNotAllowed(['DELETE'])
   }
 
@@ -771,6 +783,91 @@ async function removeImage(context: EditorContext, filename: string): Promise<Re
     return problem(404, 'not_found', 'No uploaded image has that name.')
   }
   return json(200, { deleted: true, filename })
+}
+
+const NO_VIDEOS = 'This content store does not take video uploads.'
+
+async function getVideos(context: EditorContext): Promise<Response> {
+  if (!context.store.videos) return json(200, { videos: [], maxBytes: context.maxVideoBytes })
+  return json(200, { videos: await context.store.videos.list(), maxBytes: context.maxVideoBytes })
+}
+
+/** Every string in a JSON value. */
+function* strings(value: unknown): Generator<string> {
+  if (typeof value === 'string') yield value
+  else if (Array.isArray(value)) for (const item of value) yield* strings(item)
+  else if (typeof value === 'object' && value !== null) for (const item of Object.values(value)) yield* strings(item)
+}
+
+/** Where saved content links the video at `url`, named like the image usages: "Home page › Media". */
+async function videoUsages(context: EditorContext, url: string): Promise<string[]> {
+  const labels = Object.fromEntries(Object.values(context.sections).map((definition) => [definition.type, definition.label]))
+  const usages: string[] = []
+  const site = await readStoredJson(context, SITE_KEY, 'site')
+  if ([...strings(site)].includes(url)) usages.push('Site settings')
+  for (const name of (await context.store.list(PAGES_DIR)) ?? []) {
+    if (!name.endsWith('.json') || name.startsWith('.')) continue
+    const page = await readStoredJson(context, `${PAGES_DIR}/${name}`, 'page')
+    if (typeof page !== 'object' || page === null) continue
+    const title = 'title' in page && typeof page.title === 'string' ? page.title : name.replace(/\.json$/, '')
+    const sections = 'sections' in page && Array.isArray(page.sections) ? (page.sections as { type?: string }[]) : []
+    for (const section of sections) {
+      if ([...strings(section)].includes(url)) usages.push(`${title} › ${labels[section.type ?? ''] ?? section.type ?? 'section'}`)
+    }
+  }
+  return usages
+}
+
+async function removeVideo(context: EditorContext, filename: string): Promise<Response> {
+  const videos = context.store.videos
+  if (!videos) return problem(404, 'not_found', NO_VIDEOS)
+  const video = (await videos.list()).find((item) => item.filename === filename)
+  if (!video) return problem(404, 'not_found', 'No uploaded video has that name.')
+  const usages = await videoUsages(context, video.url)
+  if (usages.length > 0) {
+    return json(409, {
+      error: 'in_use',
+      message: `${filename} is still used: ${usages.join('; ')}. Choose another video there and save, then delete it.`,
+      usages,
+    })
+  }
+  if (!(await videos.remove(filename))) return problem(404, 'not_found', 'No uploaded video has that name.')
+  return json(200, { deleted: true, filename })
+}
+
+async function postVideo(request: Request, context: EditorContext): Promise<Response> {
+  const videos = context.store.videos
+  if (!videos) return problem(404, 'not_found', NO_VIDEOS)
+  const limitMb = Math.round(context.maxVideoBytes / 1_048_576)
+  const tooLarge = () =>
+    problem(413, 'too_large', `Videos must be ${limitMb}MB or smaller. Link a hosted video instead, or compress this one.`)
+  const length = contentLength(request)
+  if (length !== null && length > videoBodyLimit(context.maxVideoBytes)) return tooLarge()
+  const type = request.headers.get('content-type') ?? ''
+  if (!type.toLowerCase().includes('multipart/form-data')) {
+    return problem(415, 'unsupported_media_type', 'Upload the video as multipart/form-data.')
+  }
+  let form: FormData
+  try {
+    form = await request.formData()
+  } catch {
+    return problem(400, 'invalid_upload', 'The upload body could not be read.')
+  }
+  const entry = form.get('file')
+  if (!(entry instanceof File)) return problem(400, 'invalid_upload', 'Expected a multipart file field named "file".')
+  if (entry.size > context.maxVideoBytes) return tooLarge()
+  const bytes = new Uint8Array(await entry.arrayBuffer())
+  if (bytes.byteLength > context.maxVideoBytes) return tooLarge()
+  const declared = videoKindFromMime(entry.type)
+  const sniffed = sniffVideo(bytes)
+  if (declared === null || sniffed === null || declared !== sniffed) {
+    return problem(415, 'unsupported_media_type', 'Upload an mp4, webm, mov or ogv video whose contents match the declared type.')
+  }
+  try {
+    return json(201, await videos.save({ originalName: entry.name, bytes, kind: sniffed }))
+  } catch (error) {
+    return problem(500, 'write_failed', error instanceof Error ? error.message : 'Upload failed.')
+  }
 }
 
 async function postImage(request: Request, context: EditorContext): Promise<Response> {
