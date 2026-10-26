@@ -1,49 +1,42 @@
-import {
-  createPageSchema,
-  createSectionSchema,
-  type Option,
-  type Page as ContentPage,
-  type SectionOf,
-  type SectionRegistry,
-} from 'bearminion'
-import { contact } from './contact/definition'
-import { cta } from './cta/definition'
-import { faq } from './faq/definition'
-import { features } from './features/definition'
-import { gallery } from './gallery/definition'
-import { hero } from './hero/definition'
-import { logoStrip } from './logo-strip/definition'
-import { media } from './media/definition'
-import { pricing } from './pricing/definition'
-import { stats } from './stats/definition'
-import { steps } from './steps/definition'
-import { testimonials } from './testimonials/definition'
-import { text } from './text/definition'
-import { textImage } from './text-image/definition'
+import { createPageSchema, createSectionSchema, type Option, type Page as ContentPage, type SectionOf } from 'bearminion'
+import { sectionDefinitions as generated } from './definitions.gen'
 
 /**
- * Every section type of this site. Each one is defined in its own directory:
- * `definition.ts` (zod schema, defaults, options), `wireframe.ts` (the Add section thumbnail),
- * and the Astro component. Add a directory and list it here (and in `registry.ts`) to add a type.
+ * Where a section type sits in the editor's Add section menu and on the variants page. A type that is not listed
+ * (one you added) comes after these, by name.
+ */
+const order = [
+  'hero',
+  'logoStrip',
+  'steps',
+  'gallery',
+  'features',
+  'text',
+  'textImage',
+  'stats',
+  'testimonials',
+  'pricing',
+  'media',
+  'faq',
+  'cta',
+  'contact',
+] as const
+
+const rank = (type: string) => {
+  const index = (order as readonly string[]).indexOf(type)
+  return index === -1 ? order.length : index
+}
+
+/**
+ * Every section type of this site. A type is a directory next to this file with a `definition.ts` (zod schema,
+ * defaults, options), a `wireframe.ts` (the Add section thumbnail) and the Astro component. `bearminion sync` lists
+ * the directories in `definitions.gen.ts` and `components.gen.ts`: add a directory, run it, and the type exists.
  *
  * It holds no `.astro` imports, so `astro.config.ts` and the editor can load it.
  */
-export const sectionDefinitions = {
-  hero,
-  logoStrip,
-  steps,
-  gallery,
-  features,
-  text,
-  textImage,
-  stats,
-  testimonials,
-  pricing,
-  media,
-  faq,
-  cta,
-  contact,
-} satisfies SectionRegistry
+export const sectionDefinitions = Object.fromEntries(
+  Object.entries(generated).sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b)),
+) as typeof generated
 
 export type SectionType = keyof typeof sectionDefinitions
 export type Section = SectionOf<typeof sectionDefinitions>

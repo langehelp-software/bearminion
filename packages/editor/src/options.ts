@@ -25,6 +25,12 @@ export interface BearminionOptions extends ContentModel {
    */
   previewModule?: string
   /**
+   * The folder that holds the section directories and the files `bearminion sync` generates from them, relative to the
+   * project root. When set, `astro build`, `astro check` and `astro sync` stop if those files are stale, and
+   * `astro dev` warns. Default: not checked.
+   */
+  sectionsDir?: string
+  /**
    * The dev route for the forms in your site. A file `src/forms/contact.ts` that default-exports `defineForm(...)`
    * answers at `/api/contact` during `astro dev`, as a dry run unless `BEARMINION_FORMS_LIVE=on`. `dir` is the folder
    * (default `src/forms`) and `prefix` the path (default `/api`). `false` turns the route off, for a site whose
