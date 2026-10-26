@@ -132,6 +132,8 @@ The Add section menu lists the types in the order of `order` in `sections/defini
 
 Restart `npm run dev`. The section appears in the Add section picker, its fields in the sidebar, and `npm run typecheck` checks the component against the schema. Add a `Quote.stories.ts` next to it if you use Storybook.
 
+A section from a newer release comes into an existing site with `npx bearminion add <name>`; see [The command line](../../docs/cli.md).
+
 Removing a section type later means deleting its directory and running `npx bearminion sync`. It is safe: pages that still hold it open in the editor with an "Unknown" section you can delete, and `astro build` fails until they are cleaned up.
 
 ## Atoms

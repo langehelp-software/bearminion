@@ -21,8 +21,8 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "changeset": "changeset",
-    "version-packages": "changeset version && pnpm install --lockfile-only",
-    "release": "pnpm build:lib && changeset publish"
+    "version-packages": "changeset version && pnpm install --lockfile-only && pnpm build:lib && node packages/editor/dist/registry-build.js record",
+    "release": "pnpm build:lib && node packages/editor/dist/registry-build.js check && changeset publish"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

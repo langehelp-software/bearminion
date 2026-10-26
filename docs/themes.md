@@ -7,7 +7,7 @@ What a theme supplies to `bearminion`: section types, the header and footer defi
 
 ## Section registry
 
-The package ships no section types. A site defines each one in its own directory and passes the set to `bearminion({ sections, site })`, `loadContent(dir, { sections, site })` and `loadPages(dir, sections)`. The starter's sections are `hero`, `logoStrip`, `features`, `text`, `textImage`, `stats`, `testimonials`, `steps`, `gallery`, `pricing`, `media`, `faq`, `cta` and `contact`, each with two or three variants (see [Sections](sections.md) for screenshots of every layout), in `templates/default/src/components/sections/<name>/`:
+The package ships no section types. A site defines each one in its own directory and passes the set to `bearminion({ sections, site })`, `loadContent(dir, { sections, site })` and `loadPages(dir, sections)`. The starter's sections are `hero`, `logoStrip`, `features`, `text`, `textImage`, `stats`, `testimonials`, `steps`, `gallery`, `pricing`, `media`, `faq`, `cta` and `contact`, each with two or three variants (see [Sections](sections/README.md) for screenshots of every layout), in `templates/default/src/components/sections/<name>/`:
 
 ```text
 hero/
