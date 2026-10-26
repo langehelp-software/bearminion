@@ -22,4 +22,12 @@ Text beside a picture, with a short list of points and a link.
 
 Content: `points` (three recommended), an `image`, optional `eyebrow`, `heading`, `body` and `link`.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add text-image`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add text-image
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

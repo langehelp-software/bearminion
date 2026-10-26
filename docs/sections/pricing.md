@@ -24,4 +24,12 @@ Options: **Yearly discount** (`yearlyDiscount`): a number from 0 to 1, `0.2` by 
 
 Content: `plans` of `{ name, blurb?, monthly, featured?, cta?, features }`, three recommended. A plan's `cta` is a link `{ label, href }`. Optional: `rows`, `eyebrow`, `heading`, `intro` and `singleHeading`.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add pricing`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add pricing
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

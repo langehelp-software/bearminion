@@ -22,4 +22,12 @@ A closing heading, a short text and one or two buttons.
 
 Content, all optional: `heading`, `body`, `command`, `output`, `primary` and `secondary`. In the `terminal` layout, `output` holds up to 8 lines of `{ prompt?, text }` printed under the command.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add cta`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add cta
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

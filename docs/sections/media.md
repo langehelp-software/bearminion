@@ -31,4 +31,12 @@ Content, all optional: `eyebrow`, `heading`, `body`, `video`, `poster`, `image`,
 
 Older sites had a separate Video section. Content version 2 turns it into Media when the file is next saved.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add media`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add media
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

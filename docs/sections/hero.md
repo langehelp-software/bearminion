@@ -28,4 +28,12 @@ Options:
 
 Content, all optional: `eyebrow`, `heading`, `sub`, `badge` (`tag`, `text`, `href`; it takes the eyebrow's place in `split` and `centered`), `primary`, `secondary`, `command` and `image`.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add hero`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add hero
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

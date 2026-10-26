@@ -28,4 +28,12 @@ Options:
 
 Content: 1 to 24 `images`, 6 to 12 recommended. Each needs alt text. An optional `caption` shows under the picture in the lightbox; a picture without one shows its alt text there. Optional: `eyebrow`, `heading` and `body`.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add gallery`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add gallery
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

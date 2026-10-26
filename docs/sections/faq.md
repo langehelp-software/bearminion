@@ -22,4 +22,12 @@ Questions that open to show their answers.
 
 Content: 4 to 8 `items` of `{ question, answer }`. Optional: `eyebrow`, `heading`, `more` and `link`.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add faq`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add faq
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

@@ -22,4 +22,12 @@ A row of customer or partner logos under a small label. Each logo needs alt text
 
 Content: `label` (optional) and `logos`, six recommended.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add logo-strip`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add logo-strip
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

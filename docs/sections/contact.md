@@ -24,4 +24,12 @@ The form always posts to `/api/contact`, where a handler you write in `src/forms
 
 Content: `details` (a `label` and a `value` each, such as an email address) and `topics` (the choices in the topic menu), three of each recommended. Optional: `eyebrow`, `heading`, `body`, `note` and `thanks`. When the handler answers with a `message`, the visitor sees it in place of `thanks`. A failed send shows its error in a message at the bottom of the screen that stays until the visitor closes it.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add contact`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add contact
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

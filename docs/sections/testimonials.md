@@ -22,4 +22,12 @@ Quotes with a name, a role and an optional avatar.
 
 Content: `items` of `{ quote, name, role?, image? }`, three recommended. Optional: `eyebrow` and `heading`.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add testimonials`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add testimonials
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

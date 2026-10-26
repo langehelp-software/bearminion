@@ -24,4 +24,12 @@ Options: **Show numbers** (`numbered`, on by default).
 
 Content: 2 to 6 `steps`, 3 or 4 recommended, each with an `icon` (`terminal`, `edit`, `upload`, `moon`, `git`, `check`, `bolt`, `cursor`, `sliders` or `database`), a `title` and an optional `description`. Optional: `eyebrow`, `heading`, `body` and `link`.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add steps`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add steps
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

@@ -22,4 +22,12 @@ Cards with a title, a description and an optional picture.
 
 Content: 3 to 6 `items`, each with a `title`, an optional `description` and an optional `image`. Optional: `eyebrow`, `heading`, `intro` and `link`.
 
-Back to [all sections](README.md). Add it to a site made earlier with `npx bearminion add features`.
+## Add it to your site
+
+A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+
+```sh
+npx bearminion add features
+```
+
+Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.
