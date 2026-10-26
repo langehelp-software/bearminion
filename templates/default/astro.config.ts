@@ -50,6 +50,8 @@ export default defineConfig({
     bearminion({
       contentDir,
       ...contentModel,
+      // `astro build` stops when the files `bearminion sync` writes no longer match the section directories.
+      sectionsDir: 'src/components/sections',
       git: process.env.BEARMINION_GIT === 'true',
       uploadsDir: process.env.BEARMINION_UPLOADS_DIR
         ? path.resolve(process.env.BEARMINION_UPLOADS_DIR)

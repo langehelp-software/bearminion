@@ -38,7 +38,7 @@ src/components/
   atoms/        Typography, Button, Image, LogoMark, Emphasis
   molecules/    SectionShell, SectionHeader, MediaFrame, Pill, CommandLine
   organisms/    Header, Navigation, MobileMenu, Footer, plus site-definition.ts (header and footer layouts, limits)
-  sections/     one directory per type, plus definitions.ts, registry.ts, shared.ts, SectionList.astro
+  sections/     one directory per type, plus definitions.ts, shared.ts, SectionList.astro and the generated definitions.gen.ts, components.gen.ts
     hero/         definition.ts (zod schema, defaults, options), wireframe.ts (picker thumbnail), Hero.astro, Hero.stories.ts
     logo-strip/ steps/ gallery/ features/ text/ text-image/ stats/ testimonials/ pricing/ media/ faq/ cta/ contact/
   seo/          Seo
@@ -48,7 +48,7 @@ src/components/
 
 ## Add a section type
 
-A section type is one directory under `src/components/sections/` plus three one-line registrations. This walks through a `quote` section: a pull quote with an attribution.
+A section type is one directory under `src/components/sections/` and one command, `npx bearminion sync`. This walks through a `quote` section: a pull quote with an attribution.
 
 **1. The definition** (`quote/definition.ts`). The Zod schema validates the JSON and drives the editor's Content fields; `defaults` is what a new section starts with and must pass the schema.
 
@@ -120,15 +120,19 @@ const field = (path: string) => `sections.${index}.props.${path}`
 </SectionShell>
 ```
 
-**4. Register it** in three places:
+**4. Register it** with one command:
 
-- `sections/definitions.ts`: add `quote` to `sectionDefinitions`. This is the schema side, loaded by `astro.config.ts` and the editor, so it must not import `.astro` files.
-- `sections/registry.ts`: add `quote: Quote`. The `satisfies Record<SectionType, unknown>` check fails until you do.
-- `sections/SectionList.astro`: add a `case 'quote'` that renders `<Quote section={section} index={index} motion={motion} />`. The switch is what gives each component its exact section type.
+```sh
+npx bearminion sync
+```
+
+It lists every directory under `sections/` that holds a `definition.ts` in two generated files, `definitions.gen.ts` (the schemas, with no `.astro` imports, so `astro.config.ts` and the editor can load them) and `components.gen.ts` (type → component). The names follow the directory: `quote/` exports `quote` from `definition.ts` and `Quote` from `Quote.astro`, and `logo-strip/` becomes `logoStrip` and `LogoStrip`. `SectionList.astro` renders whatever the map holds, so it needs no edit. Do not edit the generated files; commit them. `astro build`, `astro check` and `astro sync` stop with a reminder when they are stale, and `astro dev` warns. `npx bearminion sync --check` is the same test for CI.
+
+The Add section menu lists the types in the order of `order` in `sections/definitions.ts`; a type that is not listed there (yours) comes last, by name.
 
 Restart `npm run dev`. The section appears in the Add section picker, its fields in the sidebar, and `npm run typecheck` checks the component against the schema. Add a `Quote.stories.ts` next to it if you use Storybook.
 
-Removing a section type later is safe: pages that still hold it open in the editor with an "Unknown" section you can delete, and `astro build` fails until they are cleaned up.
+Removing a section type later means deleting its directory and running `npx bearminion sync`. It is safe: pages that still hold it open in the editor with an "Unknown" section you can delete, and `astro build` fails until they are cleaned up.
 
 ## Atoms
 

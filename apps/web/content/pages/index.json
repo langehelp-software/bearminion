@@ -7,7 +7,7 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.7",
+          "tag": "BearMinion 1.8",
           "text": "Available now"
         },
         "button": false,
@@ -379,37 +379,6 @@
       "tone": "brand",
       "type": "cta",
       "variant": "terminal"
-    },
-    {
-      "anchor": "get-in-touch",
-      "id": "contact",
-      "props": {
-        "body": "Tell people what they can contact you about and when they will hear back.",
-        "details": [
-          {
-            "label": "Email",
-            "value": "hello@example.com"
-          }
-        ],
-        "eyebrow": "Contact",
-        "heading": "Get in touch.",
-        "marks": [
-          {
-            "end": 13,
-            "font": "serif",
-            "italic": true,
-            "start": 4
-          }
-        ],
-        "note": "We only use your details to reply to you.",
-        "thanks": "Thanks, your message is on its way.",
-        "topics": [
-          "General"
-        ]
-      },
-      "tone": "base",
-      "type": "contact",
-      "variant": "split"
     }
   ],
   "seo": {

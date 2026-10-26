@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { AstroIntegration } from 'astro'
 import { editorClientPlugin } from './editor-client.js'
 import { createFormsMiddleware, formsAreLive, resolveFormsConfig } from './forms-dev.js'
@@ -7,6 +8,7 @@ import { createEditorMiddleware } from './middleware.js'
 import { API_PREFIX, resolveEditorContext, type BearminionOptions } from './options.js'
 import { PreviewUnavailableError, loadThemePreview, type SitePreviewHtml } from './preview.js'
 import { contentReloadPlugin, dropEarlyReloadAfterSave } from './reload.js'
+import { staleSectionsMessage, syncSections } from './sections-manifest.js'
 
 export interface BearminionIntegration extends AstroIntegration {
   name: 'bearminion'
@@ -21,7 +23,15 @@ export function bearminion(options: BearminionOptions): BearminionIntegration {
   return {
     name: 'bearminion',
     hooks: {
-      'astro:config:setup'({ command, config, updateConfig, injectScript }) {
+      'astro:config:setup'({ command, config, updateConfig, injectScript, logger }) {
+        if (options.sectionsDir !== undefined) {
+          const { changed } = syncSections(path.resolve(rootPath(config.root), options.sectionsDir), { check: true })
+          if (changed.length > 0) {
+            // A build with stale files would render the wrong sections, so it stops. The dev server only says so.
+            if (command !== 'dev') throw new Error(staleSectionsMessage(changed))
+            logger.warn(staleSectionsMessage(changed))
+          }
+        }
         if (command !== 'dev') return
         const context = resolveEditorContext(options, rootInput(config.root))
         updateConfig({
@@ -128,6 +138,11 @@ async function renderSitePreview(environment: object, previewModule: string, sit
     throw new PreviewUnavailableError(`${previewModule} does not define \`site\`, so header and footer have no live preview.`)
   }
   return preview.site({ site: site as never, pathname })
+}
+
+function rootPath(root: unknown): string {
+  const input = rootInput(root)
+  return input instanceof URL ? fileURLToPath(input) : input
 }
 
 function rootInput(root: unknown): string | URL {

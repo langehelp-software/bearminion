@@ -1,6 +1,6 @@
 ---
 import type { Section } from './definitions'
-import { sectionComponents } from './registry'
+import { sectionComponents } from './components.gen'
 
 interface Props {
   sections: Section[]
@@ -8,58 +8,15 @@ interface Props {
   motion?: boolean
 }
 
+/** What every section component takes. Each one narrows `section` to its own type. */
+type SectionComponent = (props: { section: Section; index: number; motion?: boolean }) => unknown
+
 const { sections, motion = true } = Astro.props
-const Hero = sectionComponents.hero
-const LogoStrip = sectionComponents.logoStrip
-const Steps = sectionComponents.steps
-const Gallery = sectionComponents.gallery
-const Features = sectionComponents.features
-const Text = sectionComponents.text
-const TextImage = sectionComponents.textImage
-const Stats = sectionComponents.stats
-const Testimonials = sectionComponents.testimonials
-const Pricing = sectionComponents.pricing
-const Media = sectionComponents.media
-const Faq = sectionComponents.faq
-const Cta = sectionComponents.cta
-const Contact = sectionComponents.contact
 ---
 
 {
   sections.map((section, index) => {
-    switch (section.type) {
-      case 'hero':
-        return <Hero section={section} index={index} motion={motion} />
-      case 'logoStrip':
-        return <LogoStrip section={section} index={index} motion={motion} />
-      case 'steps':
-        return <Steps section={section} index={index} motion={motion} />
-      case 'gallery':
-        return <Gallery section={section} index={index} motion={motion} />
-      case 'features':
-        return <Features section={section} index={index} motion={motion} />
-      case 'text':
-        return <Text section={section} index={index} motion={motion} />
-      case 'textImage':
-        return <TextImage section={section} index={index} motion={motion} />
-      case 'stats':
-        return <Stats section={section} index={index} motion={motion} />
-      case 'testimonials':
-        return <Testimonials section={section} index={index} motion={motion} />
-      case 'pricing':
-        return <Pricing section={section} index={index} motion={motion} />
-      case 'media':
-        return <Media section={section} index={index} motion={motion} />
-      case 'faq':
-        return <Faq section={section} index={index} motion={motion} />
-      case 'cta':
-        return <Cta section={section} index={index} motion={motion} />
-      case 'contact':
-        return <Contact section={section} index={index} motion={motion} />
-      default: {
-        const unreachable: never = section
-        return unreachable
-      }
-    }
+    const Component = sectionComponents[section.type] as unknown as SectionComponent
+    return <Component section={section} index={index} motion={motion} />
   })
 }
