@@ -9,9 +9,9 @@ import { glob } from 'astro/loaders'
 export const collections = {
   docs: defineCollection({
     loader: glob({
-      pattern: '*.md',
+      pattern: '**/*.md',
       base: '../../docs',
-      generateId: ({ entry }) => (entry === 'README.md' ? 'index' : entry.replace(/\.md$/, '')),
+      generateId: ({ entry }) => (entry === 'README.md' ? 'index' : entry.replace(/(?:\/README)?\.md$/, '')),
     }),
     schema: docsSchema(),
   }),

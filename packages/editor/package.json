@@ -59,6 +59,9 @@
   },
   "files": [
     "dist",
+    "!dist/registry-build.js",
+    "!dist/registry-build.d.ts",
+    "registry",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"

@@ -16,3 +16,6 @@ packages/create-bearminion/template/
 
 # Promo video build workspace
 .promo-work/
+
+# Built from templates/default by the package build
+/packages/editor/registry/

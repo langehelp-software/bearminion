@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { defineConfig } from 'tsdown'
@@ -25,6 +26,8 @@ export default defineConfig({
     forms: 'src/forms/index.ts',
     // `npx bearminion`. Node only: the library entries above stay platform neutral.
     cli: 'src/cli.ts',
+    // The maintainers' registry tool; the published package leaves it out (see `files` in package.json).
+    'registry-build': 'src/registry/cli.ts',
     // The overlay. `editor-client.ts` serves it to the dev server from `dist/ui/mount.js`.
     'ui/mount': 'src/ui/mount.tsx',
   },
@@ -42,4 +45,8 @@ export default defineConfig({
     alwaysBundle: [/^@preact\/signals/, /^(?:prosemirror-|orderedmap$|rope-sequence$|w3c-keyname$)/],
   },
   plugins: [raw],
+  // The registry `bearminion add` copies from: built from the template, shipped next to `dist/`.
+  onSuccess: () => {
+    execFileSync(process.execPath, ['dist/registry-build.js', 'build'], { stdio: 'inherit' })
+  },
 })

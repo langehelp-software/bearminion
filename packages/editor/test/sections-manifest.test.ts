@@ -156,51 +156,51 @@ describe('syncSections', () => {
   })
 })
 
-describe('bearminion sync', () => {
-  const lines = (root: string, argv: string[]) => {
+describe('bearminion sync', async () => {
+  const lines = async (root: string, argv: string[]) => {
     const out: string[] = []
-    const code = run(argv, (line) => out.push(line))
+    const code = await run(argv, { log: (line) => out.push(line) })
     return { code, text: out.join('\n'), root }
   }
 
-  it('writes the files, then says they are in sync', () => {
+  it('writes the files, then says they are in sync', async () => {
     const root = sectionsFolder(['hero', 'faq'])
-    expect(lines(root, ['sync', '--sections', root])).toMatchObject({
+    expect(await lines(root, ['sync', '--sections', root])).toMatchObject({
       code: 0,
       text: 'Wrote definitions.gen.ts and components.gen.ts (2 sections).',
     })
-    expect(lines(root, ['sync', '--sections', root])).toMatchObject({ code: 0, text: 'Already in sync (2 sections).' })
+    expect(await lines(root, ['sync', '--sections', root])).toMatchObject({ code: 0, text: 'Already in sync (2 sections).' })
   })
 
-  it('--check exits 1 for stale files, and writes nothing', () => {
+  it('--check exits 1 for stale files, and writes nothing', async () => {
     const root = sectionsFolder(['hero'])
-    const stale = lines(root, ['sync', '--check', '--sections', root])
+    const stale = await lines(root, ['sync', '--check', '--sections', root])
     expect(stale.code).toBe(1)
     expect(stale.text).toContain('Run `npx bearminion sync`')
     expect(fs.existsSync(path.join(root, DEFINITIONS_FILE))).toBe(false)
     syncSections(root)
-    expect(lines(root, ['sync', '--check', '--sections', root])).toMatchObject({ code: 0 })
+    expect(await lines(root, ['sync', '--check', '--sections', root])).toMatchObject({ code: 0 })
   })
 
-  it('resolves the folder from --cwd and the default sections path', () => {
+  it('resolves the folder from --cwd and the default sections path', async () => {
     const project = fs.mkdtempSync(path.join(os.tmpdir(), 'bearminion-project-'))
     temporary.push(project)
     const sections = path.join(project, 'src', 'components', 'sections')
     fs.mkdirSync(path.join(sections, 'hero'), { recursive: true })
     fs.writeFileSync(path.join(sections, 'hero', 'definition.ts'), '')
     fs.writeFileSync(path.join(sections, 'hero', 'Hero.astro'), '')
-    expect(lines(project, ['sync', '--cwd', project]).code).toBe(0)
+    expect((await lines(project, ['sync', '--cwd', project])).code).toBe(0)
     expect(fs.existsSync(path.join(sections, DEFINITIONS_FILE))).toBe(true)
   })
 
-  it('reports a section that breaks the convention, and unknown commands', () => {
+  it('reports a section that breaks the convention, and unknown commands', async () => {
     const root = sectionsFolder(['hero'])
     fs.rmSync(path.join(root, 'hero', 'Hero.astro'))
-    expect(lines(root, ['sync', '--sections', root])).toMatchObject({ code: 1 })
-    expect(lines(root, ['frobnicate']).code).toBe(2)
-    expect(lines(root, ['sync', '--nope']).code).toBe(2)
-    expect(lines(root, []).code).toBe(2)
-    expect(lines(root, ['--help']).code).toBe(0)
+    expect(await lines(root, ['sync', '--sections', root])).toMatchObject({ code: 1 })
+    expect((await lines(root, ['frobnicate'])).code).toBe(2)
+    expect((await lines(root, ['sync', '--nope'])).code).toBe(2)
+    expect((await lines(root, [])).code).toBe(2)
+    expect((await lines(root, ['--help'])).code).toBe(0)
   })
 })
 

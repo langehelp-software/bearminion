@@ -154,6 +154,24 @@ jobs:
           git log --oneline -1
           grep -q '"url": "https://ci.example.com"' content/site.json
           test ! -e dist/style-guide && test ! -e dist/variants
+      # `bearminion add` from the packed library: take two sections out of the fresh site and add them back. The site
+      # was committed when it was created, so a correct `add` leaves nothing to commit.
+      - name: Add sections back with the packed CLI
+        working-directory: ${{ runner.temp }}/site
+        run: |
+          rm -rf src/components/sections/gallery src/components/sections/text
+          npx bearminion add gallery text --dry-run
+          npx bearminion add gallery text --yes
+          npx bearminion sync --check
+          npx astro check
+          npx astro build
+          # Only the site's own files: the install above changed package.json and the lock file on purpose.
+          status=$(git status --porcelain -- src bearminion.lock.json)
+          if [ -n "$status" ]; then
+            echo "add did not restore the site as it was created:"
+            echo "$status"
+            exit 1
+          fi
       - name: Build Storybook
         if: matrix.storybook
         working-directory: ${{ runner.temp }}/site

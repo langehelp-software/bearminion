@@ -48,7 +48,8 @@ export default defineConfig({
       },
       sidebar: [
         { label: 'Start here', items: ['getting-started'] },
-        { label: 'Using BearMinion', items: ['editor', 'content', 'sections', 'forms'] },
+        { label: 'Using BearMinion', items: ['editor', 'content', 'forms', 'cli'] },
+        { label: 'Sections', items: [{ autogenerate: { directory: 'sections' } }] },
         { label: 'Building with BearMinion', items: ['themes', 'integration', 'dev-api'] },
       ],
     }),

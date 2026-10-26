@@ -392,7 +392,7 @@ import type { FormResult, FormSubmission } from 'bearminion'
 
 ## In the content file
 
-The Contact section keeps no form settings. Its props are the text on the page: `eyebrow`, `heading`, `body`, `details`, `topics`, `note` and `thanks`. See [Sections](sections.md#contact).
+The Contact section keeps no form settings. Its props are the text on the page: `eyebrow`, `heading`, `body`, `details`, `topics`, `note` and `thanks`. See [Contact section](sections/contact.md).
 
 Sites made before this change may have `action`, `format` or `turnstile` in a Contact section. Content version 3 removes them: they are dropped from the file the next time it is saved in the editor. Before you save, copy a form service's address into a handler as shown in [Use a form service](#use-a-form-service), and the site key into `PUBLIC_TURNSTILE_SITE_KEY`.
 
