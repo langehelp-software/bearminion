@@ -196,6 +196,69 @@ describe('defineForm', () => {
   })
 })
 
+describe('a browser posting the form itself', () => {
+  const html = { accept: 'text/html,application/xhtml+xml', referer: `${site}/contact?x=1#top` }
+  const fields = () => new URLSearchParams({ formId: 'c1', name: 'Ada', email: 'ada@example.com', message: 'Hello' })
+  const send = (
+    handler: FormHandler,
+    headers: Record<string, string> = html,
+    options?: FormOptions,
+    run?: { dryRun?: (s: FormSubmission) => void },
+  ) => defineForm(handler, options).fetch(post(fields(), { type: 'application/x-www-form-urlencoded', headers }), {}, run)
+
+  it('is sent back to the page, to the block that says it was sent', async () => {
+    const seen: FormSubmission[] = []
+    const response = await send((submission) => void seen.push(submission))
+    expect(response.status).toBe(303)
+    expect(response.headers.get('location')).toBe('/contact?x=1#c1-sent')
+    expect(seen[0]?.page).toBe('/contact')
+  })
+
+  it('is sent back to the failed block on any refusal, error or throw', async () => {
+    for (const handler of [
+      () => ({ ok: false as const, error: 'No.' }),
+      () => {
+        throw new FormError('Nope', { status: 429 })
+      },
+      () => {
+        throw new Error('boom')
+      },
+    ]) {
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const response = await send(handler)
+      expect(response.status).toBe(303)
+      expect(response.headers.get('location')).toBe('/contact?x=1#c1-failed')
+    }
+  })
+
+  it('counts a filled trap and a dry run as sent', async () => {
+    const trap = new URLSearchParams({ formId: 'c1', _gotcha: 'x' })
+    const caught = await defineForm(vi.fn()).fetch(post(trap, { type: 'application/x-www-form-urlencoded', headers: html }))
+    expect(caught.headers.get('location')).toBe('/contact?x=1#c1-sent')
+    const dry = await send(vi.fn(), html, undefined, { dryRun: () => {} })
+    expect(dry.headers.get('location')).toBe('/contact?x=1#c1-sent')
+  })
+
+  it('still gets JSON when the script asks for it, or when nobody says what they want', async () => {
+    const handler = () => undefined
+    const asked = await send(handler, { ...html, accept: 'application/json' })
+    expect(asked.status).toBe(200)
+    expect(await asked.json()).toEqual({ ok: true })
+    const silent = await send(handler, { referer: html.referer })
+    expect(silent.status).toBe(200)
+  })
+
+  it('gets JSON without a Referer, and never a redirect to another site', async () => {
+    const handler = () => undefined
+    const none = await send(handler, { accept: 'text/html' })
+    expect(none.status).toBe(200)
+    const foreign = await send(handler, { accept: 'text/html', referer: 'https://evil.example/x' })
+    expect(foreign.status).toBe(200)
+    const lookalike = await send(handler, { accept: 'text/html', referer: 'https://example.com.evil.example/x' })
+    expect(lookalike.status).toBe(200)
+  })
+})
+
 describe('origins', () => {
   const handler = () => undefined
 

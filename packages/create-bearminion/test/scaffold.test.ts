@@ -124,6 +124,14 @@ describe('scaffold', () => {
     const files = walk(target)
     expect(files).toContain('.gitignore')
     expect(files).not.toContain('_gitignore')
+    // The example is kept in git (the template's .gitignore excepts it) and every line in it is a comment.
+    expect(files).toContain('.env.example')
+    expect(
+      readFileSync(path.join(target, '.env.example'), 'utf8')
+        .split('\n')
+        .filter((line) => line.trim() !== '' && !line.startsWith('#')),
+    ).toEqual([])
+    expect(readFileSync(path.join(target, '.gitignore'), 'utf8')).toContain('!.env.example')
     expect(files.filter(isStorybookPath)).toEqual([])
     const pkg = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8')) as Record<string, unknown>
     expect(pkg).toMatchObject({ name: 'plain', version: '0.0.0', private: true })

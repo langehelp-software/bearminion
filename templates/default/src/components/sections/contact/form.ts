@@ -197,7 +197,7 @@ function bind(root: HTMLElement) {
   const thanksLine = () => success.querySelector<HTMLElement>('[data-field$=".props.thanks"]')
   const finish = (message?: string) => {
     form.hidden = true
-    success.hidden = false
+    success.dataset.shown = ''
     success.querySelector('[data-contact-message]')?.remove()
     const thanks = thanksLine()
     if (message) {
@@ -285,7 +285,7 @@ function bind(root: HTMLElement) {
     const thanks = thanksLine()
     if (thanks) thanks.hidden = false
     form.hidden = false
-    success.hidden = true
+    delete success.dataset.shown
   })
 }
 

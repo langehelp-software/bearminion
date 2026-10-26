@@ -168,6 +168,34 @@ export default defineForm(() => undefined, { turnstile: true, origins: ['https:/
     await page.close()
   }, 60_000)
 
+  it('without JavaScript, sends the visitor back to the page with the result instead of raw JSON', async () => {
+    const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 900 } })
+    const page = await context.newPage()
+    const submit = async (name: string) => {
+      await page.goto(`${live}/endpoint`)
+      await page.locator('input[name="name"]').fill(name)
+      await page.locator('input[name="email"]').fill('ada@example.com')
+      await page.locator('textarea[name="message"]').fill('Hello there')
+      await page.getByRole('button', { name: /^Send message$/ }).click()
+      await page.waitForURL(/#contact-(sent|failed)$/)
+    }
+
+    await submit('hello')
+    expect(new URL(page.url()).pathname).toBe('/endpoint')
+    expect(page.url()).toMatch(/#contact-sent$/)
+    expect(await page.locator('#contact-sent').isVisible()).toBe(true)
+    expect(await page.locator('form[data-contact-form]').isVisible()).toBe(false)
+    expect(await page.locator('#contact-failed').isVisible()).toBe(false)
+    expect(await page.locator('[data-contact-reset]').isVisible()).toBe(false)
+
+    await submit('boom')
+    expect(page.url()).toMatch(/#contact-failed$/)
+    expect(await page.locator('#contact-failed').isVisible()).toBe(true)
+    expect(await page.locator('form[data-contact-form]').isVisible()).toBe(true)
+    expect(await page.locator('#contact-failed').innerText()).not.toContain('secret-token-123')
+    await context.close()
+  })
+
   it('refuses what is not a post from this site, a form post, or a size it accepts, before the handler runs', async () => {
     const before = called().length
     expect((await fetch(`${live}/api/contact`)).status).toBe(405)

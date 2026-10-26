@@ -42,6 +42,23 @@ const gated = asks && analyticsOn
     {gated && analytics?.head && <template data-consent-snippet="head" set:html={analytics.head} />}
     {/* Always present so the editor can update the palette live. */}
     <style id="bm-theme" is:inline set:html={paletteCss}></style>
+    {/* Without JavaScript the browser posts the contact form itself and comes back to #<id>-sent or #<id>-failed. */}
+    <noscript>
+      <style is:inline>
+        [data-motion="true"] > [data-reveal] {
+          opacity: 1;
+          transform: none;
+        }
+        [data-contact-success]:target,
+        [data-contact-failed]:target {
+          display: block;
+        }
+        [data-contact]:has([data-contact-success]:target) [data-contact-form],
+        [data-contact-reset] {
+          display: none;
+        }
+      </style>
+    </noscript>
     {icon && <link rel="icon" type={iconType} href={icon.src} />}
   </head>
   <body class="min-h-screen font-sans antialiased">

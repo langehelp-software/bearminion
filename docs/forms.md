@@ -100,7 +100,7 @@ Put each key in your host's settings, never in a content file and never in the r
 | Netlify | Site configuration → Environment variables (scope: Functions) |
 | Cloudflare Pages | Settings → Variables and Secrets |
 
-Redeploy after you change one. For `astro dev`, put the same names in a `.env` file at the project root. The starter's `.gitignore` already keeps `.env` out of git.
+Redeploy after you change one. For `astro dev`, put the same names in a `.env` file at the project root: copy the starter's `.env.example`, which lists the ones the form uses. The starter's `.gitignore` keeps `.env` out of git and `.env.example` in.
 
 One value is not secret and is read by the build, not by the function: `PUBLIC_TURNSTILE_SITE_KEY` (see [Turnstile](#cloudflare-turnstile)). Set it where the site is built, and change it with a new build.
 
@@ -396,7 +396,7 @@ The Contact section keeps no form settings. Its props are the text on the page: 
 
 Sites made before this change may have `action`, `format` or `turnstile` in a Contact section. Content version 3 removes them: they are dropped from the file the next time it is saved in the editor. Before you save, copy a form service's address into a handler as shown in [Use a form service](#use-a-form-service), and the site key into `PUBLIC_TURNSTILE_SITE_KEY`.
 
-With JavaScript turned off, the browser posts the form to `/api/contact` itself and leaves the page for whatever the handler answers (JSON). The sending state, the field errors, the error message and the thank-you text need the script.
+With JavaScript turned off, the browser posts the form to `/api/contact` itself. `defineForm` sees a browser asking for a page (not the script asking for JSON) and answers with a redirect back to the page the visitor came from, to `#<section id>-sent` (the "Message sent." block replaces the form) or `#<section id>-failed` (a short "not sent" line under the form). A request without a same-site `Referer` still gets the JSON answer, so the redirect can never lead to another site. Without the script there is no sending state, no field errors, no text from your handler (the sent block shows the section's thank-you text) and no Turnstile widget, so a form that checks Turnstile always lands on the failed block.
 
 ## Reference: `bearminion/forms`
 

@@ -17,6 +17,7 @@
     "e2e:setup": "pnpm --filter @bearminion/tests exec playwright install chromium",
     "typecheck": "pnpm -r --if-present typecheck",
     "postinstall": "pnpm build:lib",
+    "check-versions": "node scripts/check-versions.mjs",
     "lint": "biome check .",
     "format": "biome format --write .",
     "changeset": "changeset",

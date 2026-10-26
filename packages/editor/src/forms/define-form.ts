@@ -88,6 +88,26 @@ function reply(status: number, result: FormResult, headers: Record<string, strin
 
 const refuse = (status: number, error: string, headers?: Record<string, string>) => reply(status, { ok: false, error }, headers)
 
+/** A browser posting the form itself (JavaScript off) asks for HTML. The script on the page asks for JSON. */
+function isNavigation(request: Request): boolean {
+  if (request.method !== 'POST') return false
+  const accept = request.headers.get('accept') ?? ''
+  return accept.includes('text/html') && !accept.includes('application/json')
+}
+
+/** The page the visitor came from, as a path. Only on this host: anything else would be an open redirect. */
+function cameFrom(request: Request): string | null {
+  const referer = request.headers.get('referer')
+  if (!referer) return null
+  try {
+    const from = new URL(referer)
+    if (from.host !== new URL(request.url).host) return null
+    return `${from.pathname}${from.search}`
+  } catch {
+    return null
+  }
+}
+
 /** Who may post, and the CORS headers that go with it. `null` means refuse. */
 function originHeaders(request: Request, allowed: readonly string[]): Record<string, string> | null {
   const origin = request.headers.get('origin')
@@ -149,106 +169,119 @@ export function defineForm(handler: FormHandler, options: FormOptions = {}): For
         ? (options.turnstile.secretEnv ?? 'TURNSTILE_SECRET_KEY')
         : undefined
 
-  return {
-    async fetch(request, env = {}, run = {}) {
-      const cors = originHeaders(request, allowed)
-      if (cors === null) return refuse(403, 'This site is not allowed to send to this form.')
-      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { ...CORS_METHODS, ...cors } })
-      if (request.method !== 'POST') return refuse(405, 'Send the form with POST.', { allow: 'POST, OPTIONS', ...cors })
+  async function answer(request: Request, env: FormEnv, run: FormRunOptions, seen: { formId: string }): Promise<Response> {
+    const cors = originHeaders(request, allowed)
+    if (cors === null) return refuse(403, 'This site is not allowed to send to this form.')
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { ...CORS_METHODS, ...cors } })
+    if (request.method !== 'POST') return refuse(405, 'Send the form with POST.', { allow: 'POST, OPTIONS', ...cors })
 
-      let fields: Record<string, string>
+    let fields: Record<string, string>
+    try {
+      fields = await parseFields(request.headers.get('content-type'), await readBody(request, maxBytes))
+    } catch (error) {
+      if (error instanceof BodyError) return refuse(error.status, error.message, cors)
+      throw error
+    }
+
+    seen.formId = fields.formId ?? ''
+
+    // A filled trap is a script. Say it worked, and call nobody.
+    const trap = fields[HONEYPOT_FIELD]
+    delete fields[HONEYPOT_FIELD]
+    if (trap !== undefined && trap.trim() !== '') return reply(200, { ok: true }, cors)
+
+    const token = fields[TURNSTILE_FIELD]
+    delete fields[TURNSTILE_FIELD]
+    const { formId = '', page = cameFrom(request)?.split('?')[0] ?? '', ...rest } = fields
+    const submission: FormSubmission = { formId, page, ...rest }
+
+    if (run.dryRun) {
+      run.dryRun(submission)
+      return reply(200, { ok: true }, cors)
+    }
+
+    if (secretEnv !== undefined) {
+      const secret = env[secretEnv]
+      if (!secret) {
+        console.error(`[bearminion] This form checks Turnstile, but the environment variable ${secretEnv} is not set.`)
+        return refuse(500, NOT_SET_UP, cors)
+      }
+      if (!token) return refuse(422, SPAM_CHECK_FAILED, cors)
       try {
-        fields = await parseFields(request.headers.get('content-type'), await readBody(request, maxBytes))
+        const ip = remoteIp(request.headers)
+        const outcome = await verifyTurnstile({ secret, token, ...(ip ? { remoteIp: ip } : {}) })
+        if (!outcome.success) {
+          if (outcome.misconfigured) {
+            console.error(
+              `[bearminion] Turnstile refused the secret key in ${secretEnv} (${outcome.codes.join(', ')}). Check it in the Cloudflare dashboard.`,
+            )
+            return refuse(500, NOT_SET_UP, cors)
+          }
+          return refuse(422, SPAM_CHECK_FAILED, cors)
+        }
       } catch (error) {
-        if (error instanceof BodyError) return refuse(error.status, error.message, cors)
+        if (error instanceof TurnstileUnavailableError) {
+          console.error(`[bearminion] ${error.message}`, error.cause ?? '')
+          return refuse(502, SPAM_CHECK_UNAVAILABLE, cors)
+        }
         throw error
       }
+    }
 
-      // A filled trap is a script. Say it worked, and call nobody.
-      const trap = fields[HONEYPOT_FIELD]
-      delete fields[HONEYPOT_FIELD]
-      if (trap !== undefined && trap.trim() !== '') return reply(200, { ok: true }, cors)
-
-      const token = fields[TURNSTILE_FIELD]
-      delete fields[TURNSTILE_FIELD]
-      const { formId = '', page = '', ...rest } = fields
-      const submission: FormSubmission = { formId, page, ...rest }
-
-      if (run.dryRun) {
-        run.dryRun(submission)
-        return reply(200, { ok: true }, cors)
-      }
-
-      if (secretEnv !== undefined) {
-        const secret = env[secretEnv]
-        if (!secret) {
-          console.error(`[bearminion] This form checks Turnstile, but the environment variable ${secretEnv} is not set.`)
-          return refuse(500, NOT_SET_UP, cors)
-        }
-        if (!token) return refuse(422, SPAM_CHECK_FAILED, cors)
-        try {
-          const ip = remoteIp(request.headers)
-          const outcome = await verifyTurnstile({ secret, token, ...(ip ? { remoteIp: ip } : {}) })
-          if (!outcome.success) {
-            if (outcome.misconfigured) {
-              console.error(
-                `[bearminion] Turnstile refused the secret key in ${secretEnv} (${outcome.codes.join(', ')}). Check it in the Cloudflare dashboard.`,
-              )
-              return refuse(500, NOT_SET_UP, cors)
-            }
-            return refuse(422, SPAM_CHECK_FAILED, cors)
-          }
-        } catch (error) {
-          if (error instanceof TurnstileUnavailableError) {
-            console.error(`[bearminion] ${error.message}`, error.cause ?? '')
-            return refuse(502, SPAM_CHECK_UNAVAILABLE, cors)
-          }
-          throw error
-        }
-      }
-
-      const context: FormContext = {
-        env,
-        request: new Request(request.url, { method: request.method, headers: request.headers }),
-        dev: run.dev === true,
-      }
-      let outcome: FormHandlerResult
-      try {
-        outcome = await handler(submission, context)
-      } catch (error) {
-        if (isFormError(error)) {
-          return reply(
-            error.status,
-            error.fieldErrors ? { ok: false, error: error.message, fieldErrors: error.fieldErrors } : { ok: false, error: error.message },
-            cors,
-          )
-        }
-        // Whatever the outside service said stays in the log. The visitor gets a plain sentence.
-        console.error('[bearminion] The form handler failed:', error)
-        return refuse(502, UNDELIVERED, cors)
-      }
-
-      if (outcome === undefined) return reply(200, { ok: true }, cors)
-      if (typeof outcome === 'object' && outcome !== null && outcome.ok === true) {
-        const message = typeof outcome.message === 'string' && outcome.message.trim() !== '' ? outcome.message.trim() : undefined
-        return reply(200, message ? { ok: true, message } : { ok: true }, cors)
-      }
-      if (
-        typeof outcome === 'object' &&
-        outcome !== null &&
-        outcome.ok === false &&
-        typeof outcome.error === 'string' &&
-        outcome.error !== ''
-      ) {
-        const fieldErrors = outcome.fieldErrors && Object.keys(outcome.fieldErrors).length > 0 ? outcome.fieldErrors : undefined
+    const context: FormContext = {
+      env,
+      request: new Request(request.url, { method: request.method, headers: request.headers }),
+      dev: run.dev === true,
+    }
+    let outcome: FormHandlerResult
+    try {
+      outcome = await handler(submission, context)
+    } catch (error) {
+      if (isFormError(error)) {
         return reply(
-          fieldErrors ? 422 : 400,
-          fieldErrors ? { ok: false, error: outcome.error, fieldErrors } : { ok: false, error: outcome.error },
+          error.status,
+          error.fieldErrors ? { ok: false, error: error.message, fieldErrors: error.fieldErrors } : { ok: false, error: error.message },
           cors,
         )
       }
-      console.error('[bearminion] The form handler returned something else than nothing, { ok: true } or { ok: false, error }:', outcome)
-      return refuse(500, NOT_SET_UP, cors)
+      // Whatever the outside service said stays in the log. The visitor gets a plain sentence.
+      console.error('[bearminion] The form handler failed:', error)
+      return refuse(502, UNDELIVERED, cors)
+    }
+
+    if (outcome === undefined) return reply(200, { ok: true }, cors)
+    if (typeof outcome === 'object' && outcome !== null && outcome.ok === true) {
+      const message = typeof outcome.message === 'string' && outcome.message.trim() !== '' ? outcome.message.trim() : undefined
+      return reply(200, message ? { ok: true, message } : { ok: true }, cors)
+    }
+    if (
+      typeof outcome === 'object' &&
+      outcome !== null &&
+      outcome.ok === false &&
+      typeof outcome.error === 'string' &&
+      outcome.error !== ''
+    ) {
+      const fieldErrors = outcome.fieldErrors && Object.keys(outcome.fieldErrors).length > 0 ? outcome.fieldErrors : undefined
+      return reply(
+        fieldErrors ? 422 : 400,
+        fieldErrors ? { ok: false, error: outcome.error, fieldErrors } : { ok: false, error: outcome.error },
+        cors,
+      )
+    }
+    console.error('[bearminion] The form handler returned something else than nothing, { ok: true } or { ok: false, error }:', outcome)
+    return refuse(500, NOT_SET_UP, cors)
+  }
+
+  return {
+    async fetch(request, env = {}, run = {}) {
+      const seen = { formId: '' }
+      const response = await answer(request, env, run, seen)
+      if (!isNavigation(request)) return response
+      // Without JavaScript the visitor would read raw JSON. Send them back to the page, to the block that says what happened.
+      const back = cameFrom(request)
+      if (back === null) return response
+      const fragment = seen.formId ? `#${seen.formId}-${response.status === 200 ? 'sent' : 'failed'}` : ''
+      return new Response(null, { status: 303, headers: { location: `${back}${fragment}`, 'cache-control': 'no-store' } })
     },
   }
 }

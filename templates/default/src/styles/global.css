@@ -348,6 +348,14 @@
   .bm-form-error[hidden] {
     display: none;
   }
+  /* Shown by the form script after a send. Without JavaScript the page's own :target rules show them (Base.astro). */
+  [data-contact-success],
+  [data-contact-failed] {
+    display: none;
+  }
+  [data-contact-success][data-shown] {
+    display: block;
+  }
   /* A failed send stays on screen until the visitor closes it. */
   .bm-toasts {
     position: fixed;
