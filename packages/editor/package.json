@@ -1,6 +1,6 @@
 {
   "name": "bearminion",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "A git-based CMS for Astro with no database and no server: JSON content in your repo, edited by clicking on the page during astro dev.",
   "license": "MIT",
   "author": "Jakub Lange",
