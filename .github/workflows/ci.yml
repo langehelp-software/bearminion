@@ -159,7 +159,8 @@ jobs:
       - name: Add sections back with the packed CLI
         working-directory: ${{ runner.temp }}/site
         run: |
-          rm -rf src/components/sections/gallery src/components/sections/text
+          # Stories are not part of what `add` copies, so they stay.
+          find src/components/sections/gallery src/components/sections/text -type f ! -name '*.stories.ts' -delete
           npx bearminion add gallery text --dry-run
           npx bearminion add gallery text --yes
           npx bearminion sync --check
