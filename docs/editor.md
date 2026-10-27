@@ -263,9 +263,9 @@ The eye button in the header, or on the closed editor's bar, hides every panel, 
 
 Edits stay in an in-memory draft.
 
-- Text changes the DOM immediately.
+- Text you type on the page changes the DOM immediately.
 - Tone and motion update the `data-*` attributes on the section, so tone colors follow the existing CSS.
-- A variant change, a section you add, duplicate, move or delete, and a sidebar value with no text of its own on the page (a video link, a section option, an optional field filled or emptied) go to `POST /__bearminion/api/preview`.
+- A variant change, a section you add, duplicate, move or delete, any value you type in the sidebar, and a value with no text of its own on the page (a video link, a section option, an optional field filled or emptied) go to `POST /__bearminion/api/preview`. The page shows a sidebar edit about a fifth of a second after you stop typing.
 
 The dev server validates that JSON, renders the page sections with Astro's container API through the Vite SSR module runner (the theme's `defineThemePreview` module, `/src/lib/render-preview.ts` by default), and returns HTML. The overlay replaces `main#content`, runs any script in the new markup that the page has not loaded yet, and dispatches `bearminion:preview` so scripts already on the page can bind the new nodes. The response is not written to disk.
 

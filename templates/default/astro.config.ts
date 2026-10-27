@@ -7,7 +7,7 @@ import type { AstroIntegration } from 'astro'
 import { defineConfig } from 'astro/config'
 import { contentDirectory } from './src/lib/content-dir'
 import { contentModel } from './src/lib/content-model'
-import { hasFormHandler, unhandledFormMessage, unhandledForms } from './src/lib/form-check'
+import { formsRequired, hasFormHandler, requiredFormsError, unhandledFormMessage, unhandledForms } from './src/lib/form-check'
 import { createSitemapFilter } from './src/lib/sitemap'
 
 const contentDir = contentDirectory()
@@ -31,7 +31,10 @@ const formsDir = process.env.BEARMINION_FORMS_DIR
   ? path.resolve(process.env.BEARMINION_FORMS_DIR)
   : fileURLToPath(new URL('./src/forms', import.meta.url))
 
-/** A form without a handler is a warning, not an error: a new site must still start and build. */
+/**
+ * A form without a handler is a warning, not an error: a new site must still start and build. `BEARMINION_FORMS=required`
+ * (set in the host's build environment) turns the warning into a failed build.
+ */
 const formCheck: AstroIntegration = {
   name: 'bearminion-site:form-check',
   hooks: {
@@ -39,7 +42,10 @@ const formCheck: AstroIntegration = {
       for (const form of unhandledForms(content.pages, hasFormHandler(formsDir))) logger.warn(unhandledFormMessage(form))
     },
     'astro:build:start': ({ logger }) => {
-      for (const form of unhandledForms(content.pages, hasFormHandler(formsDir))) logger.warn(unhandledFormMessage(form))
+      const forms = unhandledForms(content.pages, hasFormHandler(formsDir))
+      const failure = formsRequired(process.env.BEARMINION_FORMS) ? requiredFormsError(forms) : undefined
+      if (failure) throw failure
+      for (const form of forms) logger.warn(unhandledFormMessage(form))
     },
   },
 }

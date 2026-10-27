@@ -9,6 +9,8 @@ export const contactDetailSchema = z
   .object({
     label: textSchema,
     value: textSchema,
+    // The built page carries the value scrambled and a few lines of script show it, so a crawler that only reads the HTML finds none.
+    hideFromCrawlers: z.boolean().optional(),
   })
   .strict()
 
@@ -35,7 +37,7 @@ export const contact = defineSection({
     heading: 'Get in touch.',
     marks: accent('Get in touch.', 'in touch.'),
     body: 'Tell people what they can contact you about and when they will hear back.',
-    details: [{ label: 'Email', value: 'hello@example.com' }],
+    details: [{ label: 'Email', value: 'hello@example.com', hideFromCrawlers: false }],
     topics: ['General'],
     note: 'We only use your details to reply to you.',
     thanks: 'Thanks, your message is on its way.',
@@ -44,7 +46,7 @@ export const contact = defineSection({
   defaultVariant: 'split',
   // The form posts to /api/contact: the handler is `src/forms/contact.ts`, written in code, never configured here.
   form: 'contact',
-  optional: { props: ['eyebrow', 'heading', 'body', 'note', 'thanks'] },
+  optional: { props: ['eyebrow', 'heading', 'body', 'note', 'thanks'], items: { details: ['hideFromCrawlers'] } },
   counts: { details: { recommended: 3 }, topics: { recommended: 3 } },
   wireframe: contactWireframe,
 })

@@ -1,13 +1,14 @@
 import { clearField, editField, editMarks, getAt, isImageField, type PageDraft, type PendingEdit } from '../../draft.js'
 import { type MarkPatch, renderMarkedHtml } from '../../marks.js'
-import { marksAt } from '../dom.js'
+import { isEditingText, marksAt } from '../dom.js'
 import { isRecord } from '../shared.js'
 import { type DocumentStore, isPagePath } from './document.js'
 import { affectsSitePreview, type LivePreview } from './live-preview.js'
 
 /**
- * Text with a `data-field` on the page is updated where it is, as it is typed. A value with no such element, such as a
- * video link, an `aria-label` or a section option, only reaches the page through a re-render.
+ * Text with a `data-field` on the page is updated where it is while it is typed on the page. A value with no such
+ * element (a video link, an `aria-label`, a section option), and any value typed in the sidebar, reaches the page
+ * through a re-render.
  */
 function shownInPlace(path: string): boolean {
   return document.querySelector(`[data-field="${CSS.escape(path)}"]`) !== null
@@ -48,7 +49,8 @@ export function createEdits(doc: DocumentStore, preview: LivePreview) {
       return
     }
     doc.setDoc(path, editField(current, path, value))
-    if (isPagePath(path) ? isImageField(path) || !shownInPlace(path) : affectsSitePreview(path)) previewFor(path)
+    // Text typed on the page is already there. The same text typed in the sidebar is not, so it re-renders too.
+    if (isPagePath(path) ? isImageField(path) || !shownInPlace(path) || !isEditingText() : affectsSitePreview(path)) previewFor(path)
   }
 
   function updatePage(next: PageDraft, withPreview = false) {

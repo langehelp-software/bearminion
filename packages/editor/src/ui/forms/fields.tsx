@@ -56,6 +56,23 @@ export function MissingField({
   const fields = useContext(FieldsContext)
   const key = sectionFieldKey(path)
   const image = isImageField(name) || (key !== null && (fields.images?.includes(key) ?? false))
+  // An optional on/off switch the item has not set yet: it shows as off, and the first click writes `true`.
+  if (typeof sample === 'boolean') {
+    return (
+      <ValueEditor
+        label={name}
+        value={false}
+        path={path}
+        rule={undefined}
+        variant={undefined}
+        sample={undefined}
+        images={images}
+        onField={onField}
+        onUploaded={onUploaded}
+        onDeleted={onDeleted}
+      />
+    )
+  }
   if (LINK_KEYS.has(name)) {
     const fallback = { label: 'Button', href: '#' }
     return (
