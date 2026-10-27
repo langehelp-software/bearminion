@@ -8,7 +8,7 @@ sidebar:
 
 Contact details beside a form.
 
-The form always posts to `/api/contact`, where a handler you write in `src/forms/contact.ts` receives the message. Its keys, including the Cloudflare Turnstile site key (`PUBLIC_TURNSTILE_SITE_KEY`), live in the environment, not in the content file. While that file does not exist, `astro dev` and `astro build` warn, the section's settings in the editor warn, and visitors who send the form get an error. [Forms](../forms.md) covers the handler, the glue for your host, form services, email, Turnstile and spam.
+The form always posts to `/api/contact`, where a handler you write in `src/forms/contact.ts` receives the message. Its keys, including the Cloudflare Turnstile site key (`PUBLIC_TURNSTILE_SITE_KEY`), live in the environment, not in the content file. While that file does not exist, `astro dev` and `astro build` warn, the section's settings in the editor warn, and visitors who send the form get an error. [Forms](../forms/README.md) covers the handler, the glue for your host, form services, email, Turnstile and spam.
 
 **`split`** (default): the heading and details on the left, the form on the right.
 

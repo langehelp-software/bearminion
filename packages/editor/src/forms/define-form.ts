@@ -245,7 +245,9 @@ export function defineForm(handler: FormHandler, options: FormOptions = {}): For
         )
       }
       // Whatever the outside service said stays in the log. The visitor gets a plain sentence.
-      console.error('[bearminion] The form handler failed:', error)
+      // The message goes in as text: some hosts (Cloudflare Workers) print an Error object as its stack lines only, and the
+      // cause is the one thing the owner needs from this log.
+      console.error('[bearminion] The form handler failed:', error instanceof Error ? `${error.name}: ${error.message}` : error)
       return refuse(502, UNDELIVERED, cors)
     }
 

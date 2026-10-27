@@ -45,10 +45,24 @@ function diagnose(files: Record<string, string>): string[] {
   )
 }
 
+const guideDir = path.resolve(import.meta.dirname, '../../../docs/forms')
+const readGuide = () =>
+  fs
+    .readdirSync(guideDir)
+    .filter((file) => file.endsWith('.md'))
+    .map((file) => fs.readFileSync(path.join(guideDir, file), 'utf8'))
+    .join('\n')
+
 describe('the form recipes', () => {
   it('the Forms guide shows each recipe exactly as the command writes it', () => {
-    const guide = fs.readFileSync(path.resolve(import.meta.dirname, '../../../docs/forms.md'), 'utf8')
-    for (const recipe of [...HANDLERS, ...GLUE]) expect(guide).toContain(recipe.source.trimEnd())
+    const guide = readGuide()
+    for (const source of [...HANDLERS.map((handler) => handler.source), ...GLUE.flatMap((glue) => glue.files.map((file) => file.source))])
+      expect(guide).toContain(source.trimEnd())
+  })
+
+  it('the Forms guide has a page for every host the command writes glue for', () => {
+    const pages = new Set(fs.readdirSync(guideDir).map((file) => file.replace(/\.md$/, '')))
+    for (const glue of GLUE) expect(pages.has(glue.name)).toBe(true)
   })
 
   it('the check itself sees a wrong handler', () => {
@@ -64,13 +78,14 @@ describe('the form recipes', () => {
     })
   }
 
-  it('every glue file imports the handler from where the handler is written', () => {
+  it('every glue file that calls the handler imports it from where the handler is written', () => {
     for (const glue of GLUE) {
-      const depth = glue.path.split('/').length - 1
-      const expected = `${depth === 0 ? './' : '../'.repeat(depth)}${glue.path.startsWith('src/') ? '' : 'src/'}forms/contact`
-      const relative = glue.path.startsWith('src/') ? `${'../'.repeat(depth - 1)}forms/contact` : expected
-      // ES modules do not guess extensions, so the import names the compiled file: ".js" for contact.ts.
-      expect(glue.source).toContain(`from '${relative}.js'`)
+      for (const file of glue.files.filter((candidate) => candidate.source.includes('forms/contact'))) {
+        const depth = file.path.split('/').length - 1
+        const relative = `${depth === 0 ? './' : '../'.repeat(depth)}src/forms/contact`
+        // ES modules do not guess extensions, so the import names the compiled file: ".js" for contact.ts.
+        expect(file.source).toContain(`from '${relative}.js'`)
+      }
     }
   })
 })

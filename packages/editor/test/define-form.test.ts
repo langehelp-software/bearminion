@@ -111,6 +111,14 @@ describe('defineForm', () => {
     expect(log).toHaveBeenCalled()
   })
 
+  it('writes the message of a thrown error into the log as text, because some hosts print an Error as its stack lines only', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    await run(() => {
+      throw new Error('Set CONTACT_FROM and CONTACT_TO in the environment.')
+    }, post(message))
+    expect(log).toHaveBeenCalledWith('[bearminion] The form handler failed:', 'Error: Set CONTACT_FROM and CONTACT_TO in the environment.')
+  })
+
   it('refuses a handler that returns something it does not understand', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const result = await run((() => 'sent') as unknown as FormHandler, post(message))

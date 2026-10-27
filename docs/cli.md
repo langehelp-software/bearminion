@@ -79,11 +79,11 @@ npx bearminion add form resend                   # the host is read from the pro
 npx bearminion add form --host vercel            # glue only, for a handler you already have
 ```
 
-Today that is one service and one host, the ones that have been sent through for real: `resend` (email) and `vercel` (`api/contact.ts`). The other services and hosts are in [Forms](forms.md) as files to copy by hand, and join the command one at a time, after a real message has gone through each.
+Today that is one service, `resend` (email), and three hosts: `vercel` (`api/contact.ts`), `netlify` (`netlify/functions/contact.mts`) and `cloudflare` (a Worker: `worker.ts` and `wrangler.jsonc`, the second only when the site has no Wrangler config). A real message has gone through Resend on each of them. The other services are in [Forms](forms/README.md) as files to copy by hand, and join the command one at a time, after a real message has gone through each.
 
 > **Set the addresses in the environment.** The handler reads the sender and the receiver from `CONTACT_FROM` and `CONTACT_TO`, so no address is written into your repository, and it refuses to send until both are set along with `RESEND_API_KEY`. `CONTACT_FROM` has to be on a domain you verified with Resend.
 
-Without `--host`, the command looks for `vercel.json`, `netlify.toml`, `wrangler.toml` and an Astro server adapter. If it finds none, two, or a host it has no glue for, it writes the handler only and says so. A file that is already there and differs from the recipe stops the command; `--overwrite` replaces it. `--dry-run`, `--yes` and `--json` work as for sections. The files are noted in `bearminion.lock.json`, and the command prints the three values to set. [Forms](forms.md) explains the handler.
+Without `--host`, the command looks for `vercel.json`, `netlify.toml`, `wrangler.toml` and an Astro server adapter. If it finds none, two, or a host it has no glue for (an Astro server adapter, say), it writes the handler only and says so. A file that is already there and differs from the recipe stops the command; `--overwrite` replaces it. `--dry-run`, `--yes` and `--json` work as for sections. The files are noted in `bearminion.lock.json`, and the command prints the three values to set. [Forms](forms/README.md) explains the handler.
 
 ## See what is out of date
 

@@ -15,13 +15,23 @@ export interface HandlerRecipe {
   source: string
 }
 
+export interface GlueFile {
+  path: string
+  source: string
+  /** The host's own config. When the site already has one of these, the file is not written and the plan says what to add. */
+  skipWhenAny?: string[]
+  /** What to tell the person when the file was skipped. */
+  skipNote?: string
+}
+
 export interface GlueRecipe {
   name: string
   description: string
-  path: string
+  files: GlueFile[]
   /** An npm package the file imports types from. */
   needs?: string
-  source: string
+  /** True once the glue has handled a real message on the real host. Until then the command says so. */
+  verified: boolean
 }
 
 const ONE_LINE = `const oneLine = (text: string) => text.replace(/\\s+/g, ' ').trim()
@@ -60,13 +70,74 @@ export const GLUE: readonly GlueRecipe[] = [
   {
     name: 'vercel',
     description: 'A Vercel Function',
-    path: 'api/contact.ts',
-    source: `// The ".js" is needed: Vercel runs this as an ES module, which does not guess file extensions. The file is contact.ts.
+    verified: true,
+    files: [
+      {
+        path: 'api/contact.ts',
+        source: `// The ".js" is needed: Vercel runs this as an ES module, which does not guess file extensions. The file is contact.ts.
 import form from '../src/forms/contact.js'
 
 export const POST = (request: Request) => form.fetch(request, process.env)
 export const OPTIONS = POST
 `,
+      },
+    ],
+  },
+  {
+    name: 'netlify',
+    description: 'A Netlify Function',
+    verified: true,
+    files: [
+      {
+        path: 'netlify/functions/contact.mts',
+        source: `import form from '../../src/forms/contact.js'
+
+export default (request: Request) => form.fetch(request, process.env)
+
+export const config = { path: '/api/contact' }
+`,
+      },
+    ],
+  },
+  {
+    name: 'cloudflare',
+    description: 'A Cloudflare Worker that serves the site and answers /api/contact',
+    verified: true,
+    files: [
+      {
+        path: 'worker.ts',
+        source: `import form from './src/forms/contact.js'
+
+type Env = Record<string, string> & { ASSETS: { fetch: (request: Request) => Promise<Response> } }
+
+export default {
+  fetch(request: Request, env: Env): Promise<Response> {
+    if (new URL(request.url).pathname === '/api/contact') return form.fetch(request, env)
+    return env.ASSETS.fetch(request)
+  },
+}
+`,
+      },
+      {
+        path: 'wrangler.jsonc',
+        skipWhenAny: ['wrangler.jsonc', 'wrangler.json', 'wrangler.toml'],
+        skipNote:
+          'This site already has a Wrangler config, so it was left alone. It needs "main": "./worker.ts", "assets" with "binding": "ASSETS" and "run_worker_first": true, and CONTACT_FROM and CONTACT_TO under "vars". See the Forms guide.',
+        source: `// "name" has to be the name of your Worker in Cloudflare.
+// RESEND_API_KEY is a secret: set it in the Worker's Settings, not here. CONTACT_FROM and CONTACT_TO are plain values and
+// live under "vars", because a deploy replaces variables that exist only in the dashboard. Fill them in, and keep this
+// repository private if the addresses should not be public.
+{
+  "name": "my-site",
+  "compatibility_date": "2026-10-27",
+  "main": "./worker.ts",
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": true },
+  "observability": { "logs": { "enabled": true, "invocation_logs": true, "persist": true } },
+  "vars": { "CONTACT_FROM": "", "CONTACT_TO": "" }
+}
+`,
+      },
+    ],
   },
 ]
 
@@ -106,6 +177,8 @@ export interface FormPlan {
   files: Array<FormFile & { source: string }>
   env: string[]
   needs?: string
+  /** Things the person should know about files the command left alone. */
+  notes: string[]
 }
 
 /**
@@ -124,9 +197,16 @@ export function planForm(root: string, handler: HandlerRecipe | undefined, glue:
     }
     files.push({ path: file, action, source })
   }
+  const notes: string[] = []
   if (handler) add(HANDLER_PATH, handler.source)
-  if (glue) add(glue.path, glue.source)
-  return { files, env: handler?.env ?? [], needs: glue?.needs }
+  for (const file of glue?.files ?? []) {
+    if (file.skipWhenAny?.some((existing) => fs.existsSync(path.join(root, existing)))) {
+      if (file.skipNote) notes.push(file.skipNote)
+      continue
+    }
+    add(file.path, file.source)
+  }
+  return { files, env: handler?.env ?? [], needs: glue?.needs, notes }
 }
 
 /** Writes the files that need writing and records every file of the plan in the lock. Returns the paths written. */
