@@ -69,7 +69,8 @@ describe('the form recipes', () => {
       const depth = glue.path.split('/').length - 1
       const expected = `${depth === 0 ? './' : '../'.repeat(depth)}${glue.path.startsWith('src/') ? '' : 'src/'}forms/contact`
       const relative = glue.path.startsWith('src/') ? `${'../'.repeat(depth - 1)}forms/contact` : expected
-      expect(glue.source).toContain(`from '${relative}'`)
+      // ES modules do not guess extensions, so the import names the compiled file: ".js" for contact.ts.
+      expect(glue.source).toContain(`from '${relative}.js'`)
     }
   })
 })
