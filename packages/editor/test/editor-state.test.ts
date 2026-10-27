@@ -58,6 +58,40 @@ describe('editor state', () => {
     expect(doc.dirty.value).toBe(false)
   })
 
+  describe('a text field that is also on the page', () => {
+    const previews = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/preview')).length
+    const field = (editable: boolean) => {
+      const node = document.createElement('h1')
+      node.setAttribute('data-field', HEADING)
+      if (editable) node.setAttribute('contenteditable', 'true')
+      document.body.append(node)
+      return node
+    }
+    afterEach(() => {
+      document.body.replaceChildren()
+    })
+
+    it('is re-rendered when it is typed in the sidebar, so the page shows it before saving', () => {
+      vi.useFakeTimers()
+      editor = loaded()
+      field(false)
+      editor.edits.writeField(HEADING, 'From the sidebar')
+      vi.advanceTimersByTime(400)
+      expect(previews()).toBe(1)
+    })
+
+    it('is left where it is when it is typed on the page', () => {
+      vi.useFakeTimers()
+      editor = loaded()
+      const node = field(true)
+      node.focus()
+      expect(document.activeElement).toBe(node)
+      editor.edits.writeField(HEADING, 'Typed on the page')
+      vi.advanceTimersByTime(400)
+      expect(previews()).toBe(0)
+    })
+  })
+
   it('queues edits made before the drafts load', () => {
     editor = createEditor()
     editor.edits.writeField('name', 'Early')

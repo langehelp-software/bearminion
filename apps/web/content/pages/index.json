@@ -388,8 +388,8 @@
         "details": [
           {
             "hideFromCrawlers": true,
-            "label": "Email",
-            "value": "hello@example.com"
+            "label": "EMAIL",
+            "value": "contact@bearminion.com"
           }
         ],
         "eyebrow": "Contact",
