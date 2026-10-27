@@ -350,6 +350,65 @@ describe('turnstile', () => {
     expect((await run(handler, post(withToken), { turnstile: true }, env)).status).toBe(500)
   })
 
+  it('checks the token whenever the secret is in the environment, with no option at all', async () => {
+    const handler = vi.fn()
+    expect((await run(handler, post(message), undefined, env)).status).toBe(422)
+    cloudflare({ success: false, 'error-codes': ['invalid-input-response'] })
+    expect((await run(handler, post(withToken), undefined, env)).status).toBe(422)
+    expect(handler).not.toHaveBeenCalled()
+    const spy = cloudflare({ success: true })
+    expect((await run(handler, post(withToken), undefined, env)).status).toBe(200)
+    expect(spy).toHaveBeenCalledOnce()
+  })
+
+  it('does not check with no secret and no option, and not with turnstile: false', async () => {
+    const spy = cloudflare({ success: false })
+    const handler = vi.fn()
+    expect((await run(handler, post(message), undefined, {})).status).toBe(200)
+    expect((await run(handler, post(message), { turnstile: false }, env)).status).toBe(200)
+    expect(spy).not.toHaveBeenCalled()
+    expect(handler).toHaveBeenCalledTimes(2)
+  })
+
+  it('refuses a genuine token from a widget served on another host, and accepts a host you list', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const handler = vi.fn()
+    cloudflare({ success: true, hostname: 'evil.example' })
+    const refused = await run(handler, post(withToken), { turnstile: true }, env)
+    expect(refused.status).toBe(422)
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("hostnames: ['evil.example']"))
+    expect(handler).not.toHaveBeenCalled()
+    expect((await run(handler, post(withToken), { turnstile: { hostnames: ['Evil.example'] } }, env)).status).toBe(200)
+  })
+
+  it("accepts the function's own host, in any case, and an answer with no hostname", async () => {
+    const handler = vi.fn()
+    cloudflare({ success: true, hostname: 'EXAMPLE.com' })
+    expect((await run(handler, post(withToken), { turnstile: true }, env)).status).toBe(200)
+    cloudflare({ success: true })
+    expect((await run(handler, post(withToken), { turnstile: true }, env)).status).toBe(200)
+  })
+
+  it("skips the hostname check for Cloudflare's test secrets", async () => {
+    cloudflare({ success: true, hostname: 'example.org' })
+    const dummy = { TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA' }
+    expect((await run(vi.fn(), post(withToken), { turnstile: true }, dummy)).status).toBe(200)
+  })
+
+  it("hands Turnstile the host's own address header, and the last x-forwarded-for entry, never the first", async () => {
+    const spy = cloudflare({ success: true })
+    const sent = async (headers: Record<string, string>) => {
+      spy.mockClear()
+      await run(vi.fn(), post(withToken, { headers }), { turnstile: true }, env)
+      const call = spy.mock.calls[0] as unknown as [string, { body: URLSearchParams }]
+      return call[1].body.get('remoteip')
+    }
+    expect(await sent({ 'cf-connecting-ip': '1.1.1.1', 'x-real-ip': '2.2.2.2' })).toBe('1.1.1.1')
+    expect(await sent({ 'x-nf-client-connection-ip': '3.3.3.3', 'x-forwarded-for': '9.9.9.9' })).toBe('3.3.3.3')
+    expect(await sent({ 'x-forwarded-for': '9.9.9.9, 4.4.4.4' })).toBe('4.4.4.4')
+    expect(await sent({})).toBe(null)
+  })
+
   it('answers 502 when Cloudflare cannot be reached', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.stubGlobal(

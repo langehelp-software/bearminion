@@ -106,7 +106,7 @@ export default defineForm(handler, {
 
 | Option | Default | Does |
 | --- | --- | --- |
-| `turnstile` | off | `true` checks a Turnstile token with the secret key in `TURNSTILE_SECRET_KEY`. `{ secretEnv: 'MY_VAR' }` names another variable. See [Turnstile](spam.md#cloudflare-turnstile) |
+| `turnstile` | on when `TURNSTILE_SECRET_KEY` is set | `true` requires the check, and a missing secret refuses every message. `false` turns it off. `{ secretEnv: 'MY_VAR', hostnames: [...] }` names another variable and other hosts a widget may be served on. See [Turnstile](spam.md#cloudflare-turnstile) |
 | `origins` | none | Other websites allowed to post here, such as `https://www.example.com`, or `'*'` for any. The form's own site is always allowed. Needed only when the page and the function live at different addresses |
 | `maxBytes` | `65536` | The largest post accepted |
 

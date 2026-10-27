@@ -26,11 +26,13 @@ export type FormHandler = (submission: FormSubmission, context: FormContext) => 
 
 export interface FormOptions {
   /**
-   * Check a Cloudflare Turnstile token before the handler runs. `true` reads the secret key from the environment
-   * variable `TURNSTILE_SECRET_KEY`; `{ secretEnv }` names another one. The page needs the matching site key in the
-   * Contact section's settings.
+   * Check a Cloudflare Turnstile token before the handler runs. Left out, the check runs whenever the environment has
+   * `TURNSTILE_SECRET_KEY`, so setting the secret is the whole switch. `true` requires it (a missing secret refuses every
+   * message), `false` turns the check off, and `{ secretEnv }` names another variable. The page needs the matching site
+   * key at build time (`PUBLIC_TURNSTILE_SITE_KEY`). A genuine token must also come from your own site: its hostname has
+   * to be the function's host, and `hostnames` adds others.
    */
-  turnstile?: boolean | { secretEnv?: string }
+  turnstile?: boolean | { secretEnv?: string; hostnames?: readonly string[] }
   /**
    * Other sites allowed to post here, such as `https://www.example.com`, or `'*'` for any. Posts from the form's own
    * site are always allowed. Needed only when the page and the function live on different addresses.
@@ -130,9 +132,23 @@ const CORS_METHODS = {
   'access-control-max-age': '86400',
 }
 
+/**
+ * The visitor's address, as a hint for Turnstile. The host's own headers come first. In `x-forwarded-for` the first
+ * entry is whatever the visitor sent, and the last is what the nearest proxy saw, so the last is the one to use.
+ */
 function remoteIp(headers: Headers): string | undefined {
-  return headers.get('cf-connecting-ip') ?? headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? headers.get('x-real-ip') ?? undefined
+  const forwarded = headers.get('x-forwarded-for')?.split(',')
+  return (
+    headers.get('cf-connecting-ip') ??
+    headers.get('x-nf-client-connection-ip') ??
+    headers.get('x-real-ip') ??
+    forwarded?.[forwarded.length - 1]?.trim() ??
+    undefined
+  )
 }
+
+/** Cloudflare's test secrets begin like this. They are for trying the widget, so the hostname check does not apply to them. */
+const TEST_SECRET = /^[123]x0{10}/
 
 /**
  * Puts your function behind a form. It runs on your server with your keys, so a service's token never reaches the
@@ -162,12 +178,20 @@ export function defineForm(handler: FormHandler, options: FormOptions = {}): For
   if (typeof handler !== 'function') throw new TypeError('defineForm needs a function: defineForm(async (submission, { env }) => { ... }).')
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES
   const allowed = options.origins ?? []
-  const secretEnv =
-    options.turnstile === true
-      ? 'TURNSTILE_SECRET_KEY'
-      : options.turnstile
-        ? (options.turnstile.secretEnv ?? 'TURNSTILE_SECRET_KEY')
-        : undefined
+  /**
+   * The variable that holds the secret, or undefined when this request is not checked. Asked for in the options, a missing
+   * secret is an error; left to the default, a missing secret means the check is off.
+   */
+  const secretVariable = (env: FormEnv): string | undefined => {
+    const given = options.turnstile
+    if (given === false) return undefined
+    if (given === true) return 'TURNSTILE_SECRET_KEY'
+    if (typeof given === 'object') return given.secretEnv ?? 'TURNSTILE_SECRET_KEY'
+    return env.TURNSTILE_SECRET_KEY ? 'TURNSTILE_SECRET_KEY' : undefined
+  }
+  const extraHostnames = (typeof options.turnstile === 'object' ? (options.turnstile.hostnames ?? []) : []).map((name) =>
+    name.toLowerCase(),
+  )
 
   async function answer(request: Request, env: FormEnv, run: FormRunOptions, seen: { formId: string }): Promise<Response> {
     const cors = originHeaders(request, allowed)
@@ -200,6 +224,7 @@ export function defineForm(handler: FormHandler, options: FormOptions = {}): For
       return reply(200, { ok: true }, cors)
     }
 
+    const secretEnv = secretVariable(env)
     if (secretEnv !== undefined) {
       const secret = env[secretEnv]
       if (!secret) {
@@ -210,7 +235,16 @@ export function defineForm(handler: FormHandler, options: FormOptions = {}): For
       try {
         const ip = remoteIp(request.headers)
         const outcome = await verifyTurnstile({ secret, token, ...(ip ? { remoteIp: ip } : {}) })
-        if (!outcome.success) {
+        if (outcome.success) {
+          const hostname = outcome.hostname?.toLowerCase()
+          const ownHost = new URL(request.url).hostname.toLowerCase()
+          if (hostname !== undefined && !TEST_SECRET.test(secret) && hostname !== ownHost && !extraHostnames.includes(hostname)) {
+            console.error(
+              `[bearminion] Turnstile says the widget was served on ${hostname}, but this form runs on ${ownHost}. If that site is yours, list it: turnstile: { hostnames: ['${hostname}'] }.`,
+            )
+            return refuse(422, SPAM_CHECK_FAILED, cors)
+          }
+        } else {
           if (outcome.misconfigured) {
             console.error(
               `[bearminion] Turnstile refused the secret key in ${secretEnv} (${outcome.codes.join(', ')}). Check it in the Cloudflare dashboard.`,
