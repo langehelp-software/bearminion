@@ -516,3 +516,87 @@ describe('bearminion status', () => {
     expect(fs.readFileSync(path.join(site, atom), 'utf8')).toContain('<!-- next -->')
   })
 })
+
+describe('bearminion add form', () => {
+  const siteWith = (files: Record<string, string> = {}) => {
+    const site = makeSite()
+    for (const [file, content] of Object.entries(files)) write(site, file, content)
+    return site
+  }
+
+  it('lists the service and the host that have been tried', async () => {
+    const { registryDir } = build(makeTemplate())
+    const { code, text } = await exec(['add', 'form', '--list'], registryDir)
+    expect(code).toBe(0)
+    expect(text).toContain('resend')
+    expect(text).toContain('vercel')
+    for (const untried of ['formspree', 'web3forms', 'postmark', 'slack', 'netlify', 'cloudflare']) expect(text).not.toContain(untried)
+  })
+
+  it('writes the handler and the glue, names the three environment variables, and records both in the lock', async () => {
+    const { registryDir } = build(makeTemplate())
+    const site = siteWith()
+    const { code, text } = await exec(['add', 'form', 'resend', '--host', 'vercel', '--yes', '--cwd', site], registryDir)
+    expect(code).toBe(0)
+    expect(fs.readFileSync(path.join(site, 'src/forms/contact.ts'), 'utf8')).toContain("from 'bearminion/forms'")
+    expect(fs.readFileSync(path.join(site, 'api/contact.ts'), 'utf8')).toContain("from '../src/forms/contact'")
+    expect(Object.keys(readLock(site, 'default').files)).toEqual(['api/contact.ts', 'src/forms/contact.ts'])
+    expect(text).toContain('RESEND_API_KEY')
+    expect(text).toContain('CONTACT_FROM')
+    expect(text).toContain('CONTACT_TO')
+    const again = await exec(['add', 'form', 'resend', '--host', 'vercel', '--yes', '--cwd', site], registryDir)
+    expect(again.code).toBe(0)
+    expect(again.text).toContain('every file matches the recipe')
+  })
+
+  it('finds vercel from the project, and writes only the handler for a host it has no tested glue for', async () => {
+    const { registryDir } = build(makeTemplate())
+    const vercel = siteWith({ 'vercel.json': '{}' })
+    await exec(['add', 'form', 'resend', '--yes', '--cwd', vercel], registryDir)
+    expect(fs.existsSync(path.join(vercel, 'api/contact.ts'))).toBe(true)
+    const netlify = siteWith({ 'netlify.toml': '' })
+    const { text } = await exec(['add', 'form', 'resend', '--yes', '--cwd', netlify], registryDir)
+    expect(fs.existsSync(path.join(netlify, 'src/forms/contact.ts'))).toBe(true)
+    expect(fs.existsSync(path.join(netlify, 'netlify'))).toBe(false)
+    expect(text).toContain('deploys to netlify')
+    const bare = siteWith()
+    expect((await exec(['add', 'form', 'resend', '--yes', '--cwd', bare], registryDir)).text).toContain('No host found')
+    const two = siteWith({ 'netlify.toml': '', 'vercel.json': '{}' })
+    await exec(['add', 'form', 'resend', '--yes', '--cwd', two], registryDir)
+    expect(fs.existsSync(path.join(two, 'api'))).toBe(false)
+  })
+
+  it('stops on a handler the owner wrote, and replaces it only with --overwrite', async () => {
+    const { registryDir } = build(makeTemplate())
+    const site = siteWith({ 'src/forms/contact.ts': 'mine\n' })
+    const stopped = await exec(['add', 'form', 'resend', '--host', 'vercel', '--yes', '--cwd', site], registryDir)
+    expect(stopped.code).toBe(1)
+    expect(fs.readFileSync(path.join(site, 'src/forms/contact.ts'), 'utf8')).toBe('mine\n')
+    expect(fs.existsSync(path.join(site, 'api/contact.ts'))).toBe(false)
+    const replaced = await exec(['add', 'form', 'resend', '--host', 'vercel', '--overwrite', '--yes', '--cwd', site], registryDir)
+    expect(replaced.code).toBe(0)
+    expect(fs.readFileSync(path.join(site, 'src/forms/contact.ts'), 'utf8')).toContain('RESEND_API_KEY')
+  })
+
+  it('refuses an unknown service or host, and a call that names neither', async () => {
+    const { registryDir } = build(makeTemplate())
+    const site = siteWith()
+    expect((await exec(['add', 'form', 'slack', '--cwd', site], registryDir)).code).toBe(1)
+    expect((await exec(['add', 'form', 'resend', '--host', 'netlify', '--cwd', site], registryDir)).code).toBe(1)
+    expect((await exec(['add', 'form', '--cwd', site], registryDir)).code).toBe(2)
+  })
+
+  it('writes nothing with --dry-run and reports JSON', async () => {
+    const { registryDir } = build(makeTemplate())
+    const site = siteWith()
+    const { code, text } = await exec(['add', 'form', 'resend', '--host', 'vercel', '--dry-run', '--json', '--cwd', site], registryDir)
+    expect(code).toBe(0)
+    const report = JSON.parse(text)
+    expect(report.files).toEqual([
+      { path: 'src/forms/contact.ts', action: 'create' },
+      { path: 'api/contact.ts', action: 'create' },
+    ])
+    expect(report.env).toEqual(['RESEND_API_KEY', 'CONTACT_FROM', 'CONTACT_TO'])
+    expect(fs.existsSync(path.join(site, 'src/forms'))).toBe(false)
+  })
+})

@@ -5,6 +5,7 @@ import Emphasis from '../../atoms/Emphasis.astro'
 import Typography from '../../atoms/Typography.astro'
 import SectionHeader from '../../molecules/SectionHeader.astro'
 import SectionShell from '../../molecules/SectionShell.astro'
+import { HIDDEN_FALLBACK, hide } from '../../../lib/hidden-text'
 
 interface Props {
   section: Extract<Section, { type: 'contact' }>
@@ -17,6 +18,10 @@ const props = section.props
 const field = (path: string) => `sections.${index}.props.${path}`
 const reveal = section.motion ?? motion
 const formId = `contact-form-${section.id}`
+// A detail marked "hide from crawlers" is written into the HTML scrambled, and form.ts puts the value back in the browser.
+const hidden = (detail: { value: string; hideFromCrawlers?: boolean | undefined }) =>
+  detail.hideFromCrawlers ? { 'data-hidden-value': hide(detail.value) } : {}
+const shown = (detail: { value: string; hideFromCrawlers?: boolean | undefined }) => (detail.hideFromCrawlers ? HIDDEN_FALLBACK : detail.value)
 // The form always posts to /api/contact, where the site's own handler (src/forms/contact.ts) answers. The public
 // Turnstile site key comes from the environment at build time, so it never lives in the content files.
 const turnstileKey: string | undefined = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || undefined
@@ -43,7 +48,7 @@ const formAttrs = {
                     <dt class="font-mono text-[0.75rem] tracking-[0.06em] text-muted uppercase" data-field={field(`details.${detailIndex}.label`)}>
                       {detail.label}
                     </dt>
-                    <dd data-field={field(`details.${detailIndex}.value`)}>{detail.value}</dd>
+                    <dd data-field={field(`details.${detailIndex}.value`)} {...hidden(detail)}>{shown(detail)}</dd>
                   </div>
                 ))}
               </dl>
@@ -197,7 +202,7 @@ const formAttrs = {
                   {props.details.map((detail, detailIndex) => (
                     <div>
                       <dt class="font-mono text-[0.6875rem] tracking-[0.08em] text-muted uppercase" data-field={field(`details.${detailIndex}.label`)}>{detail.label}</dt>
-                      <dd class="mt-1" data-field={field(`details.${detailIndex}.value`)}>{detail.value}</dd>
+                      <dd class="mt-1" data-field={field(`details.${detailIndex}.value`)} {...hidden(detail)}>{shown(detail)}</dd>
                     </div>
                   ))}
                 </dl>

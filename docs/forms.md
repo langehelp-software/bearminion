@@ -23,6 +23,18 @@ When the file exists, the section's settings say that the form is handled by you
 
 You need three things: the handler file, a few lines of glue for your host, and the secrets in the host's settings.
 
+### The quick way
+
+For Resend on Vercel, one command writes the handler and the glue:
+
+```sh
+npx bearminion add form resend --host vercel
+```
+
+> **Set the two addresses before you deploy.** The handler reads them from the environment, so they are not in your repository: `CONTACT_FROM` is the sender, an address on a domain you verified with Resend, and `CONTACT_TO` is the inbox that receives the messages. Until both are set the form refuses to send and the visitor sees the error toast.
+
+The command prints the three values to set, `RESEND_API_KEY`, `CONTACT_FROM` and `CONTACT_TO`, in the host's settings and in `.env` for `astro dev`. It never replaces a handler you wrote unless you pass `--overwrite`. Other services and hosts are not in the command yet: the files for them are below, to copy by hand. See [The command line](cli.md#add-a-form-handler). The steps below show what it writes.
+
 ### 1. The handler
 
 Create `src/forms/contact.ts`. The Contact form posts to `/api/contact`, and this file answers there.
@@ -239,7 +251,7 @@ A browser page always sends an `Origin` header, and `defineForm` compares its ho
 
 The handler sends the mail, not the browser: the key stays on the server, and deliverability and abuse limits belong to your account at the provider. Collapse the visitor's name to one line before it goes into a subject, as `oneLine` does. A name with a line break in it is how mail headers get forged.
 
-**Resend.** `src/forms/contact.ts`:
+**Resend.** `src/forms/contact.ts`. This is the file `add form resend` writes. It has been tried on Vercel; the others below have not been sent through the live service.
 
 ```ts
 import { defineForm } from 'bearminion/forms'
@@ -247,12 +259,15 @@ import { defineForm } from 'bearminion/forms'
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim()
 
 export default defineForm(async (submission, { env }) => {
+  // Both addresses live in the environment, so they are not in the repository. CONTACT_FROM has to be on a domain you
+  // verified with Resend; CONTACT_TO is where the messages arrive.
+  if (!env.CONTACT_FROM || !env.CONTACT_TO) throw new Error('Set CONTACT_FROM and CONTACT_TO in the environment.')
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: 'Website <contact@your-domain.example>',
-      to: 'you@your-domain.example',
+      from: env.CONTACT_FROM,
+      to: env.CONTACT_TO,
       reply_to: submission.email,
       subject: `New message from ${oneLine(submission.name ?? '')}`,
       text: `${submission.message}\n\nFrom: ${submission.name} <${submission.email}>\nTopic: ${submission.topic ?? '-'}\nPage: ${submission.page}`,
@@ -262,7 +277,9 @@ export default defineForm(async (submission, { env }) => {
 })
 ```
 
-Set `RESEND_API_KEY` in the host. The `from` address has to be on a domain you verified with Resend.
+> **Set `CONTACT_FROM` and `CONTACT_TO` before you deploy.** The handler refuses to send until both are set, and keeping them in the environment keeps your addresses out of the repository. `CONTACT_FROM` has to be an address on a domain you verified with Resend, or Resend rejects the message. While you test with no verified domain, Resend only accepts `onboarding@resend.dev` as the sender and only delivers to the address of your own Resend account.
+
+Set `RESEND_API_KEY`, `CONTACT_FROM` and `CONTACT_TO` in the host.
 
 **Postmark.** The same file with Postmark's request:
 
@@ -374,6 +391,12 @@ import type { FormResult, FormSubmission } from 'bearminion'
 - The section's settings in the editor show the same warning, or, once the file exists, a note that your own code handles the form and has to be tested by hand. The check looks for the file only. It cannot know whether your keys, your service or your host are set up.
 - In **Preview** the form behaves as it will on the live site, including the 1.5 second wait and the error message. Send one to see the thank-you text.
 - `src/forms/<name>.ts` answers at `/api/<name>` on the dev server. Edits to the file apply on the next send, with no restart. Change the folder or the path with `forms: { dir: 'server/forms', prefix: '/hooks' }` in the `bearminion()` options, or turn the route off with `forms: false`.
+
+## Stop a build that has no handler
+
+By default a Contact form with no `src/forms/contact.ts` is a warning, so a new site still builds. For a production deploy that should not go out with a form nobody answers, set `BEARMINION_FORMS=required` in the host's **build** environment. The build then fails and names the form. Do not put it in `.env`: `astro dev` and new sites stay as they are.
+
+This checks that the handler file exists. It cannot check that the host has the glue file or that the secrets are set, so send one message from the live site after a deploy. `BEARMINION_FORMS_LIVE` is a different switch: it only decides whether `astro dev` runs your handler or prints a dry run, and a built site never reads it.
 
 ## When it does not work
 

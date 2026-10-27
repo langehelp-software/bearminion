@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "template": "default",
+  "files": {
+    "api/contact.ts": {
+      "version": "1.8.0",
+      "hash": "21df05d1ed4f762ea8f03f665c7306a7328c7f7b5bd03ce51f327a442152e809"
+    },
+    "src/forms/contact.ts": {
+      "version": "1.8.0",
+      "hash": "cd010ce4f3eb00507866bcab88dff6737e485c2e324644bfd7948858bd319586"
+    }
+  }
+}

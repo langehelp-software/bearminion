@@ -3,8 +3,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 import { applyPlan, SECTIONS_PATH } from './add/apply.js'
-import { formatCommand, detectPackageManager, installCommand, runInstall, type Exec } from './add/packages.js'
-import { readLock } from './add/lock.js'
+import { formatCommand, detectPackageManager, installCommand, missingPackages, runInstall, type Exec } from './add/packages.js'
+import { applyForm, detectHost, GLUE, HANDLER_PATH, HANDLERS, planForm } from './add/forms.js'
+import { readLock, writeLock } from './add/lock.js'
 import { isPresent, planAdd, writesFile, type FileAction, type Plan } from './add/plan.js'
 import { statusOf, type FileState } from './add/status.js'
 import { REGISTRY_SCHEMA_VERSION, type Registry, type RegistryItem } from './registry/types.js'
@@ -17,6 +18,7 @@ const HELP = `The bearminion command line.
 Usage
   npx bearminion add <section...> [options]
   npx bearminion add --list
+  npx bearminion add form [<service>] [--host <host>]
   npx bearminion status [--json]
   npx bearminion sync [options]
 
@@ -33,6 +35,10 @@ Options for add
   --diff            Show how your changed files differ from this release
   --install         Install the npm packages the sections need
   --json            Print one JSON document instead of text (needs --yes or --dry-run)
+
+Options for add form
+  --host <host>     Where the site runs (found from the project when omitted). See --list
+  --list            List the services and hosts
 
 Options for sync
   --check           Write nothing; exit 1 when the generated files are stale
@@ -94,6 +100,7 @@ function parse(argv: readonly string[]) {
       diff: { type: 'boolean', default: false },
       install: { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
+      host: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
     },
   })
@@ -164,6 +171,7 @@ function diffAgainstRelease(root: string, registryDir: string, file: string): st
 }
 
 async function runAdd(root: string, names: string[], values: Values, io: Io): Promise<number> {
+  if (names[0] === 'form') return runAddForm(root, names.slice(1), values, io)
   const { log } = io
   const json = values.json === true
   const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
@@ -374,5 +382,152 @@ function runStatus(root: string, values: Values, io: Io): number {
   log('')
   if (status.updatable.length > 0) log(`Bring up to date: npx bearminion add ${status.updatable.join(' ')}`)
   else log('Nothing to update.')
+  return 0
+}
+
+async function runAddForm(root: string, names: string[], values: Values, io: Io): Promise<number> {
+  const { log } = io
+  const json = values.json === true
+  const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
+    log(json ? JSON.stringify({ ok: false, error: message, ...extra }, null, 2) : message)
+    return code
+  }
+  if (values.list) {
+    if (json) {
+      log(
+        JSON.stringify(
+          {
+            ok: true,
+            services: HANDLERS.map(({ name, description, env }) => ({ name, description, env })),
+            hosts: GLUE.map(({ name, description, path: file }) => ({ name, description, path: file })),
+          },
+          null,
+          2,
+        ),
+      )
+      return 0
+    }
+    log(`Services (the handler, written to ${HANDLER_PATH}):`)
+    for (const handler of HANDLERS) log(`  ${handler.name.padEnd(10)} ${handler.description}`)
+    log('')
+    log('Hosts (the glue that hands the request to the handler):')
+    for (const glue of GLUE) log(`  ${glue.name.padEnd(10)} ${glue.description}, ${glue.path}`)
+    return 0
+  }
+  if (names.length > 1) return fail('Name one service: npx bearminion add form <service> --host <host>. Use --list to see them.', 2)
+  const handler = names[0] === undefined ? undefined : HANDLERS.find((candidate) => candidate.name === names[0])
+  if (names[0] !== undefined && handler === undefined) {
+    return fail(
+      `There is no form service called "${names[0]}". The services are: ${HANDLERS.map((candidate) => candidate.name).join(', ')}.`,
+    )
+  }
+  const detected = values.host === undefined ? detectHost(root) : undefined
+  const hostName = values.host ?? detected
+  const glue = hostName === undefined ? undefined : GLUE.find((candidate) => candidate.name === hostName)
+  if (values.host !== undefined && glue === undefined) {
+    return fail(`There is no host called "${hostName}". The hosts are: ${GLUE.map((candidate) => candidate.name).join(', ')}.`)
+  }
+  if (handler === undefined && glue === undefined) {
+    return fail('Name a service, a host, or both. For example: npx bearminion add form resend --host vercel. Use --list to see them.', 2)
+  }
+
+  let loaded: ReturnType<typeof loadRegistry>
+  try {
+    loaded = loadRegistry(io.registryDir)
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
+  const { registry } = loaded
+  const plan = planForm(root, handler, glue, values.overwrite === true)
+  const conflicts = plan.files.filter((file) => file.action === 'conflict')
+  const changes = plan.files.filter((file) => file.action !== 'same')
+  const report = (extra: Record<string, unknown>) =>
+    JSON.stringify(
+      {
+        ok: conflicts.length === 0,
+        version: registry.version,
+        service: handler?.name ?? null,
+        host: glue?.name ?? null,
+        hostDetected: detected !== undefined,
+        files: plan.files.map(({ path: file, action }) => ({ path: file, action })),
+        env: plan.env,
+        ...extra,
+      },
+      null,
+      2,
+    )
+
+  if (!json) {
+    log(
+      `${values['dry-run'] ? 'Would add' : 'Adding'} the form recipe${glue ? ` for ${glue.name}${detected ? ' (found from the project)' : ''}` : ''}${handler ? ` with ${handler.name}` : ''}`,
+    )
+    log('')
+    for (const file of changes) log(`  ${LABELS[file.action].padEnd(9)} ${file.path}`)
+    const same = plan.files.length - changes.length
+    if (same > 0) log(`  ${same} file${same === 1 ? '' : 's'} already match the recipe.`)
+    log('')
+  }
+  if (conflicts.length > 0) {
+    if (json) log(report({ error: 'Some files are yours and differ from the recipe.', written: [] }))
+    else {
+      log(
+        `${conflicts.map((file) => file.path).join(', ')} already exist${conflicts.length === 1 ? 's' : ''} and differ${conflicts.length === 1 ? 's' : ''} from the recipe. Nothing was written.`,
+      )
+      log('Use --overwrite to replace them. Commit first: git keeps your version.')
+    }
+    return 1
+  }
+  if (changes.length === 0) {
+    log(json ? report({ written: [] }) : 'Already in this site, and every file matches the recipe.')
+    return 0
+  }
+  if (values['dry-run']) {
+    log(json ? report({ dryRun: true, written: [] }) : 'Dry run: nothing was written.')
+    return 0
+  }
+  if (!values.yes) {
+    if (json || io.confirm === undefined) {
+      return fail('Not asking in here: pass --yes to write, or --dry-run to look first.', 1, {
+        files: plan.files.map(({ path: file, action }) => ({ path: file, action })),
+      })
+    }
+    if (!(await io.confirm(`Write ${changes.length} file${changes.length === 1 ? '' : 's'}?`))) {
+      log('Nothing was written.')
+      return 1
+    }
+  }
+
+  let written: string[]
+  try {
+    const applied = applyForm(root, plan, registry.version, readLock(root, registry.template))
+    writeLock(root, applied.lock)
+    written = applied.written
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
+  if (json) {
+    log(report({ written }))
+    return 0
+  }
+  log(`Wrote ${written.length} file${written.length === 1 ? '' : 's'} and noted them in bearminion.lock.json.`)
+  if (plan.env.length > 0) {
+    log(`Set ${plan.env.join(', ')} in your host's settings, and in .env for \`astro dev\`.`)
+    if (plan.env.includes('CONTACT_FROM'))
+      log(
+        'CONTACT_FROM has to be an address on a domain you verified with Resend; CONTACT_TO is where the messages arrive. Until both are set the form refuses to send.',
+      )
+  }
+  if (plan.needs && Object.keys(missingPackages(root, { [plan.needs]: 'latest' })).length > 0)
+    log(
+      `The glue imports types from ${plan.needs}. Install it: ${formatCommand(installCommand(detectPackageManager(root), { [plan.needs]: 'latest' }))}`,
+    )
+  if (glue === undefined) {
+    log(
+      detected !== undefined
+        ? `This project deploys to ${detected}, and \`add form\` has no tested glue for it yet. The glue for each host is in the Forms guide: https://docs.bearminion.com/forms`
+        : `No host found in this project, so no glue was written. Add it with: npx bearminion add form --host <${GLUE.map((candidate) => candidate.name).join('|')}>`,
+    )
+  }
+  if (handler === undefined) log(`The glue calls ${HANDLER_PATH}. Add it with: npx bearminion add form <service>`)
   return 0
 }

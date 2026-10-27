@@ -3,7 +3,7 @@ title: The command line
 description: "npx bearminion add copies sections into your site with the files they need and never touches a file you changed; status shows what is out of date; sync lists your section directories; and how releases are numbered."
 ---
 
-`bearminion` ships a command line next to the library. It adds sections to a site that was created earlier, tells you which of a site's files differ from the installed release, and keeps the list of a site's sections in step with its directories. It runs in the folder of your site (or with `--cwd`) and needs nothing but the `bearminion` package you already have.
+`bearminion` ships a command line next to the library. It adds sections to a site that was created earlier, tells you which of a site's files differ from the installed release, and adds a form handler, and keeps the list of a site's sections in step with its directories. It runs in the folder of your site (or with `--cwd`) and needs nothing but the `bearminion` package you already have.
 
 ## Add a section
 
@@ -67,6 +67,23 @@ It never edits `definitions.ts`, `astro.config.ts` or a content file.
 Exit code `0` is a section added, or already there. `1` is a conflict, an unknown section, a site `add` cannot work on, or a failed install. `2` is a command that was not understood.
 
 With `--json` the document has `ok`, `version`, `sections`, `files` (each with its `path` and `action`), `npm` (what is missing), `dirty` (files to be overwritten that git shows as changed), and, after a write, `written`.
+
+## Add a form handler
+
+The Contact form posts to `/api/contact`, and a handler in `src/forms/contact.ts` answers there. `add form` writes it, and the few lines of glue your host needs to run it:
+
+```sh
+npx bearminion add form --list                   # what can be added
+npx bearminion add form resend --host vercel     # the handler and the glue
+npx bearminion add form resend                   # the host is read from the project
+npx bearminion add form --host vercel            # glue only, for a handler you already have
+```
+
+Today that is one service and one host, the ones that have been sent through for real: `resend` (email) and `vercel` (`api/contact.ts`). The other services and hosts are in [Forms](forms.md) as files to copy by hand, and join the command one at a time, after a real message has gone through each.
+
+> **Set the addresses in the environment.** The handler reads the sender and the receiver from `CONTACT_FROM` and `CONTACT_TO`, so no address is written into your repository, and it refuses to send until both are set along with `RESEND_API_KEY`. `CONTACT_FROM` has to be on a domain you verified with Resend.
+
+Without `--host`, the command looks for `vercel.json`, `netlify.toml`, `wrangler.toml` and an Astro server adapter. If it finds none, two, or a host it has no glue for, it writes the handler only and says so. A file that is already there and differs from the recipe stops the command; `--overwrite` replaces it. `--dry-run`, `--yes` and `--json` work as for sections. The files are noted in `bearminion.lock.json`, and the command prints the three values to set. [Forms](forms.md) explains the handler.
 
 ## See what is out of date
 

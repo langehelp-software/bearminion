@@ -13,7 +13,13 @@ import {
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { hasFormHandler, unhandledFormMessage, unhandledForms } from '../../templates/default/src/lib/form-check'
+import {
+  formsRequired,
+  hasFormHandler,
+  requiredFormsError,
+  unhandledFormMessage,
+  unhandledForms,
+} from '../../templates/default/src/lib/form-check'
 import { contactSchema } from '../../templates/default/src/components/sections/contact/definition'
 
 describe('contact form submission', () => {
@@ -159,5 +165,20 @@ describe('warning for a form with no handler', () => {
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('BEARMINION_FORMS=required', () => {
+  it('turns on only for "required"', () => {
+    expect(formsRequired('required')).toBe(true)
+    expect(formsRequired(' Required ')).toBe(true)
+    for (const value of [undefined, '', 'on', 'true', 'warn']) expect(formsRequired(value)).toBe(false)
+  })
+
+  it('fails the build for a contact form without a handler, and for nothing else', () => {
+    expect(requiredFormsError([])).toBeUndefined()
+    const error = requiredFormsError([{ page: 'index', section: 'contact' }])
+    expect(error?.message).toContain('src/forms/contact.ts')
+    expect(error?.message).toContain('BEARMINION_FORMS=required')
   })
 })

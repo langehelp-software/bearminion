@@ -8,6 +8,7 @@ import {
   collectSubmission,
   readResponse,
 } from '../../../lib/contact-form'
+import { reveal } from '../../../lib/hidden-text'
 
 /**
  * Wires every Contact form on the page: the states idle, sending, sent and error, field errors under their fields,
@@ -289,8 +290,24 @@ function bind(root: HTMLElement) {
   })
 }
 
+/** Puts back the contact details the page was built without (`hideFromCrawlers`). The marker goes, so it runs once. */
+function revealHidden(root: HTMLElement): void {
+  for (const element of root.querySelectorAll('[data-hidden-value]')) {
+    const hidden = element.getAttribute('data-hidden-value')
+    element.removeAttribute('data-hidden-value')
+    if (hidden === null) continue
+    try {
+      element.textContent = reveal(hidden)
+    } catch {
+      // A damaged value stays as the "turn on JavaScript" line rather than breaking the form.
+    }
+  }
+}
+
 export function bindContacts(): void {
   for (const root of document.querySelectorAll('[data-contact]')) {
-    if (root instanceof HTMLElement) bind(root)
+    if (!(root instanceof HTMLElement)) continue
+    revealHidden(root)
+    bind(root)
   }
 }

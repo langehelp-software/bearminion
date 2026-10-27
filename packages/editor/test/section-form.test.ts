@@ -128,6 +128,27 @@ describe('Section tab controls', () => {
     expect(textLabels.some((text) => text.startsWith('Poster'))).toBe(false)
   })
 
+  it('shows the contact detail switch as a checkbox, for a detail that has not set it and for one that has', () => {
+    mount({
+      id: 'contact',
+      type: 'contact',
+      variant: 'split',
+      props: {
+        heading: 'Write',
+        details: [
+          { label: 'Email', value: 'a@b.co' },
+          { label: 'Phone', value: '600 100 200', hideFromCrawlers: true },
+        ],
+        topics: ['General'],
+      },
+    } as SectionDraft)
+    const switches = [...container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
+    expect(switches).toHaveLength(2)
+    expect(switches.map((input) => input.checked)).toEqual([false, true])
+    switches[0]?.click()
+    expect(onField).toHaveBeenCalledWith('sections.0.props.details.0.hideFromCrawlers', true)
+  })
+
   it('hides the hero command while it is off and the badge in the editorial layout', () => {
     const hero = (variant: string, code: string): SectionDraft =>
       ({
