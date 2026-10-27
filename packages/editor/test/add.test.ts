@@ -539,7 +539,7 @@ describe('bearminion add form', () => {
     const { code, text } = await exec(['add', 'form', 'resend', '--host', 'vercel', '--yes', '--cwd', site], registryDir)
     expect(code).toBe(0)
     expect(fs.readFileSync(path.join(site, 'src/forms/contact.ts'), 'utf8')).toContain("from 'bearminion/forms'")
-    expect(fs.readFileSync(path.join(site, 'api/contact.ts'), 'utf8')).toContain("from '../src/forms/contact'")
+    expect(fs.readFileSync(path.join(site, 'api/contact.ts'), 'utf8')).toContain("from '../src/forms/contact.js'")
     expect(Object.keys(readLock(site, 'default').files)).toEqual(['api/contact.ts', 'src/forms/contact.ts'])
     expect(text).toContain('RESEND_API_KEY')
     expect(text).toContain('CONTACT_FROM')
