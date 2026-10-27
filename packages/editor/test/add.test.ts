@@ -524,13 +524,16 @@ describe('bearminion add form', () => {
     return site
   }
 
-  it('lists the service and the host that have been tried', async () => {
+  it('lists the service, and the hosts with which ones have not been tried on a real deploy', async () => {
     const { registryDir } = build(makeTemplate())
     const { code, text } = await exec(['add', 'form', '--list'], registryDir)
     expect(code).toBe(0)
     expect(text).toContain('resend')
     expect(text).toContain('vercel')
-    for (const untried of ['formspree', 'web3forms', 'postmark', 'slack', 'netlify', 'cloudflare']) expect(text).not.toContain(untried)
+    expect(text).toMatch(/cloudflare .*, worker\.ts \+ wrangler\.jsonc(\n|$)/)
+    expect(text).toMatch(/vercel .*, api\/contact.ts\n/)
+    expect(text).toMatch(/netlify .*, netlify\/functions\/contact.mts\n/)
+    for (const untried of ['formspree', 'web3forms', 'postmark', 'slack']) expect(text).not.toContain(untried)
   })
 
   it('writes the handler and the glue, names the three environment variables, and records both in the lock', async () => {
@@ -549,7 +552,7 @@ describe('bearminion add form', () => {
     expect(again.text).toContain('every file matches the recipe')
   })
 
-  it('finds vercel from the project, and writes only the handler for a host it has no tested glue for', async () => {
+  it('finds the host from the project, says when its glue has not been tried, and writes only the handler for a host it has no glue for', async () => {
     const { registryDir } = build(makeTemplate())
     const vercel = siteWith({ 'vercel.json': '{}' })
     await exec(['add', 'form', 'resend', '--yes', '--cwd', vercel], registryDir)
@@ -557,13 +560,27 @@ describe('bearminion add form', () => {
     const netlify = siteWith({ 'netlify.toml': '' })
     const { text } = await exec(['add', 'form', 'resend', '--yes', '--cwd', netlify], registryDir)
     expect(fs.existsSync(path.join(netlify, 'src/forms/contact.ts'))).toBe(true)
-    expect(fs.existsSync(path.join(netlify, 'netlify'))).toBe(false)
-    expect(text).toContain('deploys to netlify')
+    expect(fs.readFileSync(path.join(netlify, 'netlify/functions/contact.mts'), 'utf8')).toContain("from '../../src/forms/contact.js'")
+    expect(text).not.toContain('netlify glue has not been tried')
+    const cloudflare = siteWith({ 'wrangler.toml': '' })
+    const cloudflareRun = await exec(['add', 'form', 'resend', '--yes', '--cwd', cloudflare], registryDir)
+    expect(fs.readFileSync(path.join(cloudflare, 'worker.ts'), 'utf8')).toContain("from './src/forms/contact.js'")
+    expect(fs.readFileSync(path.join(cloudflare, 'wrangler.toml'), 'utf8')).toBe('')
+    expect(fs.existsSync(path.join(cloudflare, 'wrangler.jsonc'))).toBe(false)
+    expect(cloudflareRun.text).toContain('already has a Wrangler config')
+    const fresh = siteWith()
+    await exec(['add', 'form', 'resend', '--host', 'cloudflare', '--yes', '--cwd', fresh], registryDir)
+    expect(fs.readFileSync(path.join(fresh, 'wrangler.jsonc'), 'utf8')).toContain('"main": "./worker.ts"')
+    const astro = siteWith({ 'package.json': JSON.stringify({ dependencies: { '@astrojs/node': '9.0.0' } }) })
+    const astroRun = await exec(['add', 'form', 'resend', '--yes', '--cwd', astro], registryDir)
+    expect(fs.existsSync(path.join(astro, 'src/forms/contact.ts'))).toBe(true)
+    expect(astroRun.text).toContain('deploys to astro')
     const bare = siteWith()
     expect((await exec(['add', 'form', 'resend', '--yes', '--cwd', bare], registryDir)).text).toContain('No host found')
     const two = siteWith({ 'netlify.toml': '', 'vercel.json': '{}' })
     await exec(['add', 'form', 'resend', '--yes', '--cwd', two], registryDir)
     expect(fs.existsSync(path.join(two, 'api'))).toBe(false)
+    expect(fs.existsSync(path.join(two, 'netlify'))).toBe(false)
   })
 
   it('stops on a handler the owner wrote, and replaces it only with --overwrite', async () => {
@@ -582,7 +599,7 @@ describe('bearminion add form', () => {
     const { registryDir } = build(makeTemplate())
     const site = siteWith()
     expect((await exec(['add', 'form', 'slack', '--cwd', site], registryDir)).code).toBe(1)
-    expect((await exec(['add', 'form', 'resend', '--host', 'netlify', '--cwd', site], registryDir)).code).toBe(1)
+    expect((await exec(['add', 'form', 'resend', '--host', 'render', '--cwd', site], registryDir)).code).toBe(1)
     expect((await exec(['add', 'form', '--cwd', site], registryDir)).code).toBe(2)
   })
 

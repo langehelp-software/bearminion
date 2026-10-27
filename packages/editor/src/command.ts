@@ -399,7 +399,12 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
           {
             ok: true,
             services: HANDLERS.map(({ name, description, env }) => ({ name, description, env })),
-            hosts: GLUE.map(({ name, description, path: file }) => ({ name, description, path: file })),
+            hosts: GLUE.map(({ name, description, files, verified }) => ({
+              name,
+              description,
+              paths: files.map((file) => file.path),
+              verified,
+            })),
           },
           null,
           2,
@@ -411,7 +416,10 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
     for (const handler of HANDLERS) log(`  ${handler.name.padEnd(10)} ${handler.description}`)
     log('')
     log('Hosts (the glue that hands the request to the handler):')
-    for (const glue of GLUE) log(`  ${glue.name.padEnd(10)} ${glue.description}, ${glue.path}`)
+    for (const glue of GLUE)
+      log(
+        `  ${glue.name.padEnd(10)} ${glue.description}, ${glue.files.map((file) => file.path).join(' + ')}${glue.verified ? '' : ' (not tried on a real deploy yet)'}`,
+      )
     return 0
   }
   if (names.length > 1) return fail('Name one service: npx bearminion add form <service> --host <host>. Use --list to see them.', 2)
@@ -517,14 +525,19 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
         'CONTACT_FROM has to be an address on a domain you verified with Resend; CONTACT_TO is where the messages arrive. Until both are set the form refuses to send.',
       )
   }
+  for (const note of plan.notes) log(note)
   if (plan.needs && Object.keys(missingPackages(root, { [plan.needs]: 'latest' })).length > 0)
     log(
       `The glue imports types from ${plan.needs}. Install it: ${formatCommand(installCommand(detectPackageManager(root), { [plan.needs]: 'latest' }))}`,
     )
+  if (glue !== undefined && !glue.verified)
+    log(
+      `The ${glue.name} glue has not been tried on a real deploy yet. Send one message from the deployed site and tell us how it went: https://github.com/langehelp-software/bearminion/issues`,
+    )
   if (glue === undefined) {
     log(
       detected !== undefined
-        ? `This project deploys to ${detected}, and \`add form\` has no tested glue for it yet. The glue for each host is in the Forms guide: https://docs.bearminion.com/forms`
+        ? `This project deploys to ${detected}, and \`add form\` has no glue for it. The glue for each host is in the Forms guide: https://docs.bearminion.com/forms`
         : `No host found in this project, so no glue was written. Add it with: npx bearminion add form --host <${GLUE.map((candidate) => candidate.name).join('|')}>`,
     )
   }

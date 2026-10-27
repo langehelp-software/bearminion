@@ -48,7 +48,20 @@ export default defineConfig({
       },
       sidebar: [
         { label: 'Start here', items: ['getting-started'] },
-        { label: 'Using BearMinion', items: ['editor', 'content', 'forms', 'cli'] },
+        { label: 'Using BearMinion', items: ['editor', 'content', 'cli'] },
+        {
+          label: 'Forms',
+          items: [
+            'forms',
+            'forms/vercel',
+            'forms/netlify',
+            'forms/cloudflare',
+            'forms/handler',
+            'forms/email',
+            'forms/spam',
+            'forms/troubleshooting',
+          ],
+        },
         {
           label: 'Sections',
           items: [
