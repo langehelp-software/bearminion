@@ -1,5 +1,17 @@
 # create-bearminion
 
+## 1.9.0
+
+### Minor Changes
+
+- d1c211b: `npx bearminion add <section...>` copies a section into an existing site, with the atoms, molecules and helpers it imports, and lists it in the generated section files. It writes a file only when the site has none, or has an earlier release's copy that nobody changed; a file you changed stops it, and nothing is written unless you pass `--overwrite`. `--list`, `--dry-run`, `--yes`, `--diff`, `--install` and `--json` are there for people and for scripts. New sites start with a `bearminion.lock.json`, and `add` keeps it up to date. The files come from a registry that ships inside the package, so nothing is downloaded. See [The command line](https://github.com/langehelp-software/bearminion/blob/main/docs/cli.md).
+- 7819b98: `npx bearminion add form resend --host vercel` writes the Contact form's handler to `src/forms/contact.ts` and the Vercel function that runs it. It is the first form recipe sent through a real service; Formspree, Web3Forms, Postmark, Slack and the Netlify, Cloudflare and Astro glue stay in the Forms guide as files to copy until each has been tried. The handler is written with example `FROM` and `TO` addresses and refuses to send until you change them. The command never replaces a handler you wrote unless you pass `--overwrite`, and it notes the files in `bearminion.lock.json`. `BEARMINION_FORMS=required` in the host's build environment makes `astro build` fail while a Contact form has no handler. See [The command line](https://github.com/langehelp-software/bearminion/blob/main/docs/cli.md#add-a-form-handler).
+- 7819b98: A detail in the Contact section has a **Hide from crawlers** switch. Switched on, the built page carries the email address or phone number scrambled and a few lines of script show it when the page loads, so crawlers that only read the HTML find nothing to collect. It is off by default and changes nothing for existing sites. The editor can now show an optional on/off switch on a list item that does not have it yet. The form recipe for Resend reads the sender and receiver from `CONTACT_FROM` and `CONTACT_TO`, so no address is written into the repository.
+
+### Patch Changes
+
+- 75bf724: A text field you edit in the sidebar now shows on the page before you save. It used to update only when the same text was typed on the page itself, so a change to, say, a Contact detail or an eyebrow stayed invisible until you saved and reloaded.
+
 ## 1.8.0
 
 ### Minor Changes
