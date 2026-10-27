@@ -14,8 +14,8 @@ export class TurnstileUnavailableError extends Error {
 }
 
 export type TurnstileOutcome =
-  /** The token is genuine. */
-  | { success: true }
+  /** The token is genuine. `hostname` is where Cloudflare says the widget was served, when it says. */
+  | { success: true; hostname?: string }
   /** `misconfigured` is true when the secret key is missing or wrong: a mistake on your side, not the visitor's. */
   | { success: false; codes: string[]; misconfigured: boolean }
 
@@ -40,8 +40,9 @@ export async function verifyTurnstile({ secret, token, remoteIp, fetch: send = f
     throw new TurnstileUnavailableError('Could not reach Cloudflare Turnstile.', { cause: error })
   }
   if (typeof answer !== 'object' || answer === null) throw new TurnstileUnavailableError('Turnstile answered something unreadable.')
-  const record = answer as { success?: unknown; 'error-codes'?: unknown }
-  if (record.success === true) return { success: true }
+  const record = answer as { success?: unknown; hostname?: unknown; 'error-codes'?: unknown }
+  if (record.success === true)
+    return typeof record.hostname === 'string' && record.hostname !== '' ? { success: true, hostname: record.hostname } : { success: true }
   const codes = Array.isArray(record['error-codes']) ? record['error-codes'].filter((code): code is string => typeof code === 'string') : []
   const misconfigured = codes.some((code) => code === 'missing-input-secret' || code === 'invalid-input-secret')
   return { success: false, codes, misconfigured }

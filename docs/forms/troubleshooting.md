@@ -27,6 +27,7 @@ This checks that the handler file exists. It cannot check that the host has the 
 | 405 or 415 | Something other than a form posted to it, or a body that is not JSON or form data |
 | 413 | Over 64 KB. Raise `maxBytes` if the form really sends that much |
 | "This form is not set up correctly." | The server log has the reason: `TURNSTILE_SECRET_KEY` missing, Turnstile refusing the secret, or a handler that returned something it should not |
+| "The spam check did not pass." for every visitor, and the log says the widget was served on another host | The page and the function are on different hosts. List the page's host in `turnstile: { hostnames: [...] }` (see [Turnstile](spam.md#cloudflare-turnstile)) |
 | "The message could not be delivered." | Your handler threw. The log has the error that was thrown |
 | In `astro dev` the handler never runs | The route is a dry run until `BEARMINION_FORMS_LIVE=on`. The terminal says so each time |
 | In `astro dev` the route does nothing | The file is not in `src/forms`, its name has characters other than letters, digits, `-` and `_`, or it does not `export default defineForm(...)` (the terminal names the file) |

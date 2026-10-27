@@ -52,7 +52,7 @@ export default defineForm(async (submission, { env, dev }) => {
       path.join(formsDir, 'guarded.mjs'),
       `import { defineForm } from ${JSON.stringify(formsEntry)}
 
-export default defineForm(() => undefined, { turnstile: true, origins: ['https://other.example'] })
+export default defineForm(() => undefined, { turnstile: { secretEnv: 'GUARD_SECRET' }, origins: ['https://other.example'] })
 `,
     )
     fs.writeFileSync(
@@ -88,7 +88,7 @@ export default defineForm(() => undefined, { turnstile: true, origins: ['https:/
 
   const start = (port: number, env?: Record<string, string>) =>
     startDevServer({ contentDir, uploadsDir, formsDir: path.join(root, 'forms'), port, ...(env ? { env } : {}) })
-  const liveEnv = { BEARMINION_FORMS_LIVE: 'on', FORMS_E2E_GREETING: 'welcome', TURNSTILE_SECRET_KEY: 'test-secret' }
+  const liveEnv = { BEARMINION_FORMS_LIVE: 'on', FORMS_E2E_GREETING: 'welcome', GUARD_SECRET: 'test-secret' }
 
   afterAll(async () => {
     await browser?.close()
