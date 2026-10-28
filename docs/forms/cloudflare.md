@@ -45,7 +45,7 @@ Tells Cloudflare what to run, where the built site is, and turns logs on.
   "name": "my-site",
   "compatibility_date": "2026-10-27",
   "main": "./worker.ts",
-  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": true },
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
   "observability": { "logs": { "enabled": true, "invocation_logs": true, "persist": true } },
   "vars": { "CONTACT_FROM": "", "CONTACT_TO": "" }
 }
@@ -59,6 +59,7 @@ Tells Cloudflare what to run, where the built site is, and turns logs on.
 | `CONTACT_FROM`, `CONTACT_TO` | `vars` in `wrangler.jsonc` (a Secret in the dashboard also works) | Always |
 | `BEARMINION_FORMS` | `required`, under the Worker's Build variables, so a build with no handler fails | Recommended |
 | `PUBLIC_TURNSTILE_SITE_KEY` | The Worker's Build variables, not `vars` | If you use Turnstile |
+| `TURNSTILE_SECRET_KEY` | The Worker's Settings → Variables and Secrets, as a Secret | If you use Turnstile (set both keys, or neither) |
 
 The build command is `npm run build` and the deploy command `npx wrangler deploy`. For `astro dev`, put the same names in `.env`; see [Try it on your machine](README.md#try-it-on-your-machine).
 
@@ -70,12 +71,12 @@ The build command is `npm run build` and the deploy command `npx wrangler deploy
 
 ## How it works
 
-`run_worker_first` makes the Worker see every request before the static files, so `/api/contact` reaches the handler, and `env.ASSETS.fetch` serves everything else. The `ASSETS` binding has to be named in `wrangler.jsonc`. The site stays a static build.
+`run_worker_first: ["/api/*"]` makes the Worker see requests under `/api/` before the static files, so `/api/contact` reaches the handler. Every other request is answered from the built site without running the Worker, so page views do not invoke it. The `ASSETS` binding has to be named in `wrangler.jsonc`, because `worker.ts` hands any other request it receives to `env.ASSETS.fetch`. The site stays a static build. A config with `"run_worker_first": true` also works; it runs the Worker for every request.
 
 Three things behave differently from the other hosts:
 
 - **Plain variables come from the file.** A variable you add only in the dashboard does not survive a deploy that has a config file, and the form then refuses to send. That is why `CONTACT_FROM` and `CONTACT_TO` sit under `vars`. It puts both addresses in the repository, so keep it private if they should not be public. A dashboard variable of the type Secret does survive, if you would rather keep them out of git. `RESEND_API_KEY` is always a Secret.
-- **Build variables and runtime variables are different lists.** The form reads the runtime ones (Settings, or `vars`). `BEARMINION_FORMS` and `PUBLIC_TURNSTILE_SITE_KEY` are read when the site is built, so they go under Build.
+- **Build variables and runtime variables are different lists.** The form reads the runtime ones (Settings, or `vars`). `BEARMINION_FORMS` and `PUBLIC_TURNSTILE_SITE_KEY` are read when the site is built, so they go under Build (Settings → Build → Variables and secrets). `vars` in `wrangler.jsonc` reach the running Worker only: a site key kept there leaves the page without the widget, as seen on a real deploy. A build variable applies to the next build, so push a commit or use Retry build after changing it; deploying an earlier build again keeps the old value.
 - **The Worker's name has to match.** `name` in `wrangler.jsonc` must be the name of the Worker in Cloudflare.
 
 ## Cloudflare's own documentation

@@ -94,6 +94,16 @@ describe('bearminion check form', () => {
     expect(found).not.toContain('CONTACT_FROM is not')
   })
 
+  it('says a PUBLIC_ value under "vars" does not reach the build', () => {
+    const wrangler = fs.readFileSync(path.join(site('cloudflare'), 'wrangler.jsonc'), 'utf8')
+    const root = site('cloudflare', { 'wrangler.jsonc': wrangler.replace('"vars": {', '"vars": { "PUBLIC_TURNSTILE_SITE_KEY": "0xKEY",') })
+    const notes = checkForm(root, 'cloudflare')
+      .findings.filter((finding) => finding.level === 'note')
+      .map((finding) => finding.message)
+    expect(notes.join('\n')).toContain('PUBLIC_TURNSTILE_SITE_KEY is in wrangler.jsonc')
+    expect(checkForm(site('cloudflare'), 'cloudflare').findings.some((finding) => finding.message.includes('PUBLIC_'))).toBe(false)
+  })
+
   it('reads a Wrangler config with comments and trailing commas', () => {
     expect(parseJsonc('// c\n{ "a": "x//y", /* b */ "list": [1, 2,], }\n')).toEqual({ a: 'x//y', list: [1, 2] })
     expect(parseJsonc('{ nope')).toBeUndefined()

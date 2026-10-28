@@ -122,7 +122,7 @@ export default {
         path: 'wrangler.jsonc',
         skipWhenAny: ['wrangler.jsonc', 'wrangler.json', 'wrangler.toml'],
         skipNote:
-          'This site already has a Wrangler config, so it was left alone. It needs "main": "./worker.ts", "assets" with "binding": "ASSETS" and "run_worker_first": true, and CONTACT_FROM and CONTACT_TO under "vars". See the Forms guide.',
+          'This site already has a Wrangler config, so it was left alone. It needs "main": "./worker.ts", "assets" with "binding": "ASSETS" and "run_worker_first": ["/api/*"], and CONTACT_FROM and CONTACT_TO under "vars". See the Forms guide.',
         source: `// "name" has to be the name of your Worker in Cloudflare.
 // RESEND_API_KEY is a secret: set it in the Worker's Settings, not here. CONTACT_FROM and CONTACT_TO are plain values and
 // live under "vars", because a deploy replaces variables that exist only in the dashboard. Fill them in, and keep this
@@ -131,7 +131,7 @@ export default {
   "name": "my-site",
   "compatibility_date": "2026-10-27",
   "main": "./worker.ts",
-  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": true },
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
   "observability": { "logs": { "enabled": true, "invocation_logs": true, "persist": true } },
   "vars": { "CONTACT_FROM": "", "CONTACT_TO": "" }
 }
