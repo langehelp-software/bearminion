@@ -15,4 +15,17 @@ async function confirm(question: string): Promise<boolean> {
   }
 }
 
-process.exitCode = await run(process.argv.slice(2), { registryDir, ...(process.stdin.isTTY ? { confirm } : {}) })
+/** A numbered list; Enter, or a number that is not on the list, picks nothing. */
+async function choose(question: string, options: ReadonlyArray<{ value: string; label: string }>): Promise<string | undefined> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  try {
+    console.log(question)
+    for (const [index, option] of options.entries()) console.log(`  ${index + 1}. ${option.label}`)
+    const answer = Number((await rl.question('Number: ')).trim())
+    return Number.isInteger(answer) ? options[answer - 1]?.value : undefined
+  } finally {
+    rl.close()
+  }
+}
+
+process.exitCode = await run(process.argv.slice(2), { registryDir, ...(process.stdin.isTTY ? { confirm, choose } : {}) })
