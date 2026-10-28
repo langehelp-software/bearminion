@@ -173,6 +173,41 @@ jobs:
             echo "$status"
             exit 1
           fi
+      # `bearminion add form` and `check form` from the packed library, for each host. The handler is type-checked
+      # against the packed `bearminion/forms`, the site builds with BEARMINION_FORMS=required, and `check form` has to
+      # find nothing wrong in what `add form` wrote (and something wrong when an import loses its ".js").
+      - name: Add the Contact form for each host and check it
+        working-directory: ${{ runner.temp }}/site
+        run: |
+          for host in vercel netlify cloudflare; do
+            npx bearminion add form resend --host "$host" --yes
+          done
+          # Wrangler's placeholders are not filled in yet, and the check has to say so.
+          if npx bearminion check form --host cloudflare; then
+            echo "check form passed a wrangler.jsonc with the placeholder name and empty addresses"
+            exit 1
+          fi
+          node -e "
+            const fs = require('fs')
+            const text = fs.readFileSync('wrangler.jsonc', 'utf8')
+              .replace('\"my-site\"', '\"ci-site\"')
+              .replace('\"CONTACT_FROM\": \"\"', '\"CONTACT_FROM\": \"Site <from@ci.example.com>\"')
+              .replace('\"CONTACT_TO\": \"\"', '\"CONTACT_TO\": \"to@ci.example.com\"')
+            fs.writeFileSync('wrangler.jsonc', text)
+          "
+          for host in vercel netlify cloudflare; do
+            npx bearminion check form --host "$host"
+          done
+          # An import without ".js" is the error that failed the first Vercel deploy.
+          sed -i "s#contact\.js'#contact'#" api/contact.ts
+          if npx bearminion check form --host vercel; then
+            echo "check form did not notice the import without .js"
+            exit 1
+          fi
+          sed -i "s#forms/contact'#forms/contact.js'#" api/contact.ts
+          npx bearminion check form --host vercel
+          npx astro check
+          BEARMINION_FORMS=required npx astro build
       - name: Build Storybook
         if: matrix.storybook
         working-directory: ${{ runner.temp }}/site
