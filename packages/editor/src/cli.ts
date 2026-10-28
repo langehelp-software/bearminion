@@ -20,7 +20,7 @@ async function choose(question: string, options: ReadonlyArray<{ value: string; 
   const rl = createInterface({ input: process.stdin, output: process.stdout })
   try {
     console.log(question)
-    options.forEach((option, index) => console.log(`  ${index + 1}. ${option.label}`))
+    for (const [index, option] of options.entries()) console.log(`  ${index + 1}. ${option.label}`)
     const answer = Number((await rl.question('Number: ')).trim())
     return Number.isInteger(answer) ? options[answer - 1]?.value : undefined
   } finally {
