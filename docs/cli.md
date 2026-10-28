@@ -83,7 +83,7 @@ Today that is one service, `resend` (email), and three hosts: `vercel` (`api/con
 
 > **Set the addresses in the environment.** The handler reads the sender and the receiver from `CONTACT_FROM` and `CONTACT_TO`, so no address is written into your repository, and it refuses to send until both are set along with `RESEND_API_KEY`. `CONTACT_FROM` has to be on a domain you verified with Resend.
 
-Without `--host`, the command looks for `vercel.json`, `netlify.toml`, `wrangler.toml` and an Astro server adapter. If it finds none, two, or a host it has no glue for (an Astro server adapter, say), it writes the handler only and says so. A file that is already there and differs from the recipe stops the command; `--overwrite` replaces it. `--dry-run`, `--yes` and `--json` work as for sections. The files are noted in `bearminion.lock.json`, and the command prints the three values to set. [Forms](forms/README.md) explains the handler.
+Without `--host`, the command looks for `vercel.json`, `netlify.toml`, `wrangler.toml` and an Astro server adapter. If it finds none or two, it asks which host you use when it runs in a terminal (a numbered list; Enter writes the handler only). Without a terminal, with `--json`, or for a host it has no glue for (an Astro server adapter, say), it writes the handler only and says so. A file that is already there and differs from the recipe stops the command; `--overwrite` replaces it. `--dry-run`, `--yes` and `--json` work as for sections. The files are noted in `bearminion.lock.json`, and the command prints the three values to set. [Forms](forms/README.md) explains the handler.
 
 ## Check the form
 

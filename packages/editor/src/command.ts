@@ -61,6 +61,8 @@ export interface Io {
   log: (line: string) => void
   /** Asks a yes or no question. Absent when there is no terminal to ask on. */
   confirm?: (question: string) => Promise<boolean>
+  /** Asks the person to pick one of `options`. Absent when there is no terminal to ask on. Undefined when they pick none. */
+  choose?: (question: string, options: ReadonlyArray<{ value: string; label: string }>) => Promise<string | undefined>
   /** The folder with `registry.json` and `files/`, next to the installed package. */
   registryDir?: string
   exec: Exec
@@ -462,7 +464,16 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
     )
   }
   const detected = values.host === undefined ? detectHost(root) : undefined
-  const hostName = values.host ?? detected
+  // Nothing in the project names the host (or two do): in a terminal, ask instead of writing the handler alone.
+  let chosen: string | undefined
+  if (values.host === undefined && detected === undefined && handler !== undefined && !json && io.choose !== undefined) {
+    chosen = await io.choose('Where does this site run? The project does not say.', [
+      ...GLUE.map((candidate) => ({ value: candidate.name, label: candidate.description })),
+      { value: '', label: 'Somewhere else: write the handler only' },
+    ])
+    if (chosen === '') chosen = undefined
+  }
+  const hostName = values.host ?? detected ?? chosen
   const glue = hostName === undefined ? undefined : GLUE.find((candidate) => candidate.name === hostName)
   if (values.host !== undefined && glue === undefined) {
     return fail(`There is no host called "${hostName}". The hosts are: ${GLUE.map((candidate) => candidate.name).join(', ')}.`)
@@ -499,7 +510,7 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
 
   if (!json) {
     log(
-      `${values['dry-run'] ? 'Would add' : 'Adding'} the form recipe${glue ? ` for ${glue.name}${detected ? ' (found from the project)' : ''}` : ''}${handler ? ` with ${handler.name}` : ''}`,
+      `${values['dry-run'] ? 'Would add' : 'Adding'} the form recipe${glue ? ` for ${glue.name}${detected ? ' (found from the project)' : chosen ? ' (your choice)' : ''}` : ''}${handler ? ` with ${handler.name}` : ''}`,
     )
     log('')
     for (const file of changes) log(`  ${LABELS[file.action].padEnd(9)} ${file.path}`)

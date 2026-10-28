@@ -552,6 +552,41 @@ describe('bearminion add form', () => {
     expect(again.text).toContain('every file matches the recipe')
   })
 
+  it('asks for the host in a terminal when the project does not name one, and only then', async () => {
+    const { registryDir } = build(makeTemplate())
+    const asked: string[] = []
+    const answering = (value: string | undefined) => async (question: string) => {
+      asked.push(question)
+      return value
+    }
+    const cloudflare = siteWith()
+    const chosen = await exec(['add', 'form', 'resend', '--yes', '--cwd', cloudflare], registryDir, { choose: answering('cloudflare') })
+    expect(asked).toHaveLength(1)
+    expect(chosen.text).toContain('for cloudflare (your choice)')
+    expect(fs.existsSync(path.join(cloudflare, 'worker.ts'))).toBe(true)
+
+    const elsewhere = siteWith()
+    const none = await exec(['add', 'form', 'resend', '--yes', '--cwd', elsewhere], registryDir, { choose: answering('') })
+    expect(asked).toHaveLength(2)
+    expect(fs.existsSync(path.join(elsewhere, 'src/forms/contact.ts'))).toBe(true)
+    expect(fs.existsSync(path.join(elsewhere, 'worker.ts'))).toBe(false)
+    expect(none.text).toContain('No host found')
+
+    const closed = siteWith()
+    await exec(['add', 'form', 'resend', '--yes', '--cwd', closed], registryDir, { choose: answering(undefined) })
+    expect(fs.existsSync(path.join(closed, 'api/contact.ts'))).toBe(false)
+
+    // Not asked: the host is on the command line, the project names it, the output is JSON, or there is no terminal.
+    const before = asked.length
+    await exec(['add', 'form', 'resend', '--host', 'vercel', '--yes', '--cwd', siteWith()], registryDir, { choose: answering('netlify') })
+    await exec(['add', 'form', 'resend', '--yes', '--cwd', siteWith({ 'vercel.json': '{}' })], registryDir, {
+      choose: answering('netlify'),
+    })
+    await exec(['add', 'form', 'resend', '--yes', '--json', '--cwd', siteWith()], registryDir, { choose: answering('netlify') })
+    await exec(['add', 'form', 'resend', '--yes', '--cwd', siteWith()], registryDir)
+    expect(asked).toHaveLength(before)
+  })
+
   it('finds the host from the project, says when its glue has not been tried, and writes only the handler for a host it has no glue for', async () => {
     const { registryDir } = build(makeTemplate())
     const vercel = siteWith({ 'vercel.json': '{}' })
