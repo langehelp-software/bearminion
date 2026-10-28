@@ -281,8 +281,23 @@ function checkCloudflare(root: string, add: Add, plainNames: string[], secretNam
       )
     }
   }
-  if (secretNames.length > 0)
-    add('note', `Set ${secretNames.join(', ')} as Secrets in the Worker's Settings. I cannot read them from here.`)
+  const publicNames = configFile.endsWith('.toml')
+    ? [...text.matchAll(/^\s*(PUBLIC_[A-Z0-9_]+)\s*=/gm)].map((match) => match[1] as string)
+    : Object.keys(vars).filter((variable) => variable.startsWith('PUBLIC_'))
+  if (publicNames.length > 0) {
+    const one = publicNames.length === 1
+    add(
+      'note',
+      `${publicNames.join(', ')} ${one ? 'is' : 'are'} in ${configFile}. Those reach the running Worker only; Astro reads PUBLIC_ values when the site is built, so set ${one ? 'it' : 'them'} as Build variables in the dashboard (then push or retry the build). Under "vars" the page has no Turnstile widget.`,
+    )
+  }
+  if (secretNames.length > 0) {
+    const many = secretNames.length > 1
+    add(
+      'note',
+      `Set ${secretNames.join(', ')} as ${many ? 'Secrets' : 'a Secret'} in the Worker's Settings. I cannot read ${many ? 'them' : 'it'} from here.`,
+    )
+  }
   if (logs !== true)
     add('note', 'Logs are not turned on in the Wrangler config ("observability"), so a failing handler leaves no trace in the dashboard.')
 }

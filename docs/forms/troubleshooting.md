@@ -24,7 +24,7 @@ Run `npx bearminion check form` first: it reads your files and names what is mis
 | --- | --- |
 | The page says "The message was not accepted" and the network tab shows 404 | The host has no function at `/api/contact` yet. Add the glue file for your host and redeploy. `astro dev` serves the handler, a built site does not |
 | A warning that `src/forms/contact.ts` does not exist | Create it (see [The quick way](README.md#the-quick-way)). Until then visitors get an error when they send the form |
-| No Turnstile widget on the page | `PUBLIC_TURNSTILE_SITE_KEY` was not set when the site was built (or when `astro dev` started). Set it and rebuild |
+| No Turnstile widget on the page | `PUBLIC_TURNSTILE_SITE_KEY` was not set when the site was built (or when `astro dev` started). Set it and rebuild. On Cloudflare it has to be a Build variable; under `vars` in `wrangler.jsonc` it only reaches the running Worker. `curl -s <your site> \| grep -o 'data-turnstile-key="[^"]*"'` shows whether the key is in the page |
 | 403 "This site is not allowed to send to this form." | The post came from an address other than the function's. List your site in `origins`, or check that your host passes the original host name on |
 | 405 or 415 | Something other than a form posted to it, or a body that is not JSON or form data |
 | 413 | Over 64 KB. Raise `maxBytes` if the form really sends that much |
