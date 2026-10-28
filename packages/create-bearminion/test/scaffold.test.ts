@@ -132,6 +132,14 @@ describe('scaffold', () => {
         .filter((line) => line.trim() !== '' && !line.startsWith('#')),
     ).toEqual([])
     expect(readFileSync(path.join(target, '.gitignore'), 'utf8')).toContain('!.env.example')
+    // The assistant's instructions travel with the site, and lead with the rules that keep secrets out of the chat and git.
+    expect(files).toContain('AGENTS.md')
+    expect(readFileSync(path.join(target, 'CLAUDE.md'), 'utf8').trim()).toBe('@AGENTS.md')
+    const agents = readFileSync(path.join(target, 'AGENTS.md'), 'utf8')
+    expect(agents.indexOf('## Secrets')).toBeLessThan(agents.indexOf('## Setting up the Contact form'))
+    expect(agents).toContain('Never ask the person to paste a key')
+    expect(agents).toContain('Do not open `.env`')
+    expect(agents).toContain('npx bearminion check form')
     expect(files.filter(isStorybookPath)).toEqual([])
     const pkg = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8')) as Record<string, unknown>
     expect(pkg).toMatchObject({ name: 'plain', version: '0.0.0', private: true })

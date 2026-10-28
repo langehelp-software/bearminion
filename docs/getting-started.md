@@ -86,6 +86,7 @@ The banner is a tool, not legal advice. Switch it off only when your analytics s
 | `src/components/` | The theme: sections, header, footer and the building blocks they use. It is your code; change it as you like. |
 | `src/lib/content-model.ts` | Tells the editor which sections, header and footer layouts and fonts your theme has |
 | `astro.config.ts` | Astro's settings, including the `bearminion()` integration |
+| `AGENTS.md`, `CLAUDE.md` | Instructions for an AI assistant working in the site: keep secrets out of the chat and git, and set up the Contact form step by step. See [Forms](forms/README.md#with-an-ai-assistant) |
 
 The editor and its API exist only while `npm run dev` runs. `npm run build` leaves them out entirely.
 

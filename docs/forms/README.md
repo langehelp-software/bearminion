@@ -24,6 +24,10 @@ Run the one for your host. A real message has gone through each of them with Res
 
 The command prints the values to set, `RESEND_API_KEY`, `CONTACT_FROM` and `CONTACT_TO`, and never replaces a handler you wrote unless you pass `--overwrite`. Postmark, Slack, Formspree and Web3Forms are in [Email and form services](email.md) as examples to copy by hand, and have not been tried. See [The command line](../cli.md#add-a-form-handler).
 
+## With an AI assistant
+
+A new site comes with an `AGENTS.md` (and a `CLAUDE.md` that points to it), which tells an assistant how to set the form up: write the files with `add form`, run `npx bearminion check form`, and then ask you, one step at a time, about everything it cannot see, such as the variables on your host, a verified domain and a redeploy. It treats your keys as something it never sees: it does not ask you to paste one into the chat, does not open `.env`, and does not write a key into a file that git tracks. You type the keys into your host's settings yourself. If a key does end up in a chat or a commit, revoke it at the service and create a new one; deleting the message or the commit does not make it private again. A site made before this file existed can copy it from the [template](https://github.com/langehelp-software/bearminion/blob/main/templates/default/AGENTS.md).
+
 ## Pick your host
 
 Each page starts with the command, then shows each file the command writes, then the settings, how to check a deploy, and how it works.
