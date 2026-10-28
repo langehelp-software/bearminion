@@ -1,5 +1,14 @@
 # create-bearminion
 
+## 1.10.1
+
+### Patch Changes
+
+- 23f9084: New sites include an `AGENTS.md` (and a `CLAUDE.md` pointing to it) for AI assistants. It leads with the rules that keep secrets out of the chat and out of git, then walks through the Contact form: write the files with `add form`, run `check form`, and ask the person to confirm each step the assistant cannot see (the variables on the host, a verified domain, a redeploy, a real message).
+- 88fae9e: `check form` now says when a `PUBLIC_` value such as the Turnstile site key sits under `vars` in the Wrangler config: that reaches the running Worker only, so the page has no widget; it has to be a Build variable. The Cloudflare guide adds the Turnstile secret to its settings and says a build variable needs a new build.
+- 62e89bc: `npx bearminion add form <service>` now asks which host the site runs on, in a terminal, when nothing in the project names one (or two hosts do). It offers Vercel, Netlify and Cloudflare, and Enter writes the handler alone, as before. With `--host`, with `--json`, or without a terminal it does not ask.
+- 88fae9e: The Cloudflare Wrangler config that `add form --host cloudflare` writes now uses `"run_worker_first": ["/api/*"]` instead of `true`, so page views are served from the built site without running the Worker, and only `/api/*` reaches the handler. A site that already has `true` keeps working. Tried on a real deploy: pages load, `/api/contact` answers, and a message arrives.
+
 ## 1.10.0
 
 ### Minor Changes
