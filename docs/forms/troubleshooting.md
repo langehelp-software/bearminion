@@ -18,6 +18,8 @@ This checks that the handler file exists. It cannot check that the host has the 
 
 ## When it does not work
 
+Run `npx bearminion check form` first: it reads your files and names what is missing, with the fix (see [Check the form](../cli.md#check-the-form)). It cannot see the host's settings.
+
 | You see | Cause and fix |
 | --- | --- |
 | The page says "The message was not accepted" and the network tab shows 404 | The host has no function at `/api/contact` yet. Add the glue file for your host and redeploy. `astro dev` serves the handler, a built site does not |

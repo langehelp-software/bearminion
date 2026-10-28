@@ -1,6 +1,6 @@
 ---
 title: The command line
-description: "npx bearminion add copies sections into your site with the files they need and never touches a file you changed; status shows what is out of date; sync lists your section directories; and how releases are numbered."
+description: "npx bearminion add copies sections into your site with the files they need and never touches a file you changed; status shows what is out of date; check form finds what keeps the Contact form from working; sync lists your section directories; and how releases are numbered."
 ---
 
 `bearminion` ships a command line next to the library. It adds sections to a site that was created earlier, tells you which of a site's files differ from the installed release, and adds a form handler, and keeps the list of a site's sections in step with its directories. It runs in the folder of your site (or with `--cwd`) and needs nothing but the `bearminion` package you already have.
@@ -84,6 +84,20 @@ Today that is one service, `resend` (email), and three hosts: `vercel` (`api/con
 > **Set the addresses in the environment.** The handler reads the sender and the receiver from `CONTACT_FROM` and `CONTACT_TO`, so no address is written into your repository, and it refuses to send until both are set along with `RESEND_API_KEY`. `CONTACT_FROM` has to be on a domain you verified with Resend.
 
 Without `--host`, the command looks for `vercel.json`, `netlify.toml`, `wrangler.toml` and an Astro server adapter. If it finds none, two, or a host it has no glue for (an Astro server adapter, say), it writes the handler only and says so. A file that is already there and differs from the recipe stops the command; `--overwrite` replaces it. `--dry-run`, `--yes` and `--json` work as for sections. The files are noted in `bearminion.lock.json`, and the command prints the three values to set. [Forms](forms/README.md) explains the handler.
+
+## Check the form
+
+When the Contact form does not deliver, start here:
+
+```sh
+npx bearminion check form                # the host is read from the project
+npx bearminion check form --host netlify
+npx bearminion check form --json
+```
+
+It reads your files and writes nothing. It finds a missing handler or glue file; an import without `.js` (the error that stops a first Vercel deploy); a Netlify function in a folder Netlify does not read, or without `path: '/api/contact'`; a Wrangler config without `main`, with the placeholder Worker name, or without `CONTACT_FROM` and `CONTACT_TO` under `vars`. Each problem comes with the fix, and the exit code is 1 when there is one.
+
+It cannot see the host's own settings: the environment variables on Vercel and Netlify, the secrets on Cloudflare. It lists the names to set there. No problems found means the files are right, not that a message gets through; send one from the deployed site.
 
 ## See what is out of date
 

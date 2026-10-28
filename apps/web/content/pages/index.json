@@ -7,7 +7,7 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.9",
+          "tag": "BearMinion 1.10",
           "text": "Available now"
         },
         "button": false,
