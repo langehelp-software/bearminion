@@ -4,6 +4,7 @@ import path from 'node:path'
 import { parseArgs } from 'node:util'
 import { applyPlan, SECTIONS_PATH } from './add/apply.js'
 import { formatCommand, detectPackageManager, installCommand, missingPackages, runInstall, type Exec } from './add/packages.js'
+import { checkForm } from './add/check-form.js'
 import { applyForm, detectHost, GLUE, HANDLER_PATH, HANDLERS, planForm } from './add/forms.js'
 import { readLock, writeLock } from './add/lock.js'
 import { isPresent, planAdd, writesFile, type FileAction, type Plan } from './add/plan.js'
@@ -20,11 +21,13 @@ Usage
   npx bearminion add --list
   npx bearminion add form [<service>] [--host <host>]
   npx bearminion status [--json]
+  npx bearminion check form [--host <host>] [--json]
   npx bearminion sync [options]
 
 Commands
   add               Copy sections into this site, with the files they need
   status            Show which sections are in this site and whether their files match this release
+  check form        Look for what keeps the Contact form from working: missing files, wrong names, unset variables
   sync              Rewrite sections/definitions.gen.ts and components.gen.ts from the section directories
 
 Options for add
@@ -39,6 +42,10 @@ Options for add
 Options for add form
   --host <host>     Where the site runs (found from the project when omitted). See --list
   --list            List the services and hosts
+
+Options for check form
+  --host <host>     Where the site runs (found from the project when omitted)
+  --json            Print one JSON document instead of text
 
 Options for sync
   --check           Write nothing; exit 1 when the generated files are stale
@@ -80,6 +87,7 @@ export async function run(argv: readonly string[], io: Partial<Io> = {}): Promis
   const root = path.resolve(values.cwd ?? process.cwd())
   if (command === 'sync' && rest.length === 0) return runSync(root, values, log)
   if (command === 'add') return runAdd(root, rest, values, surroundings)
+  if (command === 'check' && rest[0] === 'form' && rest.length === 1) return runCheckForm(root, values, surroundings)
   if (command === 'status' && rest.length === 0) return runStatus(root, values, surroundings)
   log(`I do not know "${positionals.join(' ')}". Run \`npx bearminion --help\` for the commands.`)
   return 2
@@ -329,6 +337,30 @@ async function runAdd(root: string, names: string[], values: Values, io: Io): Pr
     if (installed === 'failed') log(`Installing failed. Run it yourself: ${formatCommand(installPlan as NonNullable<typeof installPlan>)}`)
   }
   return installed === 'failed' ? 1 : 0
+}
+
+const LEVEL_TEXT = { ok: 'ok', problem: 'problem', note: 'note' } as const
+
+function runCheckForm(root: string, values: Values, io: Io): number {
+  const { host, findings } = checkForm(root, values.host)
+  const problems = findings.filter((finding) => finding.level === 'problem').length
+  if (values.json) {
+    io.log(JSON.stringify({ ok: problems === 0, host: host ?? null, findings }, null, 2))
+    return problems === 0 ? 0 : 1
+  }
+  io.log(`Checking the Contact form${host === undefined ? '' : ` (host: ${host})`}`)
+  io.log('')
+  for (const finding of findings) {
+    io.log(`  ${LEVEL_TEXT[finding.level].padEnd(8)} ${finding.message}`)
+    if (finding.fix !== undefined) io.log(`  ${''.padEnd(8)} fix: ${finding.fix}`)
+  }
+  io.log('')
+  io.log(
+    problems === 0
+      ? "No problems found in the files. The host's own settings and a real message are still yours to check."
+      : `${problems} problem${problems === 1 ? '' : 's'} found.`,
+  )
+  return problems === 0 ? 0 : 1
 }
 
 const STATE_TEXT: Record<FileState, string> = {
