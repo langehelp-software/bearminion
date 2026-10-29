@@ -36,6 +36,15 @@ export const gallery = defineSection({
   type: 'gallery',
   label: 'Gallery',
   description: 'A set of pictures. Click one to see it large, with captions, arrows and swipe.',
+  guide: `
+    Use it for many pictures the visitor wants to browse: a portfolio, a product range, an event. For one picture use Media or Text + Image.
+
+    Pick grid for a tidy look with uniform crops; photos of mixed shapes get cropped. Pick masonry when proportions vary and cropping would hurt, as with photos and artwork. Pick featured when one picture matters most, and put it first.
+
+    Keep three pictures per row for most sites, four for many small pictures, two for screenshots or detailed work. Keep the lightbox on unless the pictures are decorative. Turn the frame on for pictures with white or transparent backgrounds so the edge still shows.
+
+    Alt text says what is in the picture. A caption adds context or credit and shows only in the lightbox; without one the lightbox shows the alt text. Six to twelve pictures is a gallery: past that, split it into two galleries with their own headings.
+  `,
   schema: gallerySchema,
   defaults: {
     eyebrow: 'Gallery',

@@ -1,6 +1,6 @@
 ---
 title: The command line
-description: "npx bearminion add copies sections into your site with the files they need and never touches a file you changed; status shows what is out of date; check form finds what keeps the Contact form from working; sync lists your section directories; and how releases are numbered."
+description: "npx bearminion add copies sections into your site with the files they need and never touches a file you changed; status shows what is out of date; check form finds what keeps the Contact form from working; guide prints how to fill each section; mcp serves the content to an AI assistant; sync lists your section directories; and how releases are numbered."
 ---
 
 `bearminion` ships a command line next to the library. It adds sections to a site that was created earlier, tells you which of a site's files differ from the installed release, and adds a form handler, and keeps the list of a site's sections in step with its directories. It runs in the folder of your site (or with `--cwd`) and needs nothing but the `bearminion` package you already have.
@@ -98,6 +98,26 @@ npx bearminion check form --json
 It reads your files and writes nothing. It finds a missing handler or glue file; an import without `.js` (the error that stops a first Vercel deploy); a Netlify function in a folder Netlify does not read, or without `path: '/api/contact'`; a Wrangler config without `main`, with the placeholder Worker name, or without `CONTACT_FROM` and `CONTACT_TO` under `vars`. Each problem comes with the fix, and the exit code is 1 when there is one.
 
 It cannot see the host's own settings: the environment variables on Vercel and Netlify, the secrets on Cloudflare. It lists the names to set there. No problems found means the files are right, not that a message gets through; send one from the deployed site.
+
+## Read how to fill a section
+
+`guide` prints what a person or an AI assistant needs before writing a section's content. It reads your site's own section definitions, so it describes the sections this repository has, not the ones the latest release offers:
+
+```sh
+npx bearminion guide                     # the sections of this site, one line each
+npx bearminion guide hero                # variants, options, fields, limits, defaults
+npx bearminion guide hero --model src/lib/content-model.ts
+```
+
+Everything except the guidance text is generated from the definition, so it cannot disagree with the schema. A section's `guide` (see [Themes](themes.md)) adds judgement the schema cannot express. The command reads the model file `src/lib/content-model.ts` (the one `astro.config.ts` passes to `bearminion()`); it must not import `.astro` files. A page can hold a section that the site no longer defines: leave it as it is.
+
+## Serve the content to an AI assistant
+
+```sh
+npx bearminion mcp
+```
+
+Starts a local MCP server over standard input and output, for an AI assistant that edits pages and uploads pictures. It needs the MCP SDK, which `npx bearminion add mcp` installs in the site and shows how to connect (a new site does not have it). [AI assistants (MCP)](mcp.md) has the setup, the tools and the limits. It is experimental.
 
 ## See what is out of date
 

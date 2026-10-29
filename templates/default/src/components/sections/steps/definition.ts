@@ -39,6 +39,13 @@ export const steps = defineSection({
   type: 'steps',
   label: 'Steps',
   description: 'A few short points with an icon each: steps, or reasons.',
+  guide: `
+    Use it to explain a short process or to give a few reasons, one idea per point. It is the wrong section for features with pictures (use Features), for a long explanation (use Text), or for more than six points.
+
+    Write each title as a short action or claim of two to four words, and each description as one sentence. Choose the icon for its meaning and do not repeat an icon. Turn numbers off (numbered) when the points are reasons and the order does not matter.
+
+    Pick columns for three or four short steps side by side. Pick rail for a process that should read as a timeline under a centered heading. Pick list when descriptions are longer or there are five or six steps: the heading sits left and the steps read as a numbered list.
+  `,
   schema: stepsSchema,
   defaults: {
     eyebrow: 'How it works',

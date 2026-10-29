@@ -29,6 +29,7 @@ Do these in order. Work from the command line, and never say the form works unti
 
 ## Other work on this site
 
+- Before writing a section's content, run `npx bearminion guide` (the sections this site has) and `npx bearminion guide <section>` (its variants, fields and limits).
 - Content lives in `content/` and is edited in the dev editor (`npm run dev`). Sections are in `src/components/sections`; `npx bearminion add <section>` adds one and `npx bearminion status` shows what is out of date.
 - Run `npm run build` before saying a change is done.
 - Guides: https://docs.bearminion.com

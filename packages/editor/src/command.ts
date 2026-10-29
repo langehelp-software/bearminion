@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 import { applyPlan, SECTIONS_PATH } from './add/apply.js'
+import { MCP_SDK, mcpClientConfig } from './add/mcp.js'
 import { formatCommand, detectPackageManager, installCommand, missingPackages, runInstall, type Exec } from './add/packages.js'
 import { checkForm } from './add/check-form.js'
 import { applyForm, detectHost, GLUE, HANDLER_PATH, HANDLERS, planForm } from './add/forms.js'
@@ -10,6 +11,9 @@ import { readLock, writeLock } from './add/lock.js'
 import { isPresent, planAdd, writesFile, type FileAction, type Plan } from './add/plan.js'
 import { statusOf, type FileState } from './add/status.js'
 import { REGISTRY_SCHEMA_VERSION, type Registry, type RegistryItem } from './registry/types.js'
+import { indexGuide, sectionGuide } from './guide/section-guide.js'
+import { loadContentModel, ModelError } from './load-model.js'
+import { resolveEditorContext } from './options.js'
 import { SectionsError, staleSectionsMessage, syncSections } from './sections-manifest.js'
 
 const DEFAULT_SECTIONS_DIR = 'src/components/sections'
@@ -20,14 +24,19 @@ Usage
   npx bearminion add <section...> [options]
   npx bearminion add --list
   npx bearminion add form [<service>] [--host <host>]
+  npx bearminion add mcp [--yes] [--dry-run]
   npx bearminion status [--json]
   npx bearminion check form [--host <host>] [--json]
+  npx bearminion guide [<section>] [--model <file>]
+  npx bearminion mcp [--model <file>] [--content <dir>] [--uploads-from <dir>]
   npx bearminion sync [options]
 
 Commands
-  add               Copy sections into this site, with the files they need
+  add               Copy sections into this site, with the files they need. 'add mcp' installs the MCP server's one dependency
   status            Show which sections are in this site and whether their files match this release
   check form        Look for what keeps the Contact form from working: missing files, wrong names, unset variables
+  guide             Print how to fill this site's sections, for you or an AI assistant: the list, or one section
+  mcp               Serve this site's content to an AI assistant over MCP (stdio). Experimental
   sync              Rewrite sections/definitions.gen.ts and components.gen.ts from the section directories
 
 Options for add
@@ -39,6 +48,10 @@ Options for add
   --install         Install the npm packages the sections need
   --json            Print one JSON document instead of text (needs --yes or --dry-run)
 
+Options for add mcp
+  -y, --yes         Do not ask before installing @modelcontextprotocol/sdk
+  --dry-run         Show the install command, and run nothing
+
 Options for add form
   --host <host>     Where the site runs (found from the project when omitted). See --list
   --list            List the services and hosts
@@ -46,6 +59,14 @@ Options for add form
 Options for check form
   --host <host>     Where the site runs (found from the project when omitted)
   --json            Print one JSON document instead of text
+
+Options for guide
+  --model <file>    The file that exports contentModel (default: src/lib/content-model.ts)
+
+Options for mcp
+  --model <file>    The file that exports contentModel (default: src/lib/content-model.ts)
+  --content <dir>   The content folder (default: content)
+  --uploads-from <dir>  A folder outside the project the assistant may upload images and videos from. Repeat for more
 
 Options for sync
   --check           Write nothing; exit 1 when the generated files are stale
@@ -90,6 +111,8 @@ export async function run(argv: readonly string[], io: Partial<Io> = {}): Promis
   if (command === 'sync' && rest.length === 0) return runSync(root, values, log)
   if (command === 'add') return runAdd(root, rest, values, surroundings)
   if (command === 'check' && rest[0] === 'form' && rest.length === 1) return runCheckForm(root, values, surroundings)
+  if (command === 'guide' && rest.length <= 1) return runGuide(root, rest[0], values, surroundings)
+  if (command === 'mcp' && rest.length === 0) return runMcp(root, values)
   if (command === 'status' && rest.length === 0) return runStatus(root, values, surroundings)
   log(`I do not know "${positionals.join(' ')}". Run \`npx bearminion --help\` for the commands.`)
   return 2
@@ -111,12 +134,126 @@ function parse(argv: readonly string[]) {
       install: { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
       host: { type: 'string' },
+      model: { type: 'string' },
+      content: { type: 'string' },
+      'uploads-from': { type: 'string', multiple: true },
       help: { type: 'boolean', short: 'h', default: false },
     },
   })
 }
 
 type Values = ReturnType<typeof parse>['values']
+
+/**
+ * The MCP server speaks over stdout, so every message here goes to stderr. It runs until the assistant's client closes
+ * the connection. The MCP SDK is an optional peer dependency: it is loaded here, so no other command needs it.
+ */
+async function runMcp(root: string, values: Values): Promise<number> {
+  const say = (line: string) => process.stderr.write(`${line}\n`)
+  let sdk: {
+    createBearminionServer: typeof import('./mcp/server.js').createBearminionServer
+    StdioServerTransport: typeof import('@modelcontextprotocol/sdk/server/stdio.js').StdioServerTransport
+  }
+  try {
+    const [{ createBearminionServer }, { StdioServerTransport }] = await Promise.all([
+      import('./mcp/server.js'),
+      import('@modelcontextprotocol/sdk/server/stdio.js'),
+    ])
+    sdk = { createBearminionServer, StdioServerTransport }
+  } catch (error) {
+    if (error instanceof Error && (error as NodeJS.ErrnoException).code === 'ERR_MODULE_NOT_FOUND') {
+      say('The MCP server is not set up in this site yet. Run: npx bearminion add mcp')
+      return 1
+    }
+    throw error
+  }
+  try {
+    const model = await loadContentModel(root, values.model)
+    const context = resolveEditorContext({ ...model, ...(values.content ? { contentDir: values.content } : {}), forms: false }, root)
+    const transport = new sdk.StdioServerTransport()
+    const closed = new Promise<void>((resolve) => {
+      transport.onclose = () => resolve()
+    })
+    await sdk.createBearminionServer(context, { uploadsFrom: values['uploads-from'] ?? [] }).connect(transport)
+    say(`bearminion MCP server ready for ${root}`)
+    await closed
+    return 0
+  } catch (error) {
+    say(error instanceof ModelError ? error.message : `The MCP server stopped: ${error instanceof Error ? error.message : String(error)}`)
+    return 1
+  }
+}
+
+async function runAddMcp(root: string, values: Values, io: Io): Promise<number> {
+  const { log } = io
+  if (!fs.existsSync(path.join(root, 'package.json'))) {
+    log('No package.json in this folder. Run this in your site, or point at it with --cwd.')
+    return 1
+  }
+  const missing = missingPackages(root, MCP_SDK)
+  const command = installCommand(detectPackageManager(root), MCP_SDK, { dev: true })
+  if (Object.keys(missing).length > 0) {
+    if (values['dry-run']) {
+      log(`Would run: ${formatCommand(command)}`)
+      log('Dry run: nothing was installed.')
+      return 0
+    }
+    if (!values.yes) {
+      if (io.confirm === undefined) {
+        log(`Not asking in here: pass --yes to install, or --dry-run to look first. The command is: ${formatCommand(command)}`)
+        return 1
+      }
+      if (!(await io.confirm(`Install the MCP SDK as a dev dependency (${formatCommand(command)})?`))) {
+        log('Nothing was installed.')
+        return 1
+      }
+    }
+    log(`Running: ${formatCommand(command)}`)
+    if (io.exec(command.command, command.args, root) !== 0) {
+      log(`The install failed. Fix what it printed, or run it yourself: ${formatCommand(command)}`)
+      return 1
+    }
+  } else {
+    log('The MCP SDK is already in this site. Nothing to install.')
+    if (values['dry-run']) return 0
+  }
+  log('')
+  log('Connect an assistant to this site.')
+  log('')
+  log('Claude Code, from this folder:')
+  log('  claude mcp add bearminion -- npx bearminion mcp')
+  log('')
+  log('Claude Desktop, Cursor and other clients: add this to their MCP servers config.')
+  log(mcpClientConfig(root))
+  log('')
+  log('The assistant starts the server itself. Restart the app after changing its config.')
+  log('To let it upload pictures from another folder, add "--uploads-from", "<folder>" to args.')
+  log('The server changes files in this project and nothing else: no commits, no pushes, no commands.')
+  return 0
+}
+
+async function runGuide(root: string, type: string | undefined, values: Values, io: Io): Promise<number> {
+  try {
+    const { sections } = await loadContentModel(root, values.model)
+    if (type === undefined) {
+      io.log(indexGuide(sections))
+      return 0
+    }
+    const definition = sections[type]
+    if (!definition) {
+      io.log(`This site has no section called "${type}". It has: ${Object.keys(sections).sort().join(', ')}.`)
+      return 1
+    }
+    io.log(sectionGuide(definition))
+    return 0
+  } catch (error) {
+    if (error instanceof ModelError) {
+      io.log(error.message)
+      return 1
+    }
+    throw error
+  }
+}
 
 function runSync(root: string, values: Values, log: (line: string) => void): number {
   const sectionsDir = path.resolve(root, values.sections ?? DEFAULT_SECTIONS_DIR)
@@ -182,6 +319,7 @@ function diffAgainstRelease(root: string, registryDir: string, file: string): st
 
 async function runAdd(root: string, names: string[], values: Values, io: Io): Promise<number> {
   if (names[0] === 'form') return runAddForm(root, names.slice(1), values, io)
+  if (names[0] === 'mcp' && names.length === 1) return runAddMcp(root, values, io)
   const { log } = io
   const json = values.json === true
   const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
