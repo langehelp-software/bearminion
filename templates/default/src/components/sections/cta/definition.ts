@@ -28,6 +28,13 @@ export const cta = defineSection({
   type: 'cta',
   label: 'Call to action',
   description: 'A band with a heading and a button.',
+  guide: `
+    Use it as the closing section of a page, with one clear action. Say in the heading what happens on click, keep the text to one sentence, and write the button as a verb. A second, quieter button is for a different path only.
+
+    Pick band for a strong, closing block; it can show the install command beside the text. Pick centered for a simple close, with the command underneath. Pick terminal for developer products: the text sits left and a terminal window shows the command and what it prints. Use real output in it, no invented results.
+
+    Add a command and output only for developer products. For everything else leave them out.
+  `,
   schema: ctaSchema,
   defaults: {
     heading: 'Ready to get started?',

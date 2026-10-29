@@ -38,6 +38,8 @@ export interface SectionDefinition<TType extends string = string, TSchema extend
   readonly icons: FieldIcons
   readonly showWhen: ShowWhen
   readonly form?: string
+  /** Judgement the schema cannot express, for AI assistants. */
+  readonly guide?: string
   /** Cross-field rules the schema cannot express, such as a variant that needs an exact item count. */
   refine?(section: { variant: TVariant; props: z.infer<TSchema> }, ctx: z.RefinementCtx): void
 }
@@ -68,6 +70,11 @@ export interface SectionConfig<TType extends string, TSchema extends z.ZodType, 
   showWhen?: ShowWhen
   /** The form handler this section posts to: the file `src/forms/<form>.ts`, answering at `/api/<form>`. */
   form?: string
+  /**
+   * Judgement the schema cannot express: when to pick a variant, how long fields should be, what belongs where. Shown to
+   * AI assistants next to the generated field list. Do not repeat limits the schema already states.
+   */
+  guide?: string
   refine?(section: { variant: TVariants[number]; props: z.infer<TSchema> }, ctx: z.RefinementCtx): void
 }
 
@@ -116,6 +123,7 @@ export function defineSection<
     icons,
     showWhen,
     form: config.form,
+    guide: config.guide,
     refine: config.refine,
   })
 }

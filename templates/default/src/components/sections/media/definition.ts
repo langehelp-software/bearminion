@@ -43,6 +43,13 @@ export const media = defineSection({
   type: 'media',
   label: 'Media',
   description: 'One video or image under a heading. YouTube, Vimeo or a video file, with a poster and a caption.',
+  guide: `
+    Use it for one video or image that carries the point: a demo, a product tour, an announcement. For many pictures use Gallery; for text with a supporting picture use Text + Image.
+
+    For a video, always add a poster so the frame is never empty. Pick controls when the visitor should press play, as with narration. Pick loop for a short silent clip that works like a moving picture: it plays muted while on screen. Pick 16:9 for video, 21:9 for a cinematic crop, 4:3 for screenshots and 1:1 for square social clips.
+
+    Pick centered for a short intro above the frame. Pick wide when the heading and a short text sit side by side above a wide frame. Pick split when text and media should carry equal weight. Use the caption for context; turn the heading off (intro) when the media should stand alone.
+  `,
   schema: mediaSchema,
   defaults: {
     eyebrow: 'Demo',

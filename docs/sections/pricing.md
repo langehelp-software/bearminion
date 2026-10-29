@@ -20,7 +20,10 @@ Plans side by side, with one highlighted and a monthly and yearly switch.
 
 ![Pricing, single layout: one highlighted plan beside a card listing its features.](../images/sections/pricing-single.webp)
 
-Options: **Yearly discount** (`yearlyDiscount`): a number from 0 to 1, `0.2` by default.
+Options:
+- **Yearly discount** (`yearlyDiscount`): a number from 0 to 1, `0.2` by default.
+- **Currency** (`currency`): the symbol or code shown with every price, `$` by default (`€`, `zł`, `CHF`; up to 8 characters).
+- **Currency position** (`currencyPosition`): `prefix` (default, `$9`) puts it before the number, `suffix` (`9 zł`) after it. A code that ends in a letter, such as `CHF`, is set off from the number by a space.
 
 Content: `plans` of `{ name, blurb?, monthly, featured?, cta?, features }`, three recommended. A plan's `cta` is a link `{ label, href }`. Optional: `rows`, `eyebrow`, `heading`, `intro` and `singleHeading`.
 

@@ -20,6 +20,13 @@ export const text = defineSection({
   type: 'text',
   label: 'Text',
   description: 'Plain long-form text with headings, lists and links. For an About, a policy or any simple page.',
+  guide: `
+    Use it where reading is the point: an About page, a policy, a long story. For marketing claims use Text + Image or Features instead.
+
+    Pick left for long reading. Pick center when the heading is short and the body is only a paragraph or two. Keep the narrow column on for anything longer than a few paragraphs, since lines of about 65 characters read best. Turn it off only when the text sits alone in a full-width section.
+
+    Use ## headings inside the body to split long text and ### only for a sub-point, never for emphasis. Do not repeat the section heading as the first line of the body.
+  `,
   schema: textSchema,
   defaults: {
     eyebrow: 'About',

@@ -43,6 +43,17 @@ export const hero = defineSection({
   type: 'hero',
   label: 'Hero',
   description: 'Opening heading, intro, buttons and an image.',
+  guide: `
+    Use it once, at the top of a page, to say what the site is for and give one next step. It is the wrong place for a second pitch further down: use Text + Image or Call to action for that.
+
+    Write the heading as the outcome for the visitor in one line, not the company name. The intro says who it is for and what they get, in one or two sentences. Give one primary button with a verb label ("Start free", not "Submit"). Add a secondary button only for a different path, such as docs or a demo, never a second "buy". Emphasize at most one short phrase in the heading.
+
+    Pick split when there is a product picture or screenshot: text first, picture second. Pick centered for a short heading over one wide picture. Pick editorial for a text-first brand with a long, confident heading and little imagery.
+
+    The install command (code) belongs on developer tools only; leave it off otherwise. The badge takes one short announcement such as a release: remove it when it goes stale. Keep glow off when the picture already carries the section.
+
+    Common mistakes: two filled buttons competing, a heading that describes the company instead of the benefit, a picture without alt text describing it.
+  `,
   schema: heroSchema,
   defaults: {
     eyebrow: 'Your tagline',

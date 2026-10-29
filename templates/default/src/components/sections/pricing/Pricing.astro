@@ -4,6 +4,7 @@ import Button from '../../atoms/Button.astro'
 import { buttonLinkProps, buttonVariant } from '../../../lib/link-attrs'
 import SectionHeader from '../../molecules/SectionHeader.astro'
 import SectionShell from '../../molecules/SectionShell.astro'
+import { formatPrice } from '../../../lib/format-price'
 
 interface Props {
   section: Extract<Section, { type: 'pricing' }>
@@ -16,13 +17,15 @@ const props = section.props
 const field = (path: string) => `sections.${index}.props.${path}`
 const reveal = section.motion ?? motion
 const discount = props.yearlyDiscount
+const { currency, currencyPosition } = props
+const price = (amount: number) => formatPrice(amount, currency, currencyPosition)
 const featured = props.plans.find((plan) => plan.featured) ?? props.plans[0]
 ---
 
 <SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
   {
     section.variant === 'tiers' && (
-      <div class="section-container" data-pricing data-discount={discount}>
+      <div class="section-container" data-pricing data-discount={discount} data-currency={currency} data-currency-position={currencyPosition}>
         <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} intro={props.intro} align="center" field={field} class="mx-auto max-w-3xl" />
         <div class="mt-8 flex justify-center">
           <div class="inline-flex rounded-full p-1 ring-line" role="group" aria-label="Billing period">
@@ -56,7 +59,7 @@ const featured = props.plans.find((plan) => plan.featured) ?? props.plans[0]
               )}
               <p class="mt-6">
                 <span class="text-[clamp(2.5rem,2rem+1cqi,3.25rem)] leading-none font-semibold tracking-[-0.04em]" data-amount>
-                  {plan.monthly === 0 ? '$0' : `$${plan.monthly}`}
+                  {price(plan.monthly)}
                 </span>
               </p>
               <p class:list={['mt-1 text-[0.8125rem]', plan.featured ? 'text-bg/70' : 'text-muted']} data-period>
@@ -116,7 +119,7 @@ const featured = props.plans.find((plan) => plan.featured) ?? props.plans[0]
   }
   {
     section.variant === 'single' && featured && (
-      <div class="section-container" data-pricing data-discount={discount}>
+      <div class="section-container" data-pricing data-discount={discount} data-currency={currency} data-currency-position={currencyPosition}>
         <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} intro={props.intro} field={field} />
         <div class="mt-10 grid items-stretch gap-4 @min-[880px]:grid-cols-[minmax(22rem,1fr)_minmax(0,1fr)]">
           <div class="flex flex-col justify-between rounded-panel bg-fg p-8 text-bg" data-monthly={featured.monthly}>
@@ -125,7 +128,7 @@ const featured = props.plans.find((plan) => plan.featured) ?? props.plans[0]
                 {props.singleHeading ?? featured.name}
               </p>
               <p class="mt-6 text-[clamp(3rem,2rem+3cqi,4.5rem)] leading-none font-semibold tracking-[-0.05em]" data-amount>
-                {featured.monthly === 0 ? '$0' : `$${featured.monthly}`}
+                {price(featured.monthly)}
               </p>
               <p class="mt-2 text-[0.875rem] text-bg/70" data-period>
                 {featured.monthly === 0 ? 'forever' : 'per month'}
@@ -173,11 +176,15 @@ const featured = props.plans.find((plan) => plan.featured) ?? props.plans[0]
 </SectionShell>
 
 <script>
+  import { formatPrice } from '../../../lib/format-price'
+
   function bindPricing() {
   document.querySelectorAll('[data-pricing]').forEach((root) => {
     if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') return
     root.dataset.bound = 'true'
     const discount = Number(root.dataset.discount ?? '0.2')
+    const currency = root.dataset.currency ?? '$'
+    const position = root.dataset.currencyPosition === 'suffix' ? 'suffix' : 'prefix'
     const cards = [...root.querySelectorAll('[data-monthly]')]
     const buttons = [...root.querySelectorAll('[data-billing]')]
 
@@ -191,7 +198,7 @@ const featured = props.plans.find((plan) => plan.featured) ?? props.plans[0]
         const amount = billing === 'yearly' ? Math.round(monthly * (1 - discount)) : monthly
         const value = card.querySelector('[data-amount]')
         const period = card.querySelector('[data-period]')
-        if (value) value.textContent = amount === 0 ? '$0' : `$${amount}`
+        if (value) value.textContent = formatPrice(amount, currency, position)
         if (period) {
           period.textContent = amount === 0 ? 'forever' : billing === 'yearly' ? 'per month, billed yearly' : 'per month'
         }

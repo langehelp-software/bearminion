@@ -21,6 +21,13 @@ export const textImage = defineSection({
   type: 'textImage',
   label: 'Text + Image',
   description: 'Text beside an image, with points and a link.',
+  guide: `
+    Use it to explain one thing with a picture: how something works, who is behind it, one product detail. For several equal items use Features.
+
+    Keep the points to three short ones and one link as the next step. The picture needs alt text that says what it shows.
+
+    Pick right when text should come first and the picture supports it. Pick left to alternate with a previous Text + Image section so the page zig-zags. Pick wide when the picture is a wide screenshot or panorama that needs the full width under the text.
+  `,
   schema: textImageSchema,
   defaults: {
     eyebrow: 'How it works',

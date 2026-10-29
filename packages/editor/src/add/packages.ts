@@ -18,11 +18,17 @@ export function detectPackageManager(root: string): PackageManager {
   return 'npm'
 }
 
-/** The command that installs `packages` (name to range). */
-export function installCommand(manager: PackageManager, packages: Record<string, string>): { command: string; args: string[] } {
+const DEV_FLAG: Record<PackageManager, string> = { npm: '-D', pnpm: '-D', yarn: '-D', bun: '-d' }
+
+/** The command that installs `packages` (name to range), as dev dependencies when `dev` is set. */
+export function installCommand(
+  manager: PackageManager,
+  packages: Record<string, string>,
+  options: { dev?: boolean } = {},
+): { command: string; args: string[] } {
   const specs = Object.entries(packages).map(([name, range]) => `${name}@${range}`)
   const verb = manager === 'npm' ? 'install' : 'add'
-  return { command: manager, args: [verb, ...specs] }
+  return { command: manager, args: [verb, ...(options.dev ? [DEV_FLAG[manager]] : []), ...specs] }
 }
 
 export const formatCommand = ({ command, args }: { command: string; args: string[] }) => [command, ...args].join(' ')

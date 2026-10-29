@@ -79,13 +79,21 @@
     "provenance": true
   },
   "dependencies": {
+    "jiti": "^2.7.0",
     "preact": "^11.0.1"
   },
   "peerDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "astro": "^7.3.0",
     "zod": "^4.1.0"
   },
+  "peerDependenciesMeta": {
+    "@modelcontextprotocol/sdk": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@preact/signals": "2.11.3",
     "@types/node": "^22.19.0",
     "astro": "^7.4.1",

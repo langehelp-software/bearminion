@@ -39,7 +39,7 @@ export default defineConfig({
   clean: true,
   sourcemap: false,
   deps: {
-    neverBundle: [/^node:/],
+    neverBundle: [/^node:/, /^@modelcontextprotocol\//],
     // Signals and ProseMirror ship inside `ui/mount.js`, so Vite never meets a new dependency mid-session (its optimizer
     // would reload the page). `preact` stays external, so the overlay and signals share one Preact instance.
     alwaysBundle: [/^@preact\/signals/, /^(?:prosemirror-|orderedmap$|rope-sequence$|w3c-keyname$)/],

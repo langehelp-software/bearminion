@@ -33,6 +33,13 @@ export const features = defineSection({
   type: 'features',
   label: 'Features',
   description: 'Grid of feature cards with titles and text.',
+  guide: `
+    Use it for the three to six benefits that matter most. It is the wrong section for a sequence (use Steps), a plan comparison (use Pricing) or plain facts with numbers (use Stats).
+
+    Write each title as the benefit in under five words and each description as one or two sentences about what the visitor gets, not how it is built. Give every item a picture or none: a mix looks uneven.
+
+    Pick cards for equal items in a row. Pick bento when one item is the main one: the first card is large, so put the most important item first and use four or six items. Pick list for text-led items with longer descriptions: the heading sits left and the items read as a numbered list.
+  `,
   schema: featuresSchema,
   defaults: {
     eyebrow: 'Features',

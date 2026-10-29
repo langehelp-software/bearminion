@@ -33,6 +33,13 @@ export const faq = defineSection({
   type: 'faq',
   label: 'FAQ',
   description: 'Questions that open to show answers.',
+  guide: `
+    Use it to answer the real questions that hold visitors back before they buy or get in touch. For long documentation use Text instead.
+
+    Write each question as a visitor would ask it, and start each answer with the answer, then the detail. Put the most asked questions first. Four to eight questions is enough: past that, the page needs better structure instead.
+
+    Pick accordion when answers are long: one opens at a time and the page stays short. Pick grid when answers are one or two sentences, so everything shows at once. Pick split when you want a link beside the questions, such as "Still stuck? Contact us" to the contact section.
+  `,
   schema: faqSchema,
   defaults: {
     eyebrow: 'FAQ',
