@@ -79,7 +79,7 @@
     "provenance": true
   },
   "dependencies": {
-    "preact": "^11.0.1"
+    "preact": "^11.0.2"
   },
   "peerDependencies": {
     "astro": "^7.3.0",
@@ -88,18 +88,18 @@
   "devDependencies": {
     "@preact/signals": "2.11.3",
     "@types/node": "^22.19.0",
-    "astro": "^7.4.1",
-    "happy-dom": "^21.0.3",
+    "astro": "^7.4.2",
+    "happy-dom": "^21.0.4",
     "prosemirror-commands": "^1.7.2",
     "prosemirror-history": "^1.5.1",
     "prosemirror-keymap": "^1.2.3",
     "prosemirror-model": "^1.25.12",
     "prosemirror-schema-list": "^1.5.1",
     "prosemirror-state": "^1.4.4",
-    "prosemirror-view": "^1.42.6",
-    "tsdown": "0.23.1",
+    "prosemirror-view": "^1.42.8",
+    "tsdown": "0.23.2",
     "typescript": "~5.9.3",
-    "vite": "^8.3.1",
+    "vite": "^8.3.5",
     "vitest": "^5.0.5",
     "zod": "^4.6.7"
   }
