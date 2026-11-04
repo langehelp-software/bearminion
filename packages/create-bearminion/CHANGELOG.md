@@ -1,5 +1,9 @@
 # create-bearminion
 
+## 1.11.0
+
+No changes in this release.
+
 ## 1.10.1
 
 ### Patch Changes
