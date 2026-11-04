@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ContentReadError, ContentValidationError, type ContentIssue } from './errors.js'
-import { imageTooLarge, kindFromMime, sniffImage } from './images.js'
+import { imageBodyLimit, imageTooLarge, kindFromMime, sniffImage } from './images.js'
 import { sniffVideo, videoBodyLimit, videoKindFromMime } from './videos.js'
 import { API_PREFIX, type EditorContext, type SectionRegistry } from './options.js'
 import { formFile } from './forms-dev.js'
@@ -9,7 +9,8 @@ import type { OptionalContent } from './section-optional.js'
 import type { FieldChoices, FieldIcons, ShowWhen } from './field-rules.js'
 import { imageFields } from './section-fields.js'
 import type { Wireframe } from './wireframe.js'
-import { JSON_BODY_LIMIT, MULTIPART_BODY_LIMIT, isLocalRequest, readSlug } from './security.js'
+import { JSON_BODY_LIMIT, isLocalRequest, readSlug } from './security.js'
+import { formatBytes, type UploadRules } from './upload-rules.js'
 import { projectId } from './draft-store.js'
 import { ensureBaseline, isHistoryId, listHistory, readHistory, writeHistory } from './history.js'
 import { fieldIssues, validateEditorPage, validatePage, validateSite, type FieldIssue } from './validate.js'
@@ -758,7 +759,8 @@ async function postSitePreview(request: Request, context: EditorContext, meta: H
 }
 
 async function getImages(context: EditorContext): Promise<Response> {
-  return json(200, { images: await context.store.uploads.list() })
+  const limits: UploadRules = { maxBytes: context.maxImageBytes, convert: context.imageConvert }
+  return json(200, { images: await context.store.uploads.list(), limits })
 }
 
 function decodeSegment(segment: string): string {
@@ -900,10 +902,9 @@ async function postVideo(request: Request, context: EditorContext): Promise<Resp
 }
 
 async function postImage(request: Request, context: EditorContext): Promise<Response> {
+  const tooLarge = () => problem(413, 'too_large', `Images must be ${formatBytes(context.maxImageBytes)} or smaller.`)
   const length = contentLength(request)
-  if (length !== null && length > MULTIPART_BODY_LIMIT) {
-    return problem(413, 'too_large', 'Upload exceeds the 5MB image limit.')
-  }
+  if (length !== null && length > imageBodyLimit(context.maxImageBytes)) return tooLarge()
   const type = request.headers.get('content-type') ?? ''
   if (!type.toLowerCase().includes('multipart/form-data')) {
     return problem(415, 'unsupported_media_type', 'Upload the image as multipart/form-data.')
@@ -919,14 +920,10 @@ async function postImage(request: Request, context: EditorContext): Promise<Resp
   if (!(entry instanceof File)) {
     return problem(400, 'invalid_upload', 'Expected a multipart file field named "file".')
   }
-  if (imageTooLarge(entry.size)) {
-    return problem(413, 'too_large', 'Images must be 5MB or smaller.')
-  }
+  if (imageTooLarge(entry.size, context.maxImageBytes)) return tooLarge()
 
   const bytes = new Uint8Array(await entry.arrayBuffer())
-  if (imageTooLarge(bytes.byteLength)) {
-    return problem(413, 'too_large', 'Images must be 5MB or smaller.')
-  }
+  if (imageTooLarge(bytes.byteLength, context.maxImageBytes)) return tooLarge()
   const declared = kindFromMime(entry.type)
   const sniffed = sniffImage(bytes)
   if (declared === null || sniffed === null || declared !== sniffed) {

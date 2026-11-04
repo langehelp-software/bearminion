@@ -240,6 +240,8 @@ Click the slot, or Change image, to open the picker. On the page, click an image
 ![The image picker with the Upload and Library tabs.](images/editor-image-picker.webp)
 
 - **Upload.** Drop a file or click to browse. New files go to `src/assets/uploads` and show in the library immediately.
+  - **Size limit.** An image over the limit (5 MB by default, `maxImageBytes`) is refused in the browser before anything is uploaded, and the message gives its size and the limit.
+  - **Conversion.** With `imageConvert` set in the `bearminion()` options, the editor scales a wide image down to `maxWidth` and saves it as WebP before it uploads, so a 12 MB phone photo arrives as a few hundred KB. Re-encoding also removes the photo's metadata, including the GPS position, and applies its rotation. A GIF is never converted, an image that would come out larger is kept as it is, and a browser that cannot encode WebP uploads the original. See [Integration](integration.md).
 - **Library.** Pick an upload, or delete one from disk after a confirm. An image that saved content still uses cannot be deleted, and the error names where it is used.
 
 

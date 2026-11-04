@@ -13,6 +13,8 @@ import {
 import { Icon } from './icons.js'
 import { draftImageUsages } from '../asset-paths.js'
 import { deleteImage, uploadImage } from './api-client.js'
+import { getUploadRules, prepareImage } from './prepare-image.js'
+import { formatBytes } from '../upload-rules.js'
 import { ScrollLock } from './scroll-lock.js'
 import { useEditor } from './state/editor.js'
 
@@ -380,7 +382,9 @@ export function ImageField({
 }
 
 async function uploadFile(file: File): Promise<{ image: LibraryImage } | { error: string }> {
-  const result = await uploadImage(file)
+  const prepared = await prepareImage(file, getUploadRules())
+  if (!prepared.ok) return { error: prepared.error }
+  const result = await uploadImage(prepared.file)
   if (!result.ok) return { error: result.status === 0 ? 'Upload failed.' : result.message }
   return { image: result.value }
 }
@@ -566,7 +570,9 @@ export function ImagePickerModal({
             >
               <Icon name="upload" size={20} />
               <span class="bm-slot-title">{busy ? 'Uploading…' : 'Drag an image here'}</span>
-              <span class="bm-slot-hint">or click to browse · png, jpeg, webp, gif, avif · up to 5MB</span>
+              <span class="bm-slot-hint">
+                or click to browse · png, jpeg, webp, gif, avif · up to {formatBytes(getUploadRules().maxBytes)}
+              </span>
               <input
                 class="bm-visually-hidden"
                 aria-label="Upload image"

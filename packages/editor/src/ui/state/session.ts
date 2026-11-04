@@ -2,6 +2,7 @@ import { batch } from '@preact/signals'
 import { applyPendingEdits, pageHref, type PageDraft, slugFromPath, slugifyAnchor } from '../../draft.js'
 import { reloadDecision } from '../../draft-store.js'
 import { getCatalog, getGit, getImages, getPage, getPages, getSite, saveDraft } from '../api-client.js'
+import { setUploadRules } from '../prepare-image.js'
 import type { SiteDraft } from '../types.js'
 import { type DocumentStore, pruneDraft } from './document.js'
 import type { Edits } from './edits.js'
@@ -62,7 +63,10 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
         if (typeof projectId === 'string' && projectId !== '') doc.projectId.value = projectId
       }
       if (listRes.ok) doc.pages.value = listRes.value.pages
-      if (imageRes.ok) doc.images.value = imageRes.value.images
+      if (imageRes.ok) {
+        doc.images.value = imageRes.value.images
+        if (imageRes.value.limits) setUploadRules(imageRes.value.limits)
+      }
       if (nextSite) {
         doc.site.value = nextSite
         doc.savedSiteJson.value = savedSiteJson

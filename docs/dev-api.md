@@ -9,7 +9,7 @@ Base path: `/__bearminion/api`. Only loopback clients are accepted. `Host` must 
 
 Slugs are lowercase kebab-case. Encoded `..`, slashes, and backslashes are rejected. Upload filenames are reduced to a safe stem, then stored with a random suffix and an extension taken from the sniffed image type.
 
-JSON bodies are limited to 1MB. Images are limited to 5MB and must be png, jpeg, webp, gif, or avif, with a matching `Content-Type` and file signature. Videos are limited to `maxVideoBytes` (50MB by default) and must be mp4, webm, mov or ogv, checked the same way.
+JSON bodies are limited to 1MB. Images are limited to `maxImageBytes` (5MB by default) and must be png, jpeg, webp, gif, or avif, with a matching `Content-Type` and file signature. Videos are limited to `maxVideoBytes` (50MB by default) and must be mp4, webm, mov or ogv, checked the same way. `GET /images` also returns `limits`: `{ maxBytes, convert }`, the size limit and the `imageConvert` rules, which the editor applies in the browser before it uploads.
 
 Every write is checked with the Zod schemas first. A failure is `400`:
 

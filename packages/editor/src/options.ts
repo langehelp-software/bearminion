@@ -6,6 +6,7 @@ import type { SiteDefinition } from './site.js'
 import { defaultTheme, type ThemeDefinition } from './theme.js'
 import { createFileStore, type ContentStore } from './store.js'
 import { resolveFormsConfig } from './forms-dev.js'
+import { resolveConvert, resolveMaxImageBytes, type ImageConvertOptions, type UploadRules } from './upload-rules.js'
 
 export { API_PREFIX, DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR } from './model.js'
 export type { ContentModel, SectionRegistry } from './model.js'
@@ -19,6 +20,17 @@ export interface BearminionOptions extends ContentModel {
   videosDir?: string
   /** Largest video the editor accepts, in bytes. Default 50 MB. */
   maxVideoBytes?: number
+  /**
+   * Largest image the editor accepts, in bytes. Default 5 MB. The editor checks it in the browser before it uploads,
+   * and the server checks it again.
+   */
+  maxImageBytes?: number
+  /**
+   * Re-encode images in the browser before they are uploaded, so phone photos stay out of the repository:
+   * `{ to: 'webp', maxWidth: 2400, quality: 0.82 }`. Animated GIFs are never converted, and an image that would come
+   * out larger is kept as it is. Default: off, images are uploaded as they are.
+   */
+  imageConvert?: false | ImageConvertOptions
   /**
    * Vite module id loaded by the dev server to render a draft page.
    * Default `/src/lib/render-preview.ts`. Preview never writes to disk.
@@ -56,6 +68,9 @@ export interface EditorContext {
   uploadsDir: string
   videosDir: string
   maxVideoBytes: number
+  maxImageBytes: number
+  /** `imageConvert`, validated and with its defaults filled in. `null` when conversion is off. */
+  imageConvert: UploadRules['convert']
   sections: SectionRegistry
   site: SiteDefinition
   theme: ThemeDefinition
@@ -85,6 +100,8 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
     uploadsDir,
     videosDir,
     maxVideoBytes: options?.maxVideoBytes ?? DEFAULT_VIDEO_BYTE_LIMIT,
+    maxImageBytes: resolveMaxImageBytes(options?.maxImageBytes),
+    imageConvert: resolveConvert(options?.imageConvert),
     sections: options.sections,
     site: options.site,
     theme: options.theme ?? defaultTheme,

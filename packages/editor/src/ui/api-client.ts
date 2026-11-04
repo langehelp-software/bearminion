@@ -14,6 +14,7 @@ import type {
   UploadedVideo,
 } from '../api-types.js'
 import type { PageDraft } from '../draft.js'
+import type { UploadRules } from '../upload-rules.js'
 import type { Catalog, SiteDraft } from './types.js'
 
 export const API = '/__bearminion/api'
@@ -66,7 +67,7 @@ export const previewPage = (page: PageDraft, motion: boolean) => request<{ html:
 export const previewSite = (site: SiteDraft, pathname: string) =>
   request<SitePreview>('/preview/site', sendJson('POST', { site, pathname }))
 
-export const getImages = () => request<{ images: UploadedImage[] }>('/images')
+export const getImages = () => request<{ images: UploadedImage[]; limits?: UploadRules }>('/images')
 export const deleteImage = (filename: string) =>
   request<{ deleted: true; filename: string }>(`/images/${segment(filename)}`, { method: 'DELETE' })
 export function uploadImage(file: File) {

@@ -113,8 +113,13 @@ export async function deleteImage(uploadsDir: string, filename: string): Promise
   }
 }
 
-export function imageTooLarge(size: number): boolean {
-  return size > IMAGE_BYTE_LIMIT
+export function imageTooLarge(size: number, maxBytes: number = IMAGE_BYTE_LIMIT): boolean {
+  return size > maxBytes
+}
+
+/** The largest request body an image upload may have: the file plus room for the multipart boundaries. */
+export function imageBodyLimit(maxBytes: number): number {
+  return maxBytes + 256 * 1024
 }
 
 function safeStem(originalName: string): string {

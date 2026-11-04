@@ -162,6 +162,8 @@ describe('editor API on a custom store', () => {
       uploadsDir: path.join(missing, 'uploads'),
       videosDir: path.join(missing, 'videos'),
       maxVideoBytes: 1,
+      maxImageBytes: 5 * 1_048_576,
+      imageConvert: null,
       sections: sectionRegistry,
       site: siteDefinition,
       store,
