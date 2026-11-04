@@ -1,9 +1,10 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { slugSchema } from './page.js'
+import { DEFAULT_IMAGE_BYTE_LIMIT } from './upload-rules.js'
 
 export const JSON_BODY_LIMIT = 1_048_576
-export const IMAGE_BYTE_LIMIT = 5 * 1_048_576
+export const IMAGE_BYTE_LIMIT = DEFAULT_IMAGE_BYTE_LIMIT
 /** Room for multipart boundaries around a max-size image. */
 export const MULTIPART_BODY_LIMIT = IMAGE_BYTE_LIMIT + 256 * 1024
 

@@ -5,7 +5,9 @@ import type { EditorContext } from './options.js'
 import { API_PREFIX } from './options.js'
 import { handleEditorRequest, type HandleMeta } from './api.js'
 import { assetFile } from './asset-refs.js'
-import { isLocalRequest, JSON_BODY_LIMIT, MULTIPART_BODY_LIMIT } from './security.js'
+import { imageBodyLimit } from './images.js'
+import { isLocalRequest, JSON_BODY_LIMIT } from './security.js'
+import { formatBytes } from './upload-rules.js'
 import { videoBodyLimit } from './videos.js'
 
 type Next = (error?: unknown) => void
@@ -61,11 +63,11 @@ async function dispatch(
   const method = (req.method ?? 'GET').toUpperCase()
   const multipart = (headers.get('content-type') ?? '').toLowerCase().includes('multipart/form-data')
   const videoUpload = multipart && stripTrailingSlash(rawUrl.split('?')[0] ?? '') === `${API_PREFIX}/videos`
-  const limit = videoUpload ? videoBodyLimit(context.maxVideoBytes) : multipart ? MULTIPART_BODY_LIMIT : JSON_BODY_LIMIT
+  const limit = videoUpload ? videoBodyLimit(context.maxVideoBytes) : multipart ? imageBodyLimit(context.maxImageBytes) : JSON_BODY_LIMIT
   const tooLargeMessage = videoUpload
     ? 'Upload exceeds the video size limit.'
     : multipart
-      ? 'Upload exceeds the 5MB image limit.'
+      ? `Upload exceeds the ${formatBytes(context.maxImageBytes)} image limit.`
       : 'JSON body exceeds 1MB.'
   const advertised = Number(headers.get('content-length') ?? '')
   if (Number.isFinite(advertised) && advertised > limit) {

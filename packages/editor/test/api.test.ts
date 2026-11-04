@@ -68,6 +68,8 @@ function seed(): EditorContext {
     uploadsDir,
     videosDir: path.join(root, 'public', 'videos'),
     maxVideoBytes: 50 * 1_048_576,
+    maxImageBytes: 5 * 1_048_576,
+    imageConvert: null,
     sections: sectionRegistry,
     site: siteDefinition,
     store: createFileStore({ root, contentDir, uploadsDir, videosDir: path.join(root, 'public', 'videos') }),
@@ -376,6 +378,36 @@ describe('editor API', () => {
     })
     expect(tooBig.status).toBe(413)
     expect(fs.readdirSync(context.uploadsDir)).toEqual([body.filename])
+  })
+
+  it('takes the image size limit from maxImageBytes and reports the rules to the browser', async () => {
+    const context = {
+      ...withRegistry(seed()),
+      maxImageBytes: 2048,
+      imageConvert: { to: 'webp' as const, maxWidth: 1600, quality: 0.8 },
+    }
+    const rules = await call(context, 'GET', `${API_PREFIX}/images`)
+    expect(((await rules.json()) as { limits: unknown }).limits).toEqual({
+      maxBytes: 2048,
+      convert: { to: 'webp', maxWidth: 1600, quality: 0.8 },
+    })
+
+    const justOver = Buffer.alloc(2049)
+    PNG.copy(justOver)
+    const refused = await call(context, 'POST', `${API_PREFIX}/images`, { form: fileForm(justOver, 'big.png', 'image/png') })
+    expect(refused.status).toBe(413)
+    expect(((await refused.json()) as { message?: string; error?: { message?: string } }).message ?? '').toContain('2 KB')
+    expect(fs.existsSync(context.uploadsDir) ? fs.readdirSync(context.uploadsDir) : []).toEqual([])
+
+    const atLimit = Buffer.alloc(2048)
+    PNG.copy(atLimit)
+    const accepted = await call(context, 'POST', `${API_PREFIX}/images`, { form: fileForm(atLimit, 'ok.png', 'image/png') })
+    expect(accepted.status).toBe(201)
+  })
+
+  it('reports no conversion by default', async () => {
+    const response = await call(withRegistry(seed()), 'GET', `${API_PREFIX}/images`)
+    expect(((await response.json()) as { limits: unknown }).limits).toEqual({ maxBytes: IMAGE_BYTE_LIMIT, convert: null })
   })
 
   it('rejects JSON bodies over 1MB', async () => {

@@ -25,6 +25,8 @@ function context(enabled: boolean): EditorContext {
     uploadsDir,
     videosDir: path.join(root, 'public', 'videos'),
     maxVideoBytes: 50 * 1_048_576,
+    maxImageBytes: 5 * 1_048_576,
+    imageConvert: null,
     sections: {},
     site: siteDefinition,
     store: createFileStore({ root, contentDir, uploadsDir }),
