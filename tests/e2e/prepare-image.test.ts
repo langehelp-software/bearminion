@@ -37,7 +37,9 @@ describe('prepareImage in Chromium', () => {
   function run(options: { width: number; height: number; mime: string; name: string; rules: unknown }): Promise<Outcome> {
     return page.evaluate(async (input) => {
       // `new Function` keeps Vitest from rewriting this `import()` into its own loader, which the page does not have.
-      const load = new Function('url', 'return import(url)') as (url: string) => Promise<typeof import('../../packages/editor/src/ui/prepare-image')>
+      const load = new Function('url', 'return import(url)') as (
+        url: string,
+      ) => Promise<typeof import('../../packages/editor/src/ui/prepare-image')>
       const { prepareImage } = await load('/ui/prepare-image.js')
       const canvas = document.createElement('canvas')
       canvas.width = input.width
@@ -80,7 +82,8 @@ describe('prepareImage in Chromium', () => {
     await page.route(`${ORIGIN}/**`, async (route) => {
       const { pathname } = new URL(route.request().url())
       if (pathname === '/') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>x</title>' })
-      if (pathname === '/ui/prepare-image.js') return route.fulfill({ contentType: 'text/javascript', body: moduleSource('ui/prepare-image.ts') })
+      if (pathname === '/ui/prepare-image.js')
+        return route.fulfill({ contentType: 'text/javascript', body: moduleSource('ui/prepare-image.ts') })
       if (pathname === '/upload-rules.js') return route.fulfill({ contentType: 'text/javascript', body: moduleSource('upload-rules.ts') })
       return route.fulfill({ status: 404, body: '' })
     })
@@ -110,7 +113,13 @@ describe('prepareImage in Chromium', () => {
   })
 
   it('leaves an image alone when conversion is off', async () => {
-    const result = await run({ width: 800, height: 600, mime: 'image/jpeg', name: 'plain.jpg', rules: { maxBytes: 5 * 1_048_576, convert: null } })
+    const result = await run({
+      width: 800,
+      height: 600,
+      mime: 'image/jpeg',
+      name: 'plain.jpg',
+      rules: { maxBytes: 5 * 1_048_576, convert: null },
+    })
     expect(result).toMatchObject({ ok: true, name: 'plain.jpg', type: 'image/jpeg', size: result.originalSize })
   })
 
