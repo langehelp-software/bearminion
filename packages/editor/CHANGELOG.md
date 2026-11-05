@@ -1,5 +1,15 @@
 # bearminion
 
+## 1.12.0
+
+### Minor Changes
+
+- 1435da5: `bearminion({ pages: { rename: false, delete: false } })` locks page operations for sites whose addresses carry search ranking or are the target of redirects. Both default to `true`, so nothing changes unless you set them. A locked operation is refused by the API with `409` `operation_locked`, whoever asks: the rename route, the delete route, set-home, and a save that changes a slug (making another page the home page counts as a rename, because the old home page moves to a new address). The editor makes the slug read-only, disables the Home page switch and hides Delete. `GET /schema` reports the rules as `pageRules`.
+
+### Patch Changes
+
+- 1435da5: The New page form makes the slug from the title as you type it, until you edit the slug by hand, and numbers it when a page with that slug exists (`about-2`). Changing a title afterwards never changes the slug. A failed create now shows the server's reason in the form instead of doing nothing. `slugifyAnchor` writes accented letters as the plain letter (`ą` is `a`, `ł` is `l`, `ß` is `ss`) instead of turning them into hyphens, so `Łódź` is `lodz` and not `o-dz`; this also fixes section anchors suggested from non-ASCII headings.
+
 ## 1.11.0
 
 ### Minor Changes
