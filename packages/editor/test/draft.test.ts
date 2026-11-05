@@ -10,6 +10,8 @@ import {
   duplicateSection,
   imageSrcPath,
   indentNav,
+  slugifyAnchor,
+  suggestPageSlug,
   isImageField,
   isMultilineField,
   linkWarning,
@@ -215,5 +217,38 @@ describe('section operations', () => {
     const copy = duplicateSection(source, 'hero')
     expect(copy.sections[1]?.id).not.toBe('hero')
     expect(copy.sections[1]?.anchor).toBe('hero-2')
+  })
+})
+
+describe('slugifyAnchor', () => {
+  it('keeps plain ASCII titles as they were', () => {
+    expect(slugifyAnchor('About us')).toBe('about-us')
+    expect(slugifyAnchor('  Pricing & plans! ')).toBe('pricing-plans')
+    expect(slugifyAnchor('FAQ 2026')).toBe('faq-2026')
+    expect(slugifyAnchor('---')).toBe('')
+  })
+
+  it('writes accented letters as the plain letter, not as a hyphen', () => {
+    expect(slugifyAnchor('Zażółć gęślą jaźń')).toBe('zazolc-gesla-jazn')
+    expect(slugifyAnchor('Łódź')).toBe('lodz')
+    expect(slugifyAnchor('Crème brûlée')).toBe('creme-brulee')
+    expect(slugifyAnchor('Größe & Straße')).toBe('grosse-strasse')
+    expect(slugifyAnchor('Smørrebrød æble')).toBe('smorrebrod-aeble')
+  })
+})
+
+describe('suggestPageSlug', () => {
+  it('turns a title into a slug', () => {
+    expect(suggestPageSlug('O nas', new Set())).toBe('o-nas')
+  })
+
+  it('numbers the slug when the page already exists', () => {
+    expect(suggestPageSlug('About', new Set(['index', 'about']))).toBe('about-2')
+    expect(suggestPageSlug('About', new Set(['about', 'about-2']))).toBe('about-3')
+  })
+
+  it('suggests nothing for a title without letters or digits', () => {
+    expect(suggestPageSlug('', new Set())).toBe('')
+    expect(suggestPageSlug('?!', new Set())).toBe('')
   })
 })

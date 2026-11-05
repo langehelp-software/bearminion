@@ -60,6 +60,29 @@ export const seoSchema = z
  */
 export const SYSTEM_PAGES = ['404'] as const
 
+/**
+ * Which page operations the editor allows. Both default to true. A locked operation is refused by the API, whoever
+ * asks (the editor, a script, an assistant), and its controls are hidden in the editor.
+ */
+export interface PageRules {
+  /** Change a page's slug, including making another page the home page (that moves two pages to new addresses). */
+  rename: boolean
+  delete: boolean
+}
+
+export const DEFAULT_PAGE_RULES: PageRules = { rename: true, delete: true }
+
+/** Check the `pages` option and fill in its defaults. */
+export function resolvePageRules(input: Partial<PageRules> | undefined): PageRules {
+  if (input === undefined) return DEFAULT_PAGE_RULES
+  for (const [key, value] of Object.entries(input)) {
+    if (key !== 'rename' && key !== 'delete')
+      throw new Error(`bearminion(): unknown option pages.${key}. Use pages.rename or pages.delete.`)
+    if (typeof value !== 'boolean') throw new Error(`bearminion(): pages.${key} must be true or false.`)
+  }
+  return { rename: input.rename ?? true, delete: input.delete ?? true }
+}
+
 export function isSystemPage(slug: string): boolean {
   return (SYSTEM_PAGES as readonly string[]).includes(slug)
 }

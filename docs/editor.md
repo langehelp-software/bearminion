@@ -103,7 +103,7 @@ The panel starts at 440px. A handle on its left edge drags the width, arrow keys
 
 **The page list.** Follow a link to open a page, delete one, or create one from a section template with New page.
 
-**The current page.** Title, slug (a rename is applied on save) and the Home page switch.
+**The current page.** Title, slug (a rename is applied on save) and the Home page switch. A new page's slug is made from its title as you type it (accents are dropped, so `Łódź` becomes `lodz`, and an existing slug gets a number), until you edit the slug yourself. Changing a title later never changes the slug. A site whose addresses must not change can lock this with `pages: { rename: false, delete: false }` in the `bearminion()` options: the slug field becomes read-only, the Home page switch is disabled (making another page home moves the old home page to a new address), and the Delete button is hidden. Creating pages and editing their content still work. See [Integration](integration.md).
 
 - The home page is `index`, shows a home badge in the list, and its slug is locked.
 - Turning the switch on for another page asks before it replaces the current home, which moves to a slug generated from its title.

@@ -413,12 +413,30 @@ export function navHeight(link: NavLink): number {
   return max
 }
 
+/** Letters that do not decompose into a base letter and an accent, with the plain letters they are written as. */
+const PLAIN_LETTERS: Record<string, string> = { ł: 'l', đ: 'd', ø: 'o', ð: 'd', þ: 'th', ß: 'ss', æ: 'ae', œ: 'oe', ı: 'i' }
+
+/**
+ * A lowercase ASCII slug: accents are dropped (`ą` is `a`, `é` is `e`), letters with no accent form are written plainly
+ * (`ł` is `l`, `ß` is `ss`), and every other run of characters becomes one hyphen.
+ */
 export function slugifyAnchor(value: string): string {
   return value
     .toLowerCase()
     .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .replace(/[łđøðþßæœı]/g, (letter) => PLAIN_LETTERS[letter] ?? letter)
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+/**
+ * The slug to offer for a new page titled `title`: the title as a slug, made unique among `taken`. Empty when the
+ * title has no letters or digits, so the editor does not offer a slug that says nothing.
+ */
+export function suggestPageSlug(title: string, taken: ReadonlySet<string>): string {
+  const stem = slugifyAnchor(title)
+  return stem === '' ? '' : uniqueAnchor(stem, taken)
 }
 
 export function uniqueAnchor(base: string, taken: ReadonlySet<string>): string {

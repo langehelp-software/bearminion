@@ -32,6 +32,7 @@ async function serve(): Promise<string> {
     maxVideoBytes: 50 * 1_048_576,
     maxImageBytes: 5 * 1_048_576,
     imageConvert: null,
+    pageRules: { rename: true, delete: true },
     sections: sectionRegistry,
     site: siteDefinition,
     store: createFileStore({ root, contentDir, uploadsDir }),

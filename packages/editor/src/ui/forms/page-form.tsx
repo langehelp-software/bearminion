@@ -15,6 +15,7 @@ export function PageForm({
   selectedId,
   onChange,
   savedSlug,
+  canRename,
   onHomeChange,
   onEditSeo,
   onSelectSection,
@@ -33,6 +34,8 @@ export function PageForm({
   onChange: (page: PageDraft) => void
   /** Slug on disk. It differs from `page.slug` while a rename or a new home page is waiting for save. */
   savedSlug: string
+  /** False when the site turned renaming off (`pages.rename`): the slug is fixed and no other page can become home. */
+  canRename: boolean
   onHomeChange: (home: boolean) => void
   onEditSeo: () => void
   onSelectSection: (id: string) => void
@@ -56,14 +59,16 @@ export function PageForm({
           path="slug"
           value={page.slug}
           onChange={(value) => onChange({ ...page, slug: value })}
-          disabled={isHome || isSystem}
-          mono={isHome || isSystem}
+          disabled={isHome || isSystem || !canRename}
+          mono={isHome || isSystem || !canRename}
           hint={
             isHome
               ? 'The home page is served at / and keeps the slug index.'
               : isSystem
                 ? 'A system page: the site serves it for unknown addresses, so its slug is fixed and it stays out of search results.'
-                : undefined
+                : canRename
+                  ? undefined
+                  : 'Renaming pages is turned off for this site, so this address stays as it is.'
           }
         />
         {!isSystem && (
@@ -74,11 +79,13 @@ export function PageForm({
                 <Info
                   label="About Home page"
                   text={
-                    savedHome
-                      ? 'Set another page as home to move this one.'
-                      : isHome
-                        ? 'Becomes the home page when you save.'
-                        : 'Serve this page at / instead of its own URL.'
+                    !canRename
+                      ? 'Renaming pages is turned off for this site, and making a page home moves the old home page to a new address.'
+                      : savedHome
+                        ? 'Set another page as home to move this one.'
+                        : isHome
+                          ? 'Becomes the home page when you save.'
+                          : 'Serve this page at / instead of its own URL.'
                   }
                 />
               </span>
@@ -87,7 +94,7 @@ export function PageForm({
               type="checkbox"
               role="switch"
               checked={isHome}
-              disabled={savedHome}
+              disabled={savedHome || !canRename}
               onChange={(event) => onHomeChange(event.currentTarget.checked)}
             />
           </label>

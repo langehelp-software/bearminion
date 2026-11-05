@@ -27,6 +27,7 @@ function context(enabled: boolean): EditorContext {
     maxVideoBytes: 50 * 1_048_576,
     maxImageBytes: 5 * 1_048_576,
     imageConvert: null,
+    pageRules: { rename: true, delete: true },
     sections: {},
     site: siteDefinition,
     store: createFileStore({ root, contentDir, uploadsDir }),

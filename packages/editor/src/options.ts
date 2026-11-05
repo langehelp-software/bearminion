@@ -6,6 +6,7 @@ import type { SiteDefinition } from './site.js'
 import { defaultTheme, type ThemeDefinition } from './theme.js'
 import { createFileStore, type ContentStore } from './store.js'
 import { resolveFormsConfig } from './forms-dev.js'
+import { resolvePageRules, type PageRules } from './page.js'
 import { resolveConvert, resolveMaxImageBytes, type ImageConvertOptions, type UploadRules } from './upload-rules.js'
 
 export { API_PREFIX, DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR } from './model.js'
@@ -31,6 +32,13 @@ export interface BearminionOptions extends ContentModel {
    * out larger is kept as it is. Default: off, images are uploaded as they are.
    */
   imageConvert?: false | ImageConvertOptions
+  /**
+   * Which page operations the editor allows: `{ rename: false, delete: false }` for a site whose addresses must not
+   * change (they carry search ranking or are the target of redirects). Both default to true. A locked operation is
+   * refused by the API as well as hidden in the editor. `rename: false` also blocks making another page the home page,
+   * because that moves the old home page to a new address.
+   */
+  pages?: Partial<PageRules>
   /**
    * Vite module id loaded by the dev server to render a draft page.
    * Default `/src/lib/render-preview.ts`. Preview never writes to disk.
@@ -69,6 +77,7 @@ export interface EditorContext {
   videosDir: string
   maxVideoBytes: number
   maxImageBytes: number
+  pageRules: PageRules
   /** `imageConvert`, validated and with its defaults filled in. `null` when conversion is off. */
   imageConvert: UploadRules['convert']
   sections: SectionRegistry
@@ -101,6 +110,7 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
     videosDir,
     maxVideoBytes: options?.maxVideoBytes ?? DEFAULT_VIDEO_BYTE_LIMIT,
     maxImageBytes: resolveMaxImageBytes(options?.maxImageBytes),
+    pageRules: resolvePageRules(options?.pages),
     imageConvert: resolveConvert(options?.imageConvert),
     sections: options.sections,
     site: options.site,
