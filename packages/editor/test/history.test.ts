@@ -22,6 +22,7 @@ beforeEach(() => {
     maxVideoBytes: 1,
     maxImageBytes: 5 * 1_048_576,
     imageConvert: null,
+    pageRules: { rename: true, delete: true },
     sections: {},
     site: siteDefinition,
     store: createFileStore({ root, contentDir: root, uploadsDir: root }),

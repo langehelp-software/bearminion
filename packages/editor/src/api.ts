@@ -232,6 +232,7 @@ async function getSchema(context: EditorContext): Promise<Response> {
     fieldImages,
     showWhen,
     sectionForms,
+    pageRules: context.pageRules,
     sectionDefaults,
     sectionLabels,
     sectionDescriptions,
@@ -426,6 +427,7 @@ async function planPageSave(
   }
 
   if (target === from) return { page, writes: [[found.key, page]], removals: [], after }
+  if (!context.pageRules.rename) return { response: locked('rename') }
 
   if (from === 'index') {
     return { response: problem(409, 'conflict', 'The home page slug stays index. Set another page as home to move it.') }
@@ -600,7 +602,13 @@ async function createPage(request: Request, context: EditorContext): Promise<Res
   return json(201, validated.data)
 }
 
+function locked(operation: 'rename' | 'delete'): Response {
+  const what = operation === 'rename' ? 'Renaming pages' : 'Deleting pages'
+  return problem(409, 'operation_locked', `${what} is turned off for this site (pages.${operation} in the bearminion() options).`)
+}
+
 async function deletePage(context: EditorContext, slug: string): Promise<Response> {
+  if (!context.pageRules.delete) return locked('delete')
   if (slug === 'index') {
     return problem(409, 'conflict', 'Refusing to delete the index page.')
   }
@@ -624,6 +632,7 @@ async function setHome(request: Request, context: EditorContext, slug: string): 
   if (body.response) return body.response
   const parsed = setHomeSchema.safeParse(body.value)
   if (!parsed.success) return validation(fieldIssues(parsed.error))
+  if (!context.pageRules.rename) return locked('rename')
   if (slug === 'index') return problem(409, 'conflict', 'That page is already the home page.')
   if (isSystemPage(slug)) return problem(409, 'reserved_slug', `"${slug}" is a system page and cannot be the home page.`)
 
@@ -676,6 +685,7 @@ async function renamePage(request: Request, context: EditorContext, slug: string
   const parsed = renameSchema.safeParse(body.value)
   if (!parsed.success) return validation(fieldIssues(parsed.error))
   const nextSlug = parsed.data.slug
+  if (!context.pageRules.rename) return locked('rename')
   if (nextSlug === slug) {
     return problem(400, 'invalid_slug', 'The new slug is the same as the current slug.')
   }

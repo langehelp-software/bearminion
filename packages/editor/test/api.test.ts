@@ -70,6 +70,7 @@ function seed(): EditorContext {
     maxVideoBytes: 50 * 1_048_576,
     maxImageBytes: 5 * 1_048_576,
     imageConvert: null,
+    pageRules: { rename: true, delete: true },
     sections: sectionRegistry,
     site: siteDefinition,
     store: createFileStore({ root, contentDir, uploadsDir, videosDir: path.join(root, 'public', 'videos') }),
@@ -865,6 +866,85 @@ describe('POST /save', () => {
       json: { page: { from: 'about', document: { ...about, slug: 'team' } } },
     })
     expect(taken.status).toBe(409)
+  })
+
+  describe('locked page operations', () => {
+    /** Everything the site could use to change an address, with the pages as they were before. */
+    function snapshot(context: EditorContext): Record<string, string> {
+      const dir = path.join(context.contentDir, 'pages')
+      return Object.fromEntries(fs.readdirSync(dir).map((name) => [name, fs.readFileSync(path.join(dir, name), 'utf8')]))
+    }
+
+    async function lockedError(response: Response): Promise<{ code: string; message: string }> {
+      expect(response.status).toBe(409)
+      const body = (await response.json()) as { error: string; message: string }
+      return { code: body.error, message: body.message }
+    }
+
+    it('refuses every way to rename a page when pages.rename is false, and changes nothing', async () => {
+      const context = seed()
+      const about = await createAbout(context)
+      const locked = { ...context, pageRules: { rename: false, delete: true } }
+      const before = snapshot(locked)
+
+      const viaRename = await call(locked, 'POST', `${API_PREFIX}/pages/about/rename`, { json: { slug: 'team' } })
+      expect((await lockedError(viaRename)).code).toBe('operation_locked')
+
+      const viaSave = await call(locked, 'POST', `${API_PREFIX}/save`, {
+        json: { page: { from: 'about', document: { ...about, slug: 'team' } } },
+      })
+      expect((await lockedError(viaSave)).code).toBe('operation_locked')
+
+      const viaPromote = await call(locked, 'POST', `${API_PREFIX}/save`, {
+        json: { page: { from: 'about', document: { ...about, slug: 'index' }, previousHomeSlug: 'old-home' } },
+      })
+      expect((await lockedError(viaPromote)).code).toBe('operation_locked')
+
+      const viaSetHome = await call(locked, 'POST', `${API_PREFIX}/pages/about/set-home`, { json: { previousSlug: 'old-home' } })
+      expect((await lockedError(viaSetHome)).code).toBe('operation_locked')
+
+      expect(snapshot(locked)).toEqual(before)
+    })
+
+    it('still saves content, creates pages and deletes pages while only renaming is locked', async () => {
+      const context = seed()
+      const about = await createAbout(context)
+      const locked = { ...context, pageRules: { rename: false, delete: true } }
+
+      const edited = await call(locked, 'POST', `${API_PREFIX}/save`, {
+        json: { page: { from: 'about', document: { ...about, title: 'About us' } } },
+      })
+      expect(edited.status).toBe(200)
+      expect(readJson(locked, 'pages/about.json').title).toBe('About us')
+
+      const created = await call(locked, 'POST', `${API_PREFIX}/pages`, { json: { slug: 'team', title: 'Team' } })
+      expect(created.status).toBe(201)
+      const removed = await call(locked, 'DELETE', `${API_PREFIX}/pages/team`)
+      expect(removed.status).toBe(200)
+    })
+
+    it('refuses to delete a page when pages.delete is false, and still renames', async () => {
+      const context = seed()
+      await createAbout(context)
+      const locked = { ...context, pageRules: { rename: true, delete: false } }
+      const before = snapshot(locked)
+
+      const removed = await call(locked, 'DELETE', `${API_PREFIX}/pages/about`)
+      expect((await lockedError(removed)).code).toBe('operation_locked')
+      expect(snapshot(locked)).toEqual(before)
+
+      const renamed = await call(locked, 'POST', `${API_PREFIX}/pages/about/rename`, { json: { slug: 'team' } })
+      expect(renamed.status).toBe(200)
+    })
+
+    it('tells the editor which operations are locked, and defaults to allowing both', async () => {
+      const context = seed()
+      const open = await call(context, 'GET', `${API_PREFIX}/schema`)
+      expect(((await open.json()) as { pageRules: unknown }).pageRules).toEqual({ rename: true, delete: true })
+
+      const closed = await call({ ...context, pageRules: { rename: false, delete: false } }, 'GET', `${API_PREFIX}/schema`)
+      expect(((await closed.json()) as { pageRules: unknown }).pageRules).toEqual({ rename: false, delete: false })
+    })
   })
 
   it('rejects an empty save', async () => {

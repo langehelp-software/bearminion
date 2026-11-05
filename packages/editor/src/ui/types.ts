@@ -32,6 +32,8 @@ export interface Catalog {
   showWhen?: Record<string, ShowWhen>
   /** The form handler each section type posts to (`contact` is `src/forms/contact.ts`), from each section's `form`. */
   sectionForms?: Record<string, string>
+  /** Which page operations the site allows. Absent on an older API: everything is allowed. */
+  pageRules?: { rename: boolean; delete: boolean }
   sectionLabels: Record<string, string>
   /** One line per type for the Add section picker, from each section's definition. */
   sectionDescriptions?: Record<string, string>

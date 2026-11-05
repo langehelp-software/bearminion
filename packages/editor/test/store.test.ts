@@ -164,6 +164,7 @@ describe('editor API on a custom store', () => {
       maxVideoBytes: 1,
       maxImageBytes: 5 * 1_048_576,
       imageConvert: null,
+      pageRules: { rename: true, delete: true },
       sections: sectionRegistry,
       site: siteDefinition,
       store,

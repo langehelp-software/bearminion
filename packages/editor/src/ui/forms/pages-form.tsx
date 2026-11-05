@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks'
-import { pageHref } from '../../draft.js'
+import { pageHref, suggestPageSlug } from '../../draft.js'
 import { createPage, deletePage } from '../api-client.js'
 import { Icon } from '../icons.js'
 import type { PageSummary } from '../types.js'
@@ -10,6 +10,7 @@ export function PagesForm({
   labels,
   current,
   homeSlug,
+  canDelete,
   onCreated,
   onNavigate,
 }: {
@@ -18,11 +19,17 @@ export function PagesForm({
   current: string
   /** Slug of the page that is (or, once saved, will be) the home page. */
   homeSlug: string
+  /** False when the site turned page deletion off (`pages.delete`). */
+  canDelete: boolean
   onCreated: () => void
   onNavigate: (href: string) => void
 }) {
-  const [slug, setSlug] = useState('notes')
+  const taken = new Set(pages.map((item) => item.slug))
   const [title, setTitle] = useState('Notes')
+  const [slug, setSlug] = useState(() => suggestPageSlug('Notes', taken))
+  /** True once the slug was typed by hand: from then on the title no longer changes it. */
+  const [slugTyped, setSlugTyped] = useState(false)
+  const [error, setError] = useState('')
   const [template, setTemplate] = useState('hero')
   const [creating, setCreating] = useState(false)
   return (
@@ -64,7 +71,7 @@ export function PagesForm({
               </span>
             )}
             {item.slug === current && <span class="bm-badge bm-badge-on">editing</span>}
-            {item.slug !== 'index' && item.slug !== current && !item.system && (
+            {canDelete && item.slug !== 'index' && item.slug !== current && !item.system && (
               <button
                 type="button"
                 class="bm-icon-btn bm-danger"
@@ -82,8 +89,24 @@ export function PagesForm({
       </div>
       {creating && (
         <div class="bm-card">
-          <Field label="New slug" value={slug} onChange={setSlug} />
-          <Field label="New title" value={title} onChange={setTitle} />
+          <Field
+            label="New title"
+            value={title}
+            onChange={(value) => {
+              setTitle(value)
+              if (!slugTyped) setSlug(suggestPageSlug(value, taken))
+            }}
+          />
+          <Field
+            label="New slug"
+            value={slug}
+            mono
+            hint="The page address. Made from the title until you change it, and the title never changes it afterwards."
+            onChange={(value) => {
+              setSlug(value)
+              setSlugTyped(true)
+            }}
+          />
           <label class="bm-label">
             Template
             <select value={template} onChange={(event) => setTemplate(event.currentTarget.value)}>
@@ -97,14 +120,18 @@ export function PagesForm({
           <button
             type="button"
             class="bm-primary"
+            disabled={slug === ''}
             onClick={() => {
+              setError('')
               void createPage({ slug, title, template }).then((result) => {
                 if (result.ok) onNavigate(pageHref(slug))
+                else setError(result.status === 0 ? 'Could not create the page.' : result.message)
               })
             }}
           >
             Create page
           </button>
+          {error && <p class="bm-error">{error}</p>}
         </div>
       )}
     </div>
