@@ -27,8 +27,18 @@ const toBytes = (value: string | Uint8Array): Uint8Array => (typeof value === 's
 export class FakeGithub {
   readonly requests: FakeRequest[] = []
   readonly commits: { sha: string; message: string; parent: string | undefined; files: Map<string, Uint8Array> }[] = []
+  /** The default branch. */
   branch: string
-  head = ''
+  readonly branches = new Map<string, string>()
+  readonly pulls: {
+    number: number
+    head: string
+    base: string
+    state: 'open' | 'closed'
+    title: string
+    body: string
+    labels: string[]
+  }[] = []
   /** `unauthorized`: 401 everywhere. `forbidden`: 403 on writes. `rate-limited`: 403 with no quota left. `offline`: fetch rejects. */
   mode: 'ok' | 'unauthorized' | 'forbidden' | 'rate-limited' | 'offline' = 'ok'
   /** Refuse ref updates the way a protected branch does. */
@@ -43,14 +53,39 @@ export class FakeGithub {
     this.branch = options.defaultBranch ?? 'main'
     const files = new Map<string, Uint8Array>()
     for (const [path, value] of Object.entries(options.files ?? {})) files.set(path, toBytes(value))
-    this.head = this.addCommit('Initial commit', undefined, files)
+    this.branches.set(this.branch, this.addCommit('Initial commit', undefined, files))
+  }
+
+  get head(): string {
+    return this.branches.get(this.branch) ?? ''
+  }
+
+  set head(sha: string) {
+    this.branches.set(this.branch, sha)
+  }
+
+  /** Merge a pull request the way GitHub's button would: the base takes the head's files, the pull request closes. */
+  merge(number: number, options: { deleteBranch?: boolean } = {}): void {
+    const pull = this.pulls.find((candidate) => candidate.number === number)
+    const sha = pull && this.branches.get(pull.head)
+    if (!pull || !sha) throw new Error(`no pull request ${number}`)
+    this.branches.set(pull.base, sha)
+    pull.state = 'closed'
+    if (options.deleteBranch) this.branches.delete(pull.head)
+  }
+
+  close(number: number): void {
+    const pull = this.pulls.find((candidate) => candidate.number === number)
+    if (!pull) throw new Error(`no pull request ${number}`)
+    pull.state = 'closed'
   }
 
   /** Commit straight to the branch, as another person pushing would. */
-  push(files: Record<string, string>, message = 'Someone else'): void {
-    const next = new Map(this.filesAt(this.head))
+  push(files: Record<string, string>, message = 'Someone else', branch = this.branch): void {
+    const head = this.headOf(branch)
+    const next = new Map(this.filesAt(head))
     for (const [path, text] of Object.entries(files)) next.set(path, encoder.encode(text))
-    this.head = this.addCommit(message, this.head, next)
+    this.branches.set(branch, this.addCommit(message, head, next))
   }
 
   filesAt(sha: string): Map<string, Uint8Array> {
@@ -59,13 +94,19 @@ export class FakeGithub {
     return commit.files
   }
 
-  text(path: string): string | undefined {
-    const bytes = this.filesAt(this.head).get(path)
+  private headOf(branch?: string): string {
+    const sha = this.branches.get(branch ?? this.branch)
+    if (!sha) throw new Error(`no branch ${branch}`)
+    return sha
+  }
+
+  text(path: string, branch?: string): string | undefined {
+    const bytes = this.filesAt(this.headOf(branch)).get(path)
     return bytes === undefined ? undefined : decoder.decode(bytes)
   }
 
-  bytes(path: string): Uint8Array | undefined {
-    return this.filesAt(this.head).get(path)
+  bytes(path: string, branch?: string): Uint8Array | undefined {
+    return this.filesAt(this.headOf(branch)).get(path)
   }
 
   get commitCount(): number {
@@ -101,7 +142,50 @@ export class FakeGithub {
 
     if (rest === '' && method === 'GET') return json(200, { default_branch: this.branch })
 
-    if (rest === `/git/ref/heads/${this.branch}` && method === 'GET') return json(200, { object: { sha: this.head } })
+    const refRoute = /^\/git\/ref\/heads\/(.+)$/.exec(rest)
+    if (refRoute && method === 'GET') {
+      const sha = this.branches.get(refRoute[1] ?? '')
+      return sha ? json(200, { object: { sha } }) : json(404, { message: 'Not Found' })
+    }
+
+    if (rest === '/git/refs' && method === 'POST') {
+      const name = String(body.ref).replace(/^refs\/heads\//, '')
+      if (this.branches.has(name)) return json(422, { message: 'Reference already exists' })
+      if (![...this.branches.keys()].every((other) => !other.startsWith(`${name}/`) && !name.startsWith(`${other}/`))) {
+        return json(422, { message: 'Reference update failed' })
+      }
+      this.branches.set(name, String(body.sha))
+      return json(201, { ref: body.ref, object: { sha: body.sha } })
+    }
+
+    if (rest === '/pulls' && method === 'GET') {
+      const head = (url.searchParams.get('head') ?? '').split(':').pop()
+      const found = this.pulls.filter((pull) => pull.head === head)
+      return json(
+        200,
+        found.map((pull) => ({ number: pull.number, state: pull.state })),
+      )
+    }
+
+    if (rest === '/pulls' && method === 'POST') {
+      const head = String(body.head)
+      const base = String(body.base)
+      if (this.pulls.some((pull) => pull.head === head && pull.state === 'open')) {
+        return json(422, { message: 'A pull request already exists for this head.' })
+      }
+      if (this.branches.get(head) === this.branches.get(base)) return json(422, { message: 'No commits between base and head' })
+      const number = this.pulls.length + 1
+      this.pulls.push({ number, head, base, state: 'open', title: String(body.title), body: String(body.body), labels: [] })
+      return json(201, { number })
+    }
+
+    const labels = /^\/issues\/(\d+)\/labels$/.exec(rest)
+    if (labels && method === 'POST') {
+      const pull = this.pulls.find((candidate) => candidate.number === Number(labels[1]))
+      if (!pull) return json(404, { message: 'Not Found' })
+      pull.labels.push(...(body.labels as string[]))
+      return json(200, [])
+    }
 
     const commitRoute = /^\/git\/commits\/(.+)$/.exec(rest)
     if (commitRoute && method === 'GET') {
@@ -139,22 +223,24 @@ export class FakeGithub {
       return json(201, { sha })
     }
 
-    if (rest === `/git/refs/heads/${this.branch}` && method === 'PATCH') {
+    const patch = /^\/git\/refs\/heads\/(.+)$/.exec(rest)
+    if (patch && method === 'PATCH') {
+      const name = patch[1] ?? ''
       this.beforeRefUpdate?.()
-      if (this.protectedBranch) {
+      if (this.protectedBranch && name === this.branch) {
         return json(422, { message: 'Changes must be made through a pull request.' })
       }
       const commit = this.commits.find((candidate) => candidate.sha === body.sha)
       if (!commit) return json(422, { message: 'Object does not exist' })
-      if (body.force !== true && commit.parent !== this.head) return json(422, { message: 'Update is not a fast forward' })
-      this.head = commit.sha
+      if (body.force !== true && commit.parent !== this.branches.get(name)) return json(422, { message: 'Update is not a fast forward' })
+      this.branches.set(name, commit.sha)
       return json(200, { object: { sha: commit.sha } })
     }
 
     const contents = /^\/contents\/(.+)$/.exec(rest)
     if (contents && method === 'GET') {
-      const ref = url.searchParams.get('ref') ?? this.head
-      const sha = ref === this.branch ? this.head : ref
+      const ref = url.searchParams.get('ref') ?? this.branch
+      const sha = this.branches.get(ref) ?? ref
       const files = this.commits.find((candidate) => candidate.sha === sha)?.files
       if (!files) return json(404, { message: 'No commit found for the ref' })
       const target = contents[1] ?? ''

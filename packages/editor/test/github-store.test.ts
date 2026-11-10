@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { StoreError, StoreKeyError } from '../src/store-error.js'
 import { githubStore, type GithubStoreOptions } from '../src/github-store.js'
+import type { ContentStore } from '../src/store.js'
 import { FakeGithub } from './fake-github.js'
 
 const PNG = Uint8Array.from(
@@ -187,5 +188,136 @@ describe('githubStore errors', () => {
     const github = new FakeGithub()
     const store = githubStore({ repo: 'acme/site', token: 't', branch: 'gone', fetch: github.fetch })
     expect(await failure(store.apply([{ type: 'write', key: 'a.json', text: '1' }]))).toMatchObject({ code: 'github_not_found' })
+  })
+})
+
+describe('githubStore pull request mode', () => {
+  const files = { 'content/pages/about.json': '{"v":1}', 'content/pages/index.json': '{}' }
+
+  function setupPr(options: Partial<GithubStoreOptions> = {}) {
+    const { github, store } = setup(files, { mode: 'pr', ...options })
+    const scoped = (scope: string): ContentStore => {
+      if (!store.scoped) throw new Error('pr mode stores are scoped')
+      return store.scoped(scope)
+    }
+    return { github, store, scoped }
+  }
+
+  it('is only scoped in pr mode, and validates the mode', () => {
+    expect(setup().store.scoped).toBeUndefined()
+    expect(() => githubStore({ repo: 'a/b', token: 't', mode: 'merge' as never })).toThrow(/mode/)
+  })
+
+  it('commits an entry to a branch of its own and opens one pull request, never merging', async () => {
+    const { github, scoped } = setupPr()
+    const baseHead = github.head
+    await scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":2}' }])
+
+    expect(github.head).toBe(baseHead)
+    expect(github.text('content/pages/about.json')).toBe('{"v":1}')
+    expect(github.text('content/pages/about.json', 'bearminion/page-about')).toBe('{"v":2}')
+    expect(github.pulls).toHaveLength(1)
+    expect(github.pulls[0]).toMatchObject({
+      head: 'bearminion/page-about',
+      base: 'main',
+      state: 'open',
+      title: 'Edit page: about',
+      labels: ['bearminion'],
+    })
+    expect(github.pulls[0]?.body).toContain('content/pages/about.json')
+  })
+
+  it('adds later saves of the same entry to the same pull request', async () => {
+    const { github, scoped } = setupPr()
+    await scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":2}' }])
+    await scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":3}' }])
+    expect(github.pulls).toHaveLength(1)
+    expect(github.text('content/pages/about.json', 'bearminion/page-about')).toBe('{"v":3}')
+    expect(github.commits.filter((commit) => commit.message.startsWith('Update')).length).toBe(2)
+  })
+
+  it('keeps entries apart, and reads each entry from its own pending edits', async () => {
+    const { github, store, scoped } = setupPr()
+    await scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":2}' }])
+    await scoped('site').apply([{ type: 'write', key: 'site.json', text: '{"s":1}' }])
+    expect(github.pulls.map((pull) => pull.head).sort()).toEqual(['bearminion/page-about', 'bearminion/site'])
+
+    expect(await scoped('page:about').read('pages/about.json')).toBe('{"v":2}')
+    expect(await scoped('page:index').read('pages/about.json')).toBe('{"v":1}')
+    expect(await store.read('pages/about.json')).toBe('{"v":1}')
+    expect(await scoped('page:about').list('pages')).toEqual(['about.json', 'index.json'])
+  })
+
+  it('starts a new branch and pull request once the earlier one is merged', async () => {
+    const deleted = setupPr()
+    await deleted.scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":2}' }])
+    deleted.github.merge(1, { deleteBranch: true })
+    // The merged edit is the base now.
+    expect(await deleted.scoped('page:about').read('pages/about.json')).toBe('{"v":2}')
+    await deleted.scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":3}' }])
+    expect(deleted.github.pulls.map((pull) => [pull.number, pull.head, pull.state])).toEqual([
+      [1, 'bearminion/page-about', 'closed'],
+      [2, 'bearminion/page-about', 'open'],
+    ])
+
+    // A host that keeps merged branches: the next one gets a suffix.
+    const kept = setupPr()
+    await kept.scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":2}' }])
+    kept.github.merge(1)
+    await kept.scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":3}' }])
+    expect(kept.github.pulls[1]).toMatchObject({ head: 'bearminion/page-about-2', state: 'open' })
+    expect(kept.github.text('content/pages/about.json', 'bearminion/page-about-2')).toBe('{"v":3}')
+  })
+
+  it('starts a new branch when the pull request was closed unmerged', async () => {
+    const { github, scoped } = setupPr()
+    await scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":2}' }])
+    github.close(1)
+    // The abandoned branch is not read from any more.
+    expect(await scoped('page:about').read('pages/about.json')).toBe('{"v":1}')
+    await scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":3}' }])
+    expect(github.pulls[1]).toMatchObject({ head: 'bearminion/page-about-2', state: 'open' })
+  })
+
+  it('never writes to the base branch, even outside an entry', async () => {
+    const { github, store } = setupPr()
+    const baseHead = github.head
+    await store.apply([{ type: 'write', key: 'pages/new.json', text: '{}' }])
+    const saved = await store.uploads.save({ originalName: 'a.png', bytes: PNG, kind: 'png' })
+    expect(github.head).toBe(baseHead)
+    expect(github.pulls.map((pull) => pull.head).sort()).toEqual(['bearminion/edits', 'bearminion/uploads'])
+    expect(github.bytes(saved.path, 'bearminion/uploads')?.byteLength).toBe(PNG.byteLength)
+  })
+
+  it('sees an image waiting in the uploads pull request when an entry refers to it', async () => {
+    const { store, scoped } = setupPr()
+    const saved = await store.uploads.save({ originalName: 'a.png', bytes: PNG, kind: 'png' })
+    expect(await store.assetExists?.(saved.path)).toBe(false)
+    expect(await scoped('page:about').assetExists?.(saved.path)).toBe(true)
+    expect((await scoped('uploads').uploads.list()).map((image) => image.filename)).toContain(saved.filename)
+  })
+
+  it('takes the pull request text and label from the options', async () => {
+    const { github, scoped } = setupPr({
+      label: false,
+      pullRequest: ({ scope, written }) => ({ title: `CMS ${scope}`, body: `${written.length} file` }),
+    })
+    await scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":2}' }])
+    expect(github.pulls[0]).toMatchObject({ title: 'CMS page:about', body: '1 file', labels: [] })
+  })
+
+  it('is not stopped by a protected base branch, since entries never touch it', async () => {
+    const { github, scoped } = setupPr()
+    github.protectedBranch = true
+    await scoped('page:about').apply([{ type: 'write', key: 'pages/about.json', text: '{"v":2}' }])
+    expect(github.pulls).toHaveLength(1)
+  })
+
+  it('points a protected base at pr mode in direct mode', async () => {
+    const { github, store } = setup()
+    github.protectedBranch = true
+    const error = await failure(store.apply([{ type: 'write', key: 'a.json', text: '1' }]))
+    expect(error.code).toBe('branch_protected')
+    expect(error.message).toContain("mode: 'pr'")
   })
 })

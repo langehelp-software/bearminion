@@ -39,6 +39,12 @@ export interface ContentStore {
    * fail validation. A store without it skips that check.
    */
   assetExists?(src: string): Promise<boolean>
+  /**
+   * A view of the store for editing one entry (`page:about`, `site`), for stores that keep each entry's pending edits
+   * apart, such as `githubStore` in `pr` mode, where every scope is a branch and a pull request. Reads see the entry's
+   * pending edits, writes go to them. Absent when every write goes to the same place.
+   */
+  scoped?(scope: string): ContentStore
 }
 
 export type StoreOperation = { type: 'write'; key: string; text: string } | { type: 'remove'; key: string }

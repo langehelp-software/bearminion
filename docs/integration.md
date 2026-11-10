@@ -78,14 +78,30 @@ bearminion({
 
 - One save is one commit on the branch. A rename, set-home or delete lands together, never half-applied.
 - Writes are fast-forward only. If someone pushed in between, the store retries once from the new head, then answers `409` `branch_moved`. Two people saving the same page still means last write wins, as with local files.
-- A branch that requires pull requests or status checks answers `409` `branch_protected`. Pull request mode is not part of this store yet.
+- A branch that requires pull requests or status checks answers `409` `branch_protected`. Set `mode: 'pr'` to send edits as pull requests instead.
 - Reads use ETags, so unchanged files cost no rate limit.
 - Commit messages are `Update content/pages/about.json`, `Update 3 files`, `Upload photo-1a2b3c4d.jpg`. Pass `message` to change them.
 - Not supported yet: video uploads, `git: true` (Commit changes) and the dev preview of uploaded images.
 
 Errors reach the editor as `{ error, message }`: `github_auth` (`502`), `github_forbidden` (`502`), `github_not_found` (`502`), `github_rate_limited` (`429`), `github_unreachable` (`502`), `branch_protected` and `branch_moved` (`409`).
 
-To try a token against a throwaway repository: `GITHUB_TOKEN=... node scripts/try-github-store.mjs owner/repo [branch]`. It writes and deletes files on that branch.
+To try a token against a throwaway repository: `GITHUB_TOKEN=... node scripts/try-github-store.mjs owner/repo [branch]`, or add `--pr` to try pull request mode. It writes and deletes files in that repository.
+
+#### Pull request mode
+
+```ts
+githubStore({ repo: 'acme/site', token: process.env.GITHUB_TOKEN!, mode: 'pr' })
+```
+
+Needs "Pull requests: Read and write" besides "Contents: Read and write". Nothing is written to the base branch, and no code path merges: a person merges on GitHub.
+
+- Each entry being edited (`page:about`, `site`) gets a branch of its own, `bearminion/page-about`, and a pull request opened on its first save, titled `Edit page: about` and labelled `bearminion`. Later saves of the same entry add commits to that pull request. Change the text with `pullRequest({ scope, written, removed })`, or drop the label with `label: false`.
+- The editor reads each entry from its pending edits, so a reload shows what was saved, not what is merged.
+- Once a pull request is merged or closed, the next save starts a new branch (`bearminion/page-about`, then `-2`, `-3` if the host keeps merged branches) and a new pull request. A closed, unmerged branch is not read from any more.
+- Batch saves go to `bearminion/edits`, images to `bearminion/uploads`. A page that uses an uploaded image saves fine, but its pull request builds only once the uploads pull request is merged first. Merge them in that order until uploads travel with the page (planned).
+- The page list shows the base branch, so a page that exists only in an open pull request is not listed until it is merged.
+- The store does not rebase or merge a branch that fell behind the base. GitHub shows that on the pull request.
+- Several API calls per read: finding an entry's branch costs a few GETs, answered from the ETag cache when nothing changed.
 
 Not part of the store: undo history (local editor state in `.editor/history/`), Commit changes (needs a local git work tree, so the `git` option only works with the default store), the live-reload watcher, the dev route that serves images for preview, and the build-time loaders (`loadContent`, `loadPages`, `loadSite`), which read the local content directory.
 

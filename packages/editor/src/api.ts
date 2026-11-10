@@ -83,13 +83,13 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
   }
 
   if (parts.length === 1 && parts[0] === 'site') {
-    if (method === 'GET') return getSite(context)
-    if (method === 'PUT') return putSite(request, context)
+    if (method === 'GET') return getSite(scoped(context, 'site'))
+    if (method === 'PUT') return putSite(request, scoped(context, 'site'))
     return methodNotAllowed(['GET', 'PUT'])
   }
 
   if (parts.length === 1 && parts[0] === 'save') {
-    if (method === 'POST') return postSave(request, context)
+    if (method === 'POST') return postSave(request, scoped(context, 'edits'))
     return methodNotAllowed(['POST'])
   }
 
@@ -115,13 +115,13 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
   }
 
   if (parts.length === 1 && parts[0] === 'images') {
-    if (method === 'GET') return getImages(context)
-    if (method === 'POST') return postImage(request, context)
+    if (method === 'GET') return getImages(scoped(context, 'uploads'))
+    if (method === 'POST') return postImage(request, scoped(context, 'uploads'))
     return methodNotAllowed(['GET', 'POST'])
   }
 
   if (parts.length === 2 && parts[0] === 'images') {
-    if (method === 'DELETE') return removeImage(context, decodeSegment(parts[1] ?? ''))
+    if (method === 'DELETE') return removeImage(scoped(context, 'uploads'), decodeSegment(parts[1] ?? ''))
     return methodNotAllowed(['DELETE'])
   }
 
@@ -159,23 +159,24 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
   if (parts.length === 2 && parts[0] === 'pages') {
     const slug = readSlug(parts[1] ?? '')
     if (slug === null) return badSlug()
-    if (method === 'GET') return getPage(context, slug)
-    if (method === 'PUT') return putPage(request, context, slug)
-    if (method === 'DELETE') return deletePage(context, slug)
+    const entry = scoped(context, `page:${slug}`)
+    if (method === 'GET') return getPage(entry, slug)
+    if (method === 'PUT') return putPage(request, entry, slug)
+    if (method === 'DELETE') return deletePage(entry, slug)
     return methodNotAllowed(['GET', 'PUT', 'DELETE'])
   }
 
   if (parts.length === 3 && parts[0] === 'pages' && parts[2] === 'rename') {
     const slug = readSlug(parts[1] ?? '')
     if (slug === null) return badSlug()
-    if (method === 'POST') return renamePage(request, context, slug)
+    if (method === 'POST') return renamePage(request, scoped(context, `page:${slug}`), slug)
     return methodNotAllowed(['POST'])
   }
 
   if (parts.length === 3 && parts[0] === 'pages' && parts[2] === 'set-home') {
     const slug = readSlug(parts[1] ?? '')
     if (slug === null) return badSlug()
-    if (method === 'POST') return setHome(request, context, slug)
+    if (method === 'POST') return setHome(request, scoped(context, `page:${slug}`), slug)
     return methodNotAllowed(['POST'])
   }
 
@@ -200,6 +201,15 @@ async function getForms(context: EditorContext): Promise<Response> {
 function relativeTo(root: string, file: string): string {
   const prefix = root.endsWith('/') || root.endsWith('\\') ? root : `${root}/`
   return file.startsWith(prefix) ? file.slice(prefix.length).replaceAll('\\', '/') : file
+}
+
+/**
+ * The context for editing one entry. A store that keeps each entry's pending edits apart (`githubStore` in `pr` mode)
+ * hands out a view of its own; every other store is used as it is.
+ */
+function scoped(context: EditorContext, scope: string): EditorContext {
+  const store = context.store.scoped?.(scope)
+  return store ? { ...context, store } : context
 }
 
 async function getSchema(context: EditorContext): Promise<Response> {
@@ -585,11 +595,12 @@ async function putPage(request: Request, context: EditorContext, slug: string): 
 
 const orphanKey = (section: { id: string; type: string }): string => `${section.id}:${section.type}`
 
-async function createPage(request: Request, context: EditorContext): Promise<Response> {
+async function createPage(request: Request, baseContext: EditorContext): Promise<Response> {
   const body = await readJsonBody(request)
   if (body.response) return body.response
   const parsed = createPageSchema.safeParse(body.value)
   if (!parsed.success) return validation(fieldIssues(parsed.error))
+  const context = scoped(baseContext, `page:${parsed.data.slug}`)
 
   if (isSystemPage(parsed.data.slug)) {
     return problem(409, 'reserved_slug', `"${parsed.data.slug}" is a system page and cannot be created.`)
