@@ -1244,6 +1244,8 @@ describe('editor overlay', () => {
     await page.getByRole('button', { name: 'Edit SEO' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit SEO' })
     await dialog.locator('label', { hasText: 'Description' }).locator('textarea').fill('A custom description.')
+    // The counter is rendered from the dialog's state, so it shows the edit has reached it before Apply copies the state.
+    await dialog.getByText('21 / 160', { exact: true }).waitFor()
 
     // Invalid JSON blocks Apply and says why.
     const json = dialog.locator('textarea.bm-seo-json')
@@ -1273,7 +1275,7 @@ describe('editor overlay', () => {
     await waitFor(() => fs.readFileSync(aboutPath, 'utf8').includes('"jsonLd"'), 'jsonLd missing from about.json')
     await waitFor(() => fs.readFileSync(sitePath, 'utf8').includes('stats.example'), 'analytics missing from site.json')
     const saved = JSON.parse(fs.readFileSync(aboutPath, 'utf8')) as { seo: { description: string; jsonLd: unknown } }
-    expect(saved.seo.description).toBe('A custom description.')
+    expect(saved.seo.description, `saved seo: ${JSON.stringify(saved.seo)}`).toBe('A custom description.')
     expect(saved.seo.jsonLd).toEqual([{ '@context': 'https://schema.org', '@type': 'Article', headline: 'About us' }])
     expect(JSON.parse(fs.readFileSync(sitePath, 'utf8')).analytics).toEqual({ head: snippet })
     expect(errors, logs).toEqual([])
