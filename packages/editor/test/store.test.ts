@@ -263,7 +263,7 @@ describe('editor API on the GitHub store', () => {
   }
   const site = { name: 'Gh', url: 'https://gh.example', seo: {}, header: { links: [] }, footer: { columns: [] } }
 
-  function setup() {
+  function setup(mode?: 'pr') {
     const github = new FakeGithub({
       files: { 'content/site.json': stableStringify(site), 'content/pages/index.json': stableStringify(home) },
     })
@@ -279,7 +279,7 @@ describe('editor API on the GitHub store', () => {
       pageRules: { rename: true, delete: true },
       sections: sectionRegistry,
       site: siteDefinition,
-      store: githubStore({ repo: 'acme/site', token: 't', fetch: github.fetch }),
+      store: githubStore({ repo: 'acme/site', token: 't', fetch: github.fetch, mode }),
       migrator: createMigrator(),
       theme: defaultTheme,
       git: false,
@@ -340,5 +340,28 @@ describe('editor API on the GitHub store', () => {
     expect(uploaded.status).toBe(201)
     const saved = (await uploaded.json()) as { path: string }
     expect(github.bytes(saved.path)?.byteLength).toBe(PNG.byteLength)
+  })
+
+  it('in pr mode, sends each page to its own pull request and leaves the base untouched', async () => {
+    const { github, call } = setup('pr')
+    const baseHead = github.head
+    expect((await call('POST', '/pages', { slug: 'about', title: 'About' })).status).toBe(201)
+    expect(github.head).toBe(baseHead)
+    expect(github.pulls.map((pull) => pull.head)).toEqual(['bearminion/page-about'])
+
+    // The editor reads the page back with its pending edit.
+    const read = await call('GET', '/pages/about')
+    expect(read.status).toBe(200)
+    expect(((await read.json()) as { title: string }).title).toBe('About')
+
+    const saved = await call('PUT', '/pages/about', { ...home, slug: 'about', title: 'About us' })
+    expect(saved.status).toBe(200)
+    expect(github.pulls).toHaveLength(1)
+    expect(github.text('content/pages/about.json', 'bearminion/page-about')).toContain('About us')
+
+    const site = (await (await call('GET', '/site')).json()) as Record<string, unknown>
+    expect((await call('PUT', '/site', { ...site, name: 'Renamed' })).status).toBe(200)
+    expect(github.pulls.map((pull) => pull.head).sort()).toEqual(['bearminion/page-about', 'bearminion/site'])
+    expect(github.head).toBe(baseHead)
   })
 })
