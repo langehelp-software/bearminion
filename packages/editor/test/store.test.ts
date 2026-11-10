@@ -8,7 +8,9 @@ import type { ListedImage, SavedImage } from '../src/images.js'
 import type { EditorContext } from '../src/options.js'
 import { stableStringify } from '../src/stable-json.js'
 import { createMigrator } from '../src/migrate.js'
+import { githubStore } from '../src/github-store.js'
 import { StoreKeyError, createFileStore, pageKey, type ContentStore } from '../src/store.js'
+import { FakeGithub } from './fake-github.js'
 import { sectionRegistry, siteDefinition } from './starter.js'
 
 const directories: string[] = []
@@ -249,5 +251,94 @@ describe('editor API on a custom store', () => {
     expect((await call('DELETE', '/images/logo-mem.png')).status).toBe(200)
     expect((await call('DELETE', '/images/logo-mem.png')).status).toBe(404)
     expect(fs.existsSync(missing)).toBe(false)
+  })
+})
+
+describe('editor API on the GitHub store', () => {
+  const home = {
+    slug: 'index',
+    title: 'Home',
+    seo: { title: 'Home', description: '', noindex: false, nofollow: false },
+    sections: [],
+  }
+  const site = { name: 'Gh', url: 'https://gh.example', seo: {}, header: { links: [] }, footer: { columns: [] } }
+
+  function setup() {
+    const github = new FakeGithub({
+      files: { 'content/site.json': stableStringify(site), 'content/pages/index.json': stableStringify(home) },
+    })
+    const root = tempDir()
+    const context: EditorContext = {
+      root,
+      contentDir: path.join(root, 'none'),
+      uploadsDir: path.join(root, 'none', 'uploads'),
+      videosDir: path.join(root, 'none', 'videos'),
+      maxVideoBytes: 1,
+      maxImageBytes: 5 * 1_048_576,
+      imageConvert: null,
+      pageRules: { rename: true, delete: true },
+      sections: sectionRegistry,
+      site: siteDefinition,
+      store: githubStore({ repo: 'acme/site', token: 't', fetch: github.fetch }),
+      migrator: createMigrator(),
+      theme: defaultTheme,
+      git: false,
+    }
+    async function call(method: string, pathname: string, body?: unknown): Promise<Response> {
+      const headers = new Headers({ host: '127.0.0.1:4321' })
+      const isForm = body instanceof FormData
+      if (body !== undefined && !isForm) headers.set('content-type', 'application/json')
+      const response = await handleEditorRequest(
+        new Request(`http://127.0.0.1:4321/__bearminion/api${pathname}`, {
+          method,
+          headers,
+          body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
+        }),
+        context,
+        { remoteAddress: '127.0.0.1' },
+      )
+      if (response === null) throw new Error('no response')
+      return response
+    }
+    return { github, call, context }
+  }
+
+  it('saves a page as one commit', async () => {
+    const { github, call } = setup()
+    const before = github.commitCount
+    expect((await call('POST', '/pages', { slug: 'about', title: 'About' })).status).toBe(201)
+    expect(github.commitCount).toBe(before + 1)
+    expect(github.text('content/pages/about.json')).toContain('"About"')
+    expect((await call('POST', '/pages/about/rename', { slug: 'company' })).status).toBe(200)
+    expect(github.commitCount).toBe(before + 2)
+    expect(github.text('content/pages/about.json')).toBeUndefined()
+    expect(github.text('content/pages/company.json')).toBeDefined()
+  })
+
+  it('answers a protected branch with a readable 409 and commits nothing', async () => {
+    const { github, call } = setup()
+    github.protectedBranch = true
+    const response = await call('POST', '/pages', { slug: 'about', title: 'About' })
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ error: 'branch_protected' })
+    expect(github.text('content/pages/about.json')).toBeUndefined()
+  })
+
+  it('answers a bad token with a 502', async () => {
+    const { github, call } = setup()
+    github.mode = 'unauthorized'
+    const response = await call('GET', '/site')
+    expect(response.status).toBe(502)
+    expect(await response.json()).toMatchObject({ error: 'github_auth' })
+  })
+
+  it('commits uploaded images', async () => {
+    const { github, call } = setup()
+    const form = new FormData()
+    form.set('file', new File([PNG], 'Logo.png', { type: 'image/png' }))
+    const uploaded = await call('POST', '/images', form)
+    expect(uploaded.status).toBe(201)
+    const saved = (await uploaded.json()) as { path: string }
+    expect(github.bytes(saved.path)?.byteLength).toBe(PNG.byteLength)
   })
 })

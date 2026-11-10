@@ -61,6 +61,8 @@ After a content JSON file changes, the dev server invalidates its module graph, 
 
 `DELETE` and rename both refuse slug `index` with `409`, so the home page stays at `/`. When the site sets `pages.rename: false` or `pages.delete: false`, rename, delete, set-home, and a `/save` that changes a slug are refused with `409` `{ error: 'operation_locked', message }` and nothing is written. `GET /schema` reports the rules as `pageRules: { rename, delete }`. Rename writes the new file, then removes the old one. `PUT` keeps the existing filename and returns `400` if the body slug does not match the URL.
 
+With a store that talks to a remote service (`githubStore`), a failure there answers `{ error, message }` with the store's code: `branch_protected` and `branch_moved` (`409`), `github_rate_limited` (`429`), `github_auth`, `github_forbidden`, `github_not_found`, `github_unreachable` (`502`).
+
 Other status codes: `404` missing document, `409` duplicate slug or a protected `index` page, `413` body too large, `415` unsupported image, `422` a file already on disk does not match the schema.
 
 From your site with `npm run dev` (Astro's default port is 4321):
