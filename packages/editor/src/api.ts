@@ -22,7 +22,8 @@ import { isOrphanSection } from './section-schema.js'
 import type { Site } from './site.js'
 import { SCHEMA_VERSION_KEY, type DocumentKind } from './migrate.js'
 import { stableStringify } from './stable-json.js'
-import { PAGES_DIR, SITE_KEY, StoreKeyError, pageKey } from './store.js'
+import { PAGES_DIR, SITE_KEY, pageKey } from './store.js'
+import { StoreError, StoreKeyError } from './store-error.js'
 
 export interface HandleMeta {
   /**
@@ -51,6 +52,16 @@ interface StoredPage {
  * so other middleware can continue. Every write is schema-checked first.
  */
 export async function handleEditorRequest(request: Request, context: EditorContext, meta: HandleMeta = {}): Promise<Response | null> {
+  try {
+    return await route(request, context, meta)
+  } catch (error) {
+    // A store that cannot do what was asked (a refused token, a protected branch) says why, so the page can show it.
+    if (error instanceof StoreError) return problem(error.status, error.code, error.message)
+    throw error
+  }
+}
+
+async function route(request: Request, context: EditorContext, meta: HandleMeta): Promise<Response | null> {
   const url = new URL(request.url)
   const pathname = stripTrailingSlash(url.pathname)
   if (pathname !== API_PREFIX && !pathname.startsWith(`${API_PREFIX}/`)) return null
@@ -277,7 +288,8 @@ async function readStoredJson(context: EditorContext, key: string, kind: Documen
     if (text === undefined) return undefined
     const upgraded = context.migrator.upgrade(JSON.parse(text), kind)
     return upgraded.ok ? upgraded.value : undefined
-  } catch {
+  } catch (error) {
+    if (error instanceof StoreError) throw error
     return undefined
   }
 }
@@ -944,6 +956,7 @@ async function postImage(request: Request, context: EditorContext): Promise<Resp
     const saved = await context.store.uploads.save({ originalName: entry.name, bytes, kind: sniffed })
     return json(201, saved)
   } catch (error) {
+    if (error instanceof StoreError) throw error
     const message = error instanceof Error ? error.message : 'Upload failed.'
     return problem(500, 'write_failed', message)
   }
@@ -1086,6 +1099,7 @@ async function loadStoredPages(
     try {
       raw = JSON.parse((await context.store.read(key)) ?? '') as unknown
     } catch (error) {
+      if (error instanceof StoreError) throw error
       if (error instanceof StoreKeyError) return { response: problem(400, 'invalid_path', `Refusing to read ${name}.`) }
       const message = error instanceof Error ? error.message : String(error)
       return { response: problem(400, 'invalid_json', `Invalid JSON in ${name}: ${message}`) }
@@ -1186,6 +1200,8 @@ function contentLength(request: Request): number | null {
 }
 
 function contentFailure(error: unknown): Response {
+  // A store failure is not a problem with the content; the request handler answers it with the store's own status.
+  if (error instanceof StoreError) throw error
   if (error instanceof ContentValidationError) {
     return json(422, {
       error: 'validation',

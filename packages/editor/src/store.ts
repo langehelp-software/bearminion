@@ -4,6 +4,7 @@ import { assetFile } from './asset-refs.js'
 import { writeTextAtomic } from './atomic-write.js'
 import { deleteImage, listImages, saveImage, type ImageKind, type ListedImage, type SavedImage } from './images.js'
 import { resolveInside } from './security.js'
+import { StoreKeyError } from './store-error.js'
 import { deleteVideo, listVideos, saveVideo, type ListedVideo, type SavedVideo, type VideoKind } from './videos.js'
 
 /**
@@ -56,13 +57,7 @@ export interface VideoStore {
   remove(filename: string): Promise<boolean>
 }
 
-/** A key that is empty, absolute or leaves the content directory. */
-export class StoreKeyError extends Error {
-  constructor(key: string) {
-    super(`"${key}" is not a path inside the content directory.`)
-    this.name = 'StoreKeyError'
-  }
-}
+export { StoreKeyError }
 
 export const SITE_KEY = 'site.json'
 export const PAGES_DIR = 'pages'

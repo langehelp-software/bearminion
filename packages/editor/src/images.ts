@@ -3,16 +3,9 @@ import type { Dirent } from 'node:fs'
 import { mkdir, readdir, stat, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { IMAGE_BYTE_LIMIT, isInside, resolveInside } from './security.js'
+import { IMAGE_EXTENSION as EXTENSION, type ImageKind, uploadStem } from './upload-names.js'
 
-export type ImageKind = 'png' | 'jpeg' | 'webp' | 'gif' | 'avif'
-
-const EXTENSION: Record<ImageKind, string> = {
-  png: '.png',
-  jpeg: '.jpg',
-  webp: '.webp',
-  gif: '.gif',
-  avif: '.avif',
-}
+export type { ImageKind }
 
 const MIME_TO_KIND: Record<string, ImageKind> = {
   'image/png': 'png',
@@ -52,7 +45,7 @@ export async function saveImage(options: {
 }): Promise<SavedImage> {
   await mkdir(options.uploadsDir, { recursive: true })
   const extension = EXTENSION[options.kind]
-  const stem = safeStem(options.originalName)
+  const stem = uploadStem(options.originalName)
   // `wx` fails when the name exists, so a clash with a concurrent upload retries with a new suffix.
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const filename = `${stem}-${randomBytes(4).toString('hex')}${extension}`
@@ -120,18 +113,6 @@ export function imageTooLarge(size: number, maxBytes: number = IMAGE_BYTE_LIMIT)
 /** The largest request body an image upload may have: the file plus room for the multipart boundaries. */
 export function imageBodyLimit(maxBytes: number): number {
   return maxBytes + 256 * 1024
-}
-
-function safeStem(originalName: string): string {
-  const base = path.win32.basename(path.basename(originalName))
-  const stem = base.replace(/\.[^.]+$/, '')
-  const cleaned = stem
-    .normalize('NFKD')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48)
-  return cleaned || 'image'
 }
 
 function projectRelative(root: string, filePath: string): string {

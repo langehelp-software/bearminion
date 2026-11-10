@@ -14,7 +14,10 @@ export type { BearminionIntegration } from './integration.js'
 
 export type { BearminionOptions, EditorContext } from './options.js'
 
-export { createFileStore, StoreKeyError } from './store.js'
+export { createFileStore } from './store.js'
+export { StoreError, StoreKeyError } from './store-error.js'
+export { githubStore } from './github-store.js'
+export type { GithubStoreOptions } from './github-store.js'
 export type { ContentStore, FileStoreOptions, StoreOperation, UploadStore } from './store.js'
 
 export { loadContent, loadPages, loadSite } from './load.js'

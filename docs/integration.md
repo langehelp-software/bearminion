@@ -10,7 +10,7 @@ The package's entry points, the integration options, the storage interface and h
 | Import | Runs | What it has |
 | --- | --- | --- |
 | `bearminion` | Anywhere (server, browser, Storybook) | Schemas and field helpers, `defineSection`, `defineSite`, `defineTheme`, `defineThemePreview`, `defineWireframe`, marks, the palette (`themeCss`), migrations, API types, and the form types `FormSubmission` and `FormResult` (see [Forms](forms/README.md)) |
-| `bearminion/astro` | Node, in `astro.config.ts` | The integration (default export), `createFileStore`, `loadContent` / `loadPages` / `loadSite` |
+| `bearminion/astro` | Node, in `astro.config.ts` | The integration (default export), `createFileStore`, `githubStore`, `loadContent` / `loadPages` / `loadSite` |
 | `bearminion/content` | Astro content layer | `contentCollections()` for `src/content.config.ts` |
 | `bearminion/rich-text` | Anywhere | `renderRichText` and the rich-text helpers |
 | `bearminion/marks` | Anywhere | Heading and wordmark marks |
@@ -56,6 +56,36 @@ interface ContentStore {
 ```
 
 Values are text. Validation, parsing and the file layout (sorted keys, two spaces, trailing newline) stay in the editor, so every store writes the same bytes. `apply` runs writes before removals; a store that can make the whole batch atomic, such as a single commit, should.
+
+### GitHub store (experimental)
+
+`githubStore` keeps content in a GitHub repository. It uses web-standard `fetch` only, so it also runs in a Worker or a serverless function.
+
+```ts
+import { githubStore } from 'bearminion/astro'
+
+bearminion({
+  store: githubStore({
+    repo: 'acme/site',
+    token: process.env.GITHUB_TOKEN!, // fine-grained token, "Contents: Read and write", this one repository
+    // branch: 'main',                // default: the repository's default branch
+    // rootDir: 'apps/web',           // the site's folder inside the repository
+    // contentDir: 'content',         // relative to rootDir
+    // uploadsDir: 'src/assets/uploads',
+  }),
+})
+```
+
+- One save is one commit on the branch. A rename, set-home or delete lands together, never half-applied.
+- Writes are fast-forward only. If someone pushed in between, the store retries once from the new head, then answers `409` `branch_moved`. Two people saving the same page still means last write wins, as with local files.
+- A branch that requires pull requests or status checks answers `409` `branch_protected`. Pull request mode is not part of this store yet.
+- Reads use ETags, so unchanged files cost no rate limit.
+- Commit messages are `Update content/pages/about.json`, `Update 3 files`, `Upload photo-1a2b3c4d.jpg`. Pass `message` to change them.
+- Not supported yet: video uploads, `git: true` (Commit changes) and the dev preview of uploaded images.
+
+Errors reach the editor as `{ error, message }`: `github_auth` (`502`), `github_forbidden` (`502`), `github_not_found` (`502`), `github_rate_limited` (`429`), `github_unreachable` (`502`), `branch_protected` and `branch_moved` (`409`).
+
+To try a token against a throwaway repository: `GITHUB_TOKEN=... node scripts/try-github-store.mjs owner/repo [branch]`. It writes and deletes files on that branch.
 
 Not part of the store: undo history (local editor state in `.editor/history/`), Commit changes (needs a local git work tree, so the `git` option only works with the default store), the live-reload watcher, the dev route that serves images for preview, and the build-time loaders (`loadContent`, `loadPages`, `loadSite`), which read the local content directory.
 
