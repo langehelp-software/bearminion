@@ -22,3 +22,6 @@ export type { ContentStore, FileStoreOptions, StoreOperation, UploadStore } from
 
 export { loadContent, loadPages, loadSite } from './load.js'
 export type { LoadOptions, LoadedContent } from './load.js'
+
+export { bearminionHostedEditor } from './hosted-integration.js'
+export type { HostedEditorIntegrationOptions } from './hosted-integration.js'

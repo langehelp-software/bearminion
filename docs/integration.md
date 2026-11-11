@@ -179,8 +179,45 @@ Set up a **GitHub App** (not an OAuth App, whose tokens do not expire and cannot
 - A session ends after `sessionDays` (default 7). GitHub's user tokens last 8 hours; they are renewed with the refresh token, and push access is checked again each time, so a person removed from the repository loses access within hours.
 - Behind a proxy that rewrites the scheme or host, set `origin`: it is what the callback address, the cookie flags and the same-origin check use.
 - **The overlay.** `overlay: overlaySource` (from `bearminion/hosted-overlay`, the editor as one self-contained browser script, about 180 KB gzipped) makes `editor.handle` serve it at `/__bearminion/editor.js` to signed-in people, and `editor.inject(request, response)` adds it to a page your site rendered, for signed-in people only. A page that got the overlay is `Cache-Control: private, no-store` with `Vary: Cookie`, so no cache can hand it to a visitor. Do not cache the editor deployment's HTML at an edge cache in front of the Worker, or a signed-in person may be served a cached page without the overlay.
-- Not done yet: the Astro wiring that renders the site's pages in the editor deployment (the next step), and the preview endpoint. This is the API and its sign-in. Only tested against a fake GitHub so far; try it on a real GitHub App before relying on it.
-- Each request builds its own GitHub client, so the ETag cache does not carry over between requests.
+- Not done yet: the preview endpoint, and showing images uploaded after the last build. Only tested against a fake GitHub so far; try it on a real GitHub App before relying on it.
+- Each request builds its own GitHub client, so the ETag cache does not carry over between requests. Reading a page costs a few GitHub API calls per request.
+- `editor.scope(request)` gives the signed-in person's `{ login, store, content }` for a request (`content.getSite()` and `content.getPage(slug)` read from their store with the build's migrate-and-validate checks). Use it to draw your own pages from the repository's current content.
+
+### The editor deployment on Astro
+
+The public site stays a static build with no editor code in it. The editor is a **second deployment of the same repository**, at its own address such as `admin.example.com`: a server-rendered build that signs people in and draws each page from the repository's current content, with the overlay on top. Edit `admin.example.com/about` to edit the page that `example.com/about` serves; the public site's normal deploy publishes the commit.
+
+```ts
+// astro.config.ts: the editor build only
+import cloudflare from '@astrojs/cloudflare' // or @astrojs/vercel, ...
+import { bearminionHostedEditor } from 'bearminion/astro'
+
+export default defineConfig({
+  adapter: cloudflare(),
+  integrations: [bearminion({ /* as before */ }), bearminionHostedEditor({ module: './src/editor.ts' })],
+})
+```
+
+```ts
+// src/editor.ts: a function, so Workers secrets are read per request
+import { env } from 'cloudflare:workers'
+import { createHostedEditor } from 'bearminion/hosted'
+import { overlaySource } from 'bearminion/hosted-overlay'
+import { contentModel } from './lib/content-model'
+
+export default () =>
+  createHostedEditor({
+    ...contentModel,
+    repo: env.BEARMINION_REPO,
+    auth: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET, secret: env.SESSION_SECRET },
+    overlay: overlaySource,
+  })
+```
+
+- `bearminionHostedEditor` switches the build to server output, needs an adapter, and registers a middleware that runs first: it answers `/__bearminion/*`, sends visitors to sign in (`signIn: 'required'`, the default; a page load is redirected, anything else gets 401), and for signed-in people sets `Astro.locals.bearminion` and injects the overlay. `signIn: 'optional'` shows visitors the site as it is.
+- The default template's `[...slug].astro` and `404.astro` draw from `Astro.locals.bearminion` when it is set, and from the build's content otherwise, so the same pages serve both builds.
+- Never add this integration to the public site's build: a test fails if the static build ever contains editor code.
+- Tried in workerd (miniflare) against a fake GitHub: sign-in, a page drawn from a commit made after the build, the overlay, and the 302, 401 and 404 paths. Not yet tried on a real host.
 
 ## Build and package
 

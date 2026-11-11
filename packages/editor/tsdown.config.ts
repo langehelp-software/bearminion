@@ -26,6 +26,8 @@ export default defineConfig({
     forms: 'src/forms/index.ts',
     // The editor API for a Worker or serverless function. Platform neutral, like `forms`.
     hosted: 'src/hosted.ts',
+    // The middleware `bearminionHostedEditor` registers. Imports `virtual:bearminion/editor`, which the integration generates.
+    'hosted-astro': 'src/hosted-astro.ts',
     // `npx bearminion`. Node only: the library entries above stay platform neutral.
     cli: 'src/cli.ts',
     // The maintainers' registry tool; the published package leaves it out (see `files` in package.json).
@@ -41,7 +43,7 @@ export default defineConfig({
   clean: true,
   sourcemap: false,
   deps: {
-    neverBundle: [/^node:/],
+    neverBundle: [/^node:/, /^virtual:/],
     // Signals and ProseMirror ship inside `ui/mount.js`, so Vite never meets a new dependency mid-session (its optimizer
     // would reload the page). `preact` stays external, so the overlay and signals share one Preact instance.
     alwaysBundle: [/^@preact\/signals/, /^(?:prosemirror-|orderedmap$|rope-sequence$|w3c-keyname$)/],

@@ -24,7 +24,15 @@ interface Props {
   page: Page
 }
 
-const { site, page } = Astro.props
+// The hosted editor draws the repository's current content (`Astro.locals.bearminion`); a static build uses the props.
+const live = Astro.locals.bearminion
+let { site, page } = Astro.props as Partial<Props>
+if (live) {
+  site = (await live.content.getSite()) as Site
+  page = (await live.content.getPage(Astro.params.slug ?? 'index')) as Page | undefined
+  if (!page) return Astro.rewrite('/404')
+}
+if (!site || !page) throw new Error(`No content for ${Astro.url.pathname}.`)
 ---
 
 <Base site={site} page={page}>

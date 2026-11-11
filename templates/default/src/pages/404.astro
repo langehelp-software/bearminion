@@ -1,12 +1,15 @@
 ---
+import type { Site } from '../components/organisms/site-definition'
+import type { Page } from '../components/sections/definitions'
 import SectionList from '../components/sections/SectionList.astro'
 import Base from '../layouts/Base.astro'
 import { getPage, getSite } from '../lib/content'
 
 // Astro emits this route as /404.html, which static hosts serve for unknown URLs.
 // The content is content/pages/404.json, so the editor changes it like any other page.
-const site = await getSite()
-const page = await getPage('404')
+const live = Astro.locals.bearminion
+const site = live ? ((await live.content.getSite()) as Site) : await getSite()
+const page = live ? ((await live.content.getPage('404')) as Page | undefined) : await getPage('404')
 if (!page) throw new Error('content/pages/404.json is missing')
 ---
 
