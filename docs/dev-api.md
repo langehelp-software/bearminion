@@ -42,6 +42,7 @@ After a content JSON file changes, the dev server invalidates its module graph, 
 | `DELETE` | `/pages/:slug` | | `{ deleted: true, slug }` |
 | `POST` | `/pages/:slug/rename` | `{ slug }` | The renamed page. Refuses `index`. |
 | `POST` | `/pages/:slug/set-home` | `{ previousSlug? }` | The page, now saved as `index`. When a home page exists, `previousSlug` is required: the old home moves to that slug. `409` on a clash. |
+| `GET` | `/collections` | | `{ collections: [{ id, label, path, rename, delete, fields }] }`. Only when the `collections` option is set. The entry routes (`/collections/:id/entries`, `/entries/:slug`, `/rename`) are in [Markdown collections](collections.md) |
 | `GET` | `/images` | | `{ images: [{ filename, path }] }` |
 | `DELETE` | `/images/:filename` | | `{ deleted: true, filename }`. `404` for an unknown name or anything that is not a plain image file in the uploads directory. `409` `{ error: 'in_use', message, usages }` while `site.json` or a saved page points at the file; `usages` reads like `Home page › Hero` or `Site settings › brand logo`. |
 | `POST` | `/images` | multipart field `file` | `201` `{ filename, path, bytes }` |
