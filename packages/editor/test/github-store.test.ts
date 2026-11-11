@@ -65,6 +65,42 @@ describe('githubStore reads', () => {
     expect(await store.read('site.json')).toBe('two')
   })
 
+  it('addresses files outside the content directory by a leading slash, from the repository root', async () => {
+    const { github, store } = setup({
+      'content/site.json': 'site',
+      'src/content/blog/en/b.md': 'b',
+      'src/content/blog/en/a.md': 'a',
+    })
+    expect(await store.read('/src/content/blog/en/a.md')).toBe('a')
+    expect(await store.exists('/src/content/blog/en/b.md')).toBe(true)
+    expect(await store.list('/src/content/blog/en')).toEqual(['a.md', 'b.md'])
+    expect(await store.list('/src/content/blog/fr')).toBeUndefined()
+    expect(await store.read('src/content/blog/en/a.md')).toBeUndefined()
+    const before = github.commits.length
+    await store.apply([
+      { type: 'write', key: '/src/content/blog/en/c.md', text: 'c' },
+      { type: 'write', key: 'site.json', text: 'site2' },
+      { type: 'remove', key: '/src/content/blog/en/a.md' },
+    ])
+    expect(github.commits.length).toBe(before + 1)
+    expect(await store.read('/src/content/blog/en/c.md')).toBe('c')
+    expect(await store.read('site.json')).toBe('site2')
+    expect(await store.exists('/src/content/blog/en/a.md')).toBe(false)
+  })
+
+  it('honours rootDir for root keys', async () => {
+    const github = new FakeGithub({ files: { 'web/src/content/blog/en/a.md': 'a' } })
+    const store = githubStore({ repo: 'acme/site', token: 't', fetch: github.fetch, rootDir: 'web' })
+    expect(await store.read('/src/content/blog/en/a.md')).toBe('a')
+  })
+
+  it('rejects root keys that leave the repository or are malformed', async () => {
+    const { store } = setup()
+    for (const key of ['/', '//a.md', '/../x', '/src/../../x', '/a/./b']) {
+      await expect(store.read(key)).rejects.toBeInstanceOf(StoreKeyError)
+    }
+  })
+
   it('rejects keys that leave the content directory', async () => {
     const { store } = setup()
     await expect(store.read('../secrets')).rejects.toBeInstanceOf(StoreKeyError)

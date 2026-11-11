@@ -1,6 +1,7 @@
 import { isAssetPath } from './asset-paths.js'
 import type { ListedImage, SavedImage } from './images.js'
-import { StoreError, StoreKeyError } from './store-error.js'
+import { StoreError } from './store-error.js'
+import { parseKey } from './store-core.js'
 import type { ContentStore, StoreOperation, UploadStore } from './store.js'
 import { hasImageExtension, isUploadFilename, uploadFilename } from './upload-names.js'
 
@@ -137,9 +138,8 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
 
   /** The repository path of a store key, checked the way the file store checks it. */
   function contentPath(key: string): string {
-    const parts = key.split('/')
-    if (key === '' || parts.some((part) => part === '' || part === '.' || part === '..')) throw new StoreKeyError(key)
-    return inRepo(contentDir, key)
+    const { base, parts } = parseKey(key)
+    return base === 'root' ? inRepo(...parts) : inRepo(contentDir, ...parts)
   }
 
   async function send(
