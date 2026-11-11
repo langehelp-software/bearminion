@@ -29,11 +29,17 @@ function externalImports(entry: string): string[] {
 }
 
 describe('package entry points', () => {
-  it.each(['index.ts', 'rich-text.ts', 'marks.ts', 'forms/index.ts', 'hosted.ts', 'entry-source.ts', 'entry-blocks.ts'])(
-    '%s runs anywhere: no Node, Astro or Vite imports',
-    (entry) => {
-      const external = externalImports(entry).filter((line) => /-> (?:node:|astro|vite)/.test(line))
-      expect(external).toEqual([])
-    },
-  )
+  it.each([
+    'index.ts',
+    'rich-text.ts',
+    'marks.ts',
+    'forms/index.ts',
+    'hosted.ts',
+    'entry-source.ts',
+    'entry-blocks.ts',
+    'store-content.ts',
+  ])('%s runs anywhere: no Node, Astro or Vite imports', (entry) => {
+    const external = externalImports(entry).filter((line) => /-> (?:node:|astro|vite)/.test(line))
+    expect(external).toEqual([])
+  })
 })

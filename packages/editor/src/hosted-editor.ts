@@ -5,6 +5,8 @@ import { createHostedContext, handleHostedRequest } from './hosted-context.js'
 import type { ContentModel } from './model.js'
 import { API_PREFIX } from './model.js'
 import type { PageRules } from './page.js'
+import { type StoreContent, createStoreContent } from './store-content.js'
+import type { ContentStore } from './store-core.js'
 import type { ImageConvertOptions } from './upload-rules.js'
 
 /** Where the signed-in editor loads the overlay from. */
@@ -51,7 +53,21 @@ export interface HostedEditor {
    * can hand it to a visitor. Needs `overlay`.
    */
   inject(request: Request, response: Response): Promise<Response>
+  /**
+   * The signed-in person's view of the repository for this request: their store and the site's pages read from it.
+   * `null` when nobody is signed in. Costs one sign-in check per request, however often it is called.
+   */
+  scope(request: Request): Promise<HostedScope | null>
   auth: HostedAuth
+}
+
+export interface HostedScope {
+  /** GitHub login of the signed-in person. */
+  login: string
+  /** The repository as this person sees it: reads and writes use their GitHub token. */
+  store: ContentStore
+  /** `site.json` and pages from `store`, checked the way the build checks them. */
+  content: StoreContent
 }
 
 function unauthenticated(): Response {
@@ -71,6 +87,34 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
     ...(config.now ? { now: config.now } : {}),
   })
 
+  // GitHub refresh tokens work once. A second check of the same request must not renew the token again.
+  const checked = new WeakMap<Request, ReturnType<HostedAuth['authenticate']>>()
+  function authenticate(request: Request): ReturnType<HostedAuth['authenticate']> {
+    let found = checked.get(request)
+    if (!found) {
+      found = auth.authenticate(request)
+      checked.set(request, found)
+    }
+    return found
+  }
+
+  function storeFor(token: string): ContentStore {
+    return githubStore({
+      ...config.store,
+      repo: config.repo,
+      token,
+      ...(config.apiUrl ? { apiUrl: config.apiUrl } : {}),
+      ...(config.fetch ? { fetch: config.fetch } : {}),
+    })
+  }
+
+  async function scope(request: Request): Promise<HostedScope | null> {
+    const found = await authenticate(request)
+    if (!found) return null
+    const store = storeFor(found.session.token)
+    return { login: found.session.login, store, content: createStoreContent(config, store) }
+  }
+
   async function handle(request: Request): Promise<Response | null> {
     const signIn = await auth.handle(request)
     if (signIn) return signIn
@@ -79,7 +123,7 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
     if (pathname === EDITOR_SCRIPT_PATH) {
       if (config.overlay === undefined) return null
       if (request.method !== 'GET') return new Response('Method not allowed', { status: 405, headers: { allow: 'GET' } })
-      const signedIn = await auth.authenticate(request)
+      const signedIn = await authenticate(request)
       if (!signedIn) return unauthenticated()
       const script = new Response(config.overlay, {
         headers: {
@@ -93,7 +137,7 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
     }
     if (pathname !== API_PREFIX && !pathname.startsWith(`${API_PREFIX}/`)) return null
 
-    const found = await auth.authenticate(request)
+    const found = await authenticate(request)
     if (!found) return unauthenticated()
 
     const context = createHostedContext({
@@ -106,13 +150,7 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
       ...(config.imageConvert === undefined ? {} : { imageConvert: config.imageConvert }),
       ...(config.migrations ? { migrations: config.migrations } : {}),
       ...(config.schemaVersion === undefined ? {} : { schemaVersion: config.schemaVersion }),
-      store: githubStore({
-        ...config.store,
-        repo: config.repo,
-        token: found.session.token,
-        ...(config.apiUrl ? { apiUrl: config.apiUrl } : {}),
-        ...(config.fetch ? { fetch: config.fetch } : {}),
-      }),
+      store: storeFor(found.session.token),
     })
     const response = await handleHostedRequest(request, context)
     if (response && found.cookie) response.headers.append('set-cookie', found.cookie)
@@ -124,7 +162,7 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
   async function inject(request: Request, response: Response): Promise<Response> {
     if (config.overlay === undefined || request.method !== 'GET' || response.status !== 200) return response
     if (!(response.headers.get('content-type') ?? '').toLowerCase().includes('text/html')) return response
-    const signedIn = await auth.authenticate(request)
+    const signedIn = await authenticate(request)
     if (!signedIn) return response
     const html = await response.text()
     if (html.includes(EDITOR_SCRIPT_PATH)) return new Response(html, response)
@@ -139,5 +177,5 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
     return new Response(body, { status: response.status, statusText: response.statusText, headers })
   }
 
-  return { handle, inject, auth }
+  return { handle, inject, scope, auth }
 }

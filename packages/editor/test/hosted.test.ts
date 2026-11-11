@@ -17,7 +17,7 @@ function reachable(entry: string): Map<string, string> {
     if (files.has(file)) return
     const source = fs.readFileSync(file, 'utf8')
     files.set(file, source)
-    for (const match of source.matchAll(/(?:^|\n)\s*(?:import|export)\s+(type\s+)?(?:[^'"\n;]*?\s+from\s+)?['"]([^'"]+)['"]/g)) {
+    for (const match of source.matchAll(/(?:^|\n)\s*(?:import|export)\s+(type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g)) {
       const [, typeOnly, spec] = match
       if (typeOnly || !spec?.startsWith('.')) continue
       const base = path.resolve(path.dirname(file), spec)
@@ -43,6 +43,8 @@ describe('the hosted entry', () => {
       'collections.ts',
       'entry-source.ts',
       'entry-blocks.ts',
+      'store-content.ts',
+      'hosted-middleware.ts',
     ]) {
       expect(
         [...files.keys()].some((file) => file.endsWith(`/${name}`)),
