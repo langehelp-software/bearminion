@@ -1,4 +1,5 @@
 import { type HandleMeta, handleEditorRequest } from './api.js'
+import { type CollectionOptions, resolveCollections } from './collections.js'
 import type { EditorContext } from './editor-context.js'
 import { githubStore } from './github-store.js'
 import { createMigrator } from './migrate.js'
@@ -26,6 +27,8 @@ export interface HostedEditorOptions extends ContentModel {
   imageConvert?: false | ImageConvertOptions
   /** Which page operations are allowed. */
   pages?: Partial<PageRules>
+  /** Markdown collections, by id. See `collection()`. */
+  collections?: Record<string, CollectionOptions>
 }
 
 /** The context for `handleEditorRequest`. */
@@ -49,6 +52,7 @@ export function createHostedContext(options: HostedEditorOptions): EditorContext
     store: options.store,
     migrator: createMigrator(options),
     git: false,
+    ...(options.collections ? { collections: resolveCollections(options.collections) } : {}),
   }
 }
 
@@ -61,6 +65,8 @@ export function handleHostedRequest(
   return handleEditorRequest(request, context, { ...meta, authenticated: true })
 }
 
+export { collection } from './collections.js'
+export type { CollectionOptions } from './collections.js'
 export { githubStore, StoreError, StoreKeyError }
 export type { EditorContext }
 export type { GithubStoreOptions } from './github-store.js'

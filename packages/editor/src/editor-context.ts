@@ -1,4 +1,5 @@
 import type { SectionRegistry } from './model.js'
+import type { Collection } from './collections.js'
 import type { ContentMigrator } from './migrate.js'
 import type { GitPort } from './git-types.js'
 import type { HistoryPort } from './history-types.js'
@@ -31,6 +32,8 @@ export interface EditorContext {
   migrator: ContentMigrator
   /** Commit changes is enabled. */
   git: boolean
+  /** Markdown collections the editor can edit, by id. Absent when the site has none. */
+  collections?: Record<string, Collection>
   /** The folder with the site's form handlers, or `null` when the `forms` option turns them off. */
   formsDir?: string | null
   /**

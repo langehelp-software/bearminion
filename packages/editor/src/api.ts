@@ -1,4 +1,17 @@
 import { z } from 'zod'
+import {
+  type Collection,
+  type EntryPatch,
+  type Outcome,
+  createEntry,
+  deleteEntry,
+  fieldDefinitions,
+  listEntries,
+  readEntry,
+  renameEntry,
+  updateEntry,
+} from './collections.js'
+import type { BlockEdit } from './entry-blocks.js'
 import { ContentReadError, ContentValidationError, type ContentIssue } from './errors.js'
 import { imageBodyLimit, imageTooLarge, kindFromMime, sniffImage } from './image-sniff.js'
 import { sniffVideo, videoBodyLimit, videoKindFromMime } from './video-sniff.js'
@@ -108,6 +121,8 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
     return methodNotAllowed(['GET', 'POST'])
   }
 
+  if (parts[0] === 'collections') return collectionRoute(request, context, parts.slice(1), method)
+
   if (parts.length === 1 && parts[0] === 'forms') {
     if (method === 'GET') return getForms(context)
     return methodNotAllowed(['GET'])
@@ -187,6 +202,100 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
     if (slug === null) return badSlug()
     if (method === 'POST') return setHome(request, scoped(context, `page:${slug}`), slug)
     return methodNotAllowed(['POST'])
+  }
+
+  return problem(404, 'not_found', 'Unknown editor API route.')
+}
+
+function findCollection(context: EditorContext, id: string): Collection | null {
+  const all = context.collections
+  return all !== undefined && Object.hasOwn(all, id) ? (all[id] ?? null) : null
+}
+
+const entryPatchSchema = z
+  .object({
+    set: z.record(z.string(), z.unknown()).optional(),
+    unset: z.array(z.string()).optional(),
+    blocks: z
+      .array(
+        z
+          .object({ id: z.string().optional(), markdown: z.string().optional() })
+          .strict()
+          .refine((block) => block.id !== undefined || block.markdown !== undefined, 'A block needs an id or markdown.'),
+      )
+      .optional(),
+  })
+  .strict()
+
+const newEntrySchema = z
+  .object({ slug: z.string(), fields: z.record(z.string(), z.unknown()).optional(), body: z.string().optional() })
+  .strict()
+
+const renameEntrySchema = z.object({ slug: z.string() }).strict()
+
+function outcomeResponse<T>(result: Outcome<T>, status = 200): Response {
+  if (result.ok) return json(status, result.value)
+  if (result.issues) return validation(result.issues)
+  return problem(result.status, result.code, result.message)
+}
+
+/** `/collections`, `/collections/<id>/entries`, `/collections/<id>/entries/<slug>` and `.../rename`. */
+async function collectionRoute(request: Request, context: EditorContext, parts: string[], method: string): Promise<Response> {
+  if (parts.length === 0) {
+    if (method !== 'GET') return methodNotAllowed(['GET'])
+    const collections = Object.values(context.collections ?? {}).map((item) => ({
+      id: item.id,
+      label: item.label,
+      path: `${item.dir}/{slug}${item.ext}`,
+      rename: item.rename,
+      delete: item.delete,
+      fields: fieldDefinitions(item.schema),
+    }))
+    return json(200, { collections })
+  }
+  const found = findCollection(context, decodeSegment(parts[0] ?? ''))
+  if (found === null || parts[1] !== 'entries') return problem(404, 'not_found', 'Unknown collection or route.')
+
+  if (parts.length === 2) {
+    if (method === 'GET') {
+      const listed = await listEntries(context.store, found)
+      return json(200, { entries: listed.slugs.map((slug) => ({ slug })), skipped: listed.skipped })
+    }
+    if (method === 'POST') {
+      const body = await readJsonBody(request)
+      if (body.response) return body.response
+      const parsed = newEntrySchema.safeParse(body.value)
+      if (!parsed.success) return validation(fieldIssues(parsed.error))
+      const entry = scoped(context, `collection:${found.id}:${parsed.data.slug}`)
+      return outcomeResponse(await createEntry(entry.store, found, parsed.data), 201)
+    }
+    return methodNotAllowed(['GET', 'POST'])
+  }
+
+  const slug = readSlug(parts[2] ?? '')
+  if (slug === null) return badSlug()
+  const entry = scoped(context, `collection:${found.id}:${slug}`)
+
+  if (parts.length === 3) {
+    if (method === 'GET') return outcomeResponse(await readEntry(entry.store, found, slug))
+    if (method === 'PUT') {
+      const body = await readJsonBody(request)
+      if (body.response) return body.response
+      const parsed = entryPatchSchema.safeParse(body.value)
+      if (!parsed.success) return validation(fieldIssues(parsed.error))
+      return outcomeResponse(await updateEntry(entry.store, found, slug, parsed.data as EntryPatch & { blocks?: BlockEdit[] }))
+    }
+    if (method === 'DELETE') return outcomeResponse(await deleteEntry(entry.store, found, slug))
+    return methodNotAllowed(['GET', 'PUT', 'DELETE'])
+  }
+
+  if (parts.length === 4 && parts[3] === 'rename') {
+    if (method !== 'POST') return methodNotAllowed(['POST'])
+    const body = await readJsonBody(request)
+    if (body.response) return body.response
+    const parsed = renameEntrySchema.safeParse(body.value)
+    if (!parsed.success) return validation(fieldIssues(parsed.error))
+    return outcomeResponse(await renameEntry(entry.store, found, slug, parsed.data.slug))
   }
 
   return problem(404, 'not_found', 'Unknown editor API route.')

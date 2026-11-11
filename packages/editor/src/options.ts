@@ -1,3 +1,4 @@
+import { type CollectionOptions, resolveCollections } from './collections.js'
 import { createMigrator } from './migrate.js'
 import { DEFAULT_VIDEO_BYTE_LIMIT } from './videos.js'
 import { DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR, type ContentModel } from './model.js'
@@ -14,6 +15,7 @@ import { resolveConvert, resolveMaxImageBytes, type ImageConvertOptions } from '
 export { API_PREFIX, DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR } from './model.js'
 export type { ContentModel, SectionRegistry } from './model.js'
 export type { EditorContext }
+export type { CollectionOptions } from './collections.js'
 
 export interface BearminionOptions extends ContentModel {
   /** Directory that contains `site.json` and `pages/`. Default `content`. */
@@ -66,6 +68,11 @@ export interface BearminionOptions extends ContentModel {
    */
   git?: boolean
   /**
+   * Existing Astro content collections (Markdown with frontmatter) the editor can edit, by id:
+   * `{ blog: collection({ schema, path: 'src/content/blog/{slug}.md' }) }`. Pages and sections are independent of them.
+   */
+  collections?: Record<string, CollectionOptions>
+  /**
    * Where content and uploads are read and written. Default: the local project, using `contentDir` and `uploadsDir`.
    * A custom store replaces those two folders for the editor API; undo history, the live-reload watcher and
    * `git` still work on the local project.
@@ -101,6 +108,7 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
     git: options?.git === true,
     formsDir: resolveFormsConfig(options?.forms, root)?.dir ?? null,
   }
+  if (options.collections) context.collections = resolveCollections(options.collections)
   // The local project keeps undo history on disk, commits with its own git work tree and finds form handlers in a folder.
   context.history = fileHistory(context)
   context.commits = fileGit(context)
