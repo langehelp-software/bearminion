@@ -1,8 +1,8 @@
 import { readFile, readdir, rm } from 'node:fs/promises'
 import path from 'node:path'
-import type { HistoryEntry } from './api-types.js'
 import { writeJsonAtomic } from './atomic-write.js'
-import type { EditorContext } from './options.js'
+import type { EditorContext } from './editor-context.js'
+import { type HistoryEntry, type HistoryPort, type HistoryScope, historyId, isHistoryId } from './history-types.js'
 import { stableStringify } from './stable-json.js'
 
 /**
@@ -13,20 +13,8 @@ import { stableStringify } from './stable-json.js'
 export const HISTORY_DIR = '.editor/history'
 export const HISTORY_KEEP = 50
 
-export type HistoryScope = 'page' | 'site'
-
-export type { HistoryEntry }
-
-const ID = /^\d{8}T\d{9}Z$/
-
-export function isHistoryId(value: string): boolean {
-  return ID.test(value)
-}
-
-/** `2026-10-13T12:55:30.123Z` → `20261013T125530123Z`. */
-export function historyId(date: Date): string {
-  return date.toISOString().replace(/[-:.]/g, '')
-}
+export { historyId, isHistoryId }
+export type { HistoryEntry, HistoryPort, HistoryScope }
 
 function idToIso(id: string): string {
   return `${id.slice(0, 4)}-${id.slice(4, 6)}-${id.slice(6, 8)}T${id.slice(9, 11)}:${id.slice(11, 13)}:${id.slice(13, 15)}.${id.slice(15, 18)}Z`
@@ -97,4 +85,16 @@ export async function writeHistory(
 export async function ensureBaseline(context: EditorContext, scope: HistoryScope, slug: string, current: unknown): Promise<void> {
   if ((await listHistory(context, scope, slug)).length > 0) return
   await writeHistory(context, scope, slug, current, new Date(Date.now() - 1))
+}
+
+/** The undo history of the local project, in `.editor/history/`. */
+export function fileHistory(context: EditorContext): HistoryPort {
+  return {
+    list: (scope, slug) => listHistory(context, scope, slug),
+    read: (scope, slug, id) => readHistory(context, scope, slug, id),
+    async write(scope, slug, value) {
+      await writeHistory(context, scope, slug, value)
+    },
+    ensureBaseline: (scope, slug, current) => ensureBaseline(context, scope, slug, current),
+  }
 }

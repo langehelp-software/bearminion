@@ -1,31 +1,37 @@
 import { z } from 'zod'
 import { ContentReadError, ContentValidationError, type ContentIssue } from './errors.js'
-import { imageBodyLimit, imageTooLarge, kindFromMime, sniffImage } from './images.js'
-import { sniffVideo, videoBodyLimit, videoKindFromMime } from './videos.js'
-import { API_PREFIX, type EditorContext, type SectionRegistry } from './options.js'
-import { formFile } from './forms-dev.js'
+import { imageBodyLimit, imageTooLarge, kindFromMime, sniffImage } from './image-sniff.js'
+import { sniffVideo, videoBodyLimit, videoKindFromMime } from './video-sniff.js'
+import type { EditorContext } from './editor-context.js'
+import { API_PREFIX, type SectionRegistry } from './model.js'
 import type { CountRule, Option } from './section-options.js'
 import type { OptionalContent } from './section-optional.js'
 import type { FieldChoices, FieldIcons, ShowWhen } from './field-rules.js'
 import { imageFields } from './section-fields.js'
 import type { Wireframe } from './wireframe.js'
-import { JSON_BODY_LIMIT, isLocalRequest, readSlug } from './security.js'
+import { JSON_BODY_LIMIT, isLocalRequest, isSameOriginRequest, readSlug } from './request-guards.js'
 import { formatBytes, type UploadRules } from './upload-rules.js'
 import { projectId } from './draft-store.js'
-import { ensureBaseline, isHistoryId, listHistory, readHistory, writeHistory } from './history.js'
+import { NO_HISTORY, isHistoryId } from './history-types.js'
 import { fieldIssues, validateEditorPage, validatePage, validateSite, type FieldIssue } from './validate.js'
-import { assetRefs, describePageRef, describeSiteRef, missingAssetIssues } from './asset-refs.js'
-import { COMMIT_MESSAGE_LIMIT, GitError, commitChanges, gitInfo } from './git.js'
+import { assetRefs, describePageRef, describeSiteRef, missingAssetIssues } from './asset-paths.js'
+import { COMMIT_MESSAGE_LIMIT, GitError, NO_GIT } from './git-types.js'
 import { PreviewUnavailableError } from './preview.js'
 import { isSystemPage, withoutOrphanSections, type Page } from './page.js'
 import { isOrphanSection } from './section-schema.js'
 import type { Site } from './site.js'
 import { SCHEMA_VERSION_KEY, type DocumentKind } from './migrate.js'
 import { stableStringify } from './stable-json.js'
-import { PAGES_DIR, SITE_KEY, pageKey } from './store.js'
+import { PAGES_DIR, SITE_KEY, pageKey } from './store-core.js'
 import { StoreError, StoreKeyError } from './store-error.js'
 
 export interface HandleMeta {
+  /**
+   * Hosted editor only. The caller has already signed the person in and checked that they may edit, so the localhost
+   * check is replaced by a same-origin check. Never set it on a route that has no sign-in in front of it: with it,
+   * anyone who can reach the handler can write the content.
+   */
+  authenticated?: boolean
   /**
    * TCP peer address. Pass it from the dev server.
    * When it is omitted, only Host and Origin are checked.
@@ -66,7 +72,10 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
   const pathname = stripTrailingSlash(url.pathname)
   if (pathname !== API_PREFIX && !pathname.startsWith(`${API_PREFIX}/`)) return null
 
-  if (!isLocalRequest(request.headers, meta.remoteAddress)) {
+  if (meta.authenticated) {
+    // The caller has signed the person in. What is left to check here is that the request is not cross-site.
+    if (!isSameOriginRequest(request.headers, request.url)) return problem(403, 'forbidden', 'The editor API refuses cross-site requests.')
+  } else if (!isLocalRequest(request.headers, meta.remoteAddress)) {
     return problem(403, 'forbidden', 'The editor API only accepts requests from localhost.')
   }
 
@@ -192,7 +201,7 @@ async function getForms(context: EditorContext): Promise<Response> {
   for (const definition of Object.values(context.sections)) {
     const name = definition.form
     if (!name || handlers[name]) continue
-    const file = context.formsDir ? formFile(context.formsDir, name) : null
+    const file = context.formFile?.(name) ?? null
     handlers[name] = { file: file ? relativeTo(context.root, file) : null }
   }
   return json(200, { enabled: context.formsDir != null, handlers })
@@ -207,6 +216,8 @@ function relativeTo(root: string, file: string): string {
  * The context for editing one entry. A store that keeps each entry's pending edits apart (`githubStore` in `pr` mode)
  * hands out a view of its own; every other store is used as it is.
  */
+const history = (context: EditorContext) => context.history ?? NO_HISTORY
+
 function scoped(context: EditorContext, scope: string): EditorContext {
   const store = context.store.scoped?.(scope)
   return store ? { ...context, store } : context
@@ -285,9 +296,9 @@ async function putSite(request: Request, context: EditorContext): Promise<Respon
   if (!parsed.success) return validation(fieldIssues(parsed.error))
   const missing = await missingAssets(context, parsed.data)
   if (missing.length > 0) return validation(missing)
-  await ensureBaseline(context, 'site', '', await readStoredJson(context, SITE_KEY, 'site'))
+  await history(context).ensureBaseline('site', '', await readStoredJson(context, SITE_KEY, 'site'))
   await writeDocuments(context, [[SITE_KEY, parsed.data]])
-  await writeHistory(context, 'site', '', parsed.data)
+  await history(context).write('site', '', parsed.data)
   return json(200, parsed.data)
 }
 
@@ -367,8 +378,8 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
         const stored = await readStoredJson(context, SITE_KEY, 'site')
         writes.push([SITE_KEY, site.data])
         after.push(async () => {
-          await ensureBaseline(context, 'site', '', stored)
-          await writeHistory(context, 'site', '', site.data)
+          await history(context).ensureBaseline('site', '', stored)
+          await history(context).write('site', '', site.data)
         })
         result.site = site.data
       }
@@ -444,8 +455,8 @@ async function planPageSave(
   if (added.length > 0) return { issues: added }
 
   const after = async () => {
-    await ensureBaseline(context, 'page', target, found.page)
-    await writeHistory(context, 'page', target, page)
+    await history(context).ensureBaseline('page', target, found.page)
+    await history(context).write('page', target, page)
   }
 
   if (target === from) return { page, writes: [[found.key, page]], removals: [], after }
@@ -510,7 +521,7 @@ const commitSchema = z
   .strict()
 
 async function getGit(context: EditorContext): Promise<Response> {
-  return json(200, await gitInfo(context))
+  return json(200, await (context.commits ?? NO_GIT).info())
 }
 
 async function postCommit(request: Request, context: EditorContext): Promise<Response> {
@@ -519,7 +530,7 @@ async function postCommit(request: Request, context: EditorContext): Promise<Res
   const parsed = commitSchema.safeParse(body.value)
   if (!parsed.success) return validation(fieldIssues(parsed.error))
   try {
-    return json(201, await commitChanges(context, parsed.data.message, parsed.data.paths))
+    return json(201, await (context.commits ?? NO_GIT).commit(parsed.data.message, parsed.data.paths))
   } catch (error) {
     if (!(error instanceof GitError)) throw error
     const status = error.code === 'failed' ? 500 : error.code === 'invalid' ? 400 : 409
@@ -528,9 +539,9 @@ async function postCommit(request: Request, context: EditorContext): Promise<Res
 }
 
 async function getHistory(context: EditorContext, scope: 'page' | 'site', slug: string, id: string | undefined): Promise<Response> {
-  if (id === undefined) return json(200, { entries: await listHistory(context, scope, slug) })
+  if (id === undefined) return json(200, { entries: await history(context).list(scope, slug) })
   if (!isHistoryId(id)) return problem(400, 'invalid_id', 'Not a history id.')
-  const snapshot = await readHistory(context, scope, slug, id)
+  const snapshot = await history(context).read(scope, slug, id)
   if (snapshot === null) return problem(404, 'not_found', 'No saved version with that id.')
   return json(200, snapshot)
 }
@@ -587,9 +598,9 @@ async function putPage(request: Request, context: EditorContext, slug: string): 
       : [],
   )
   if (added.length > 0) return validation(added)
-  await ensureBaseline(context, 'page', slug, found.page)
+  await history(context).ensureBaseline('page', slug, found.page)
   await writeDocuments(context, [[found.key, page]])
-  await writeHistory(context, 'page', slug, page)
+  await history(context).write('page', slug, page)
   return json(200, page)
 }
 
@@ -1192,7 +1203,7 @@ async function readJsonBody(
   } catch {
     return { response: problem(400, 'invalid_json', 'The request body could not be read.') }
   }
-  if (Buffer.byteLength(text) > JSON_BODY_LIMIT) {
+  if (new TextEncoder().encode(text).byteLength > JSON_BODY_LIMIT) {
     return { response: problem(413, 'too_large', 'JSON body exceeds 1MB.') }
   }
   try {

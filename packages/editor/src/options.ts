@@ -1,16 +1,19 @@
-import { createMigrator, type ContentMigrator } from './migrate.js'
+import { createMigrator } from './migrate.js'
 import { DEFAULT_VIDEO_BYTE_LIMIT } from './videos.js'
-import { DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR, type ContentModel, type SectionRegistry } from './model.js'
+import { DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR, type ContentModel } from './model.js'
 import { asDirectory, resolveDir } from './security.js'
-import type { SiteDefinition } from './site.js'
-import { defaultTheme, type ThemeDefinition } from './theme.js'
+import { defaultTheme } from './theme.js'
 import { createFileStore, type ContentStore } from './store.js'
-import { resolveFormsConfig } from './forms-dev.js'
+import type { EditorContext } from './editor-context.js'
+import { formFile, resolveFormsConfig } from './forms-dev.js'
+import { fileGit } from './git.js'
+import { fileHistory } from './history.js'
 import { resolvePageRules, type PageRules } from './page.js'
-import { resolveConvert, resolveMaxImageBytes, type ImageConvertOptions, type UploadRules } from './upload-rules.js'
+import { resolveConvert, resolveMaxImageBytes, type ImageConvertOptions } from './upload-rules.js'
 
 export { API_PREFIX, DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR } from './model.js'
 export type { ContentModel, SectionRegistry } from './model.js'
+export type { EditorContext }
 
 export interface BearminionOptions extends ContentModel {
   /** Directory that contains `site.json` and `pages/`. Default `content`. */
@@ -70,28 +73,6 @@ export interface BearminionOptions extends ContentModel {
   store?: ContentStore
 }
 
-export interface EditorContext {
-  root: string
-  contentDir: string
-  uploadsDir: string
-  videosDir: string
-  maxVideoBytes: number
-  maxImageBytes: number
-  pageRules: PageRules
-  /** `imageConvert`, validated and with its defaults filled in. `null` when conversion is off. */
-  imageConvert: UploadRules['convert']
-  sections: SectionRegistry
-  site: SiteDefinition
-  theme: ThemeDefinition
-  store: ContentStore
-  /** Upgrades files written under an older `schemaVersion` and stamps the current one on write. */
-  migrator: ContentMigrator
-  /** Commit changes is enabled. */
-  git: boolean
-  /** The folder with the site's form handlers, or `null` when the `forms` option turns them off. */
-  formsDir?: string | null
-}
-
 export function resolveEditorContext(options: BearminionOptions | undefined, rootInput: string | URL): EditorContext {
   if (!options?.sections) {
     throw new Error("bearminion() needs the `sections` option: the site's section definitions.")
@@ -103,7 +84,7 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
   const contentDir = resolveDir(root, options?.contentDir, DEFAULT_CONTENT_DIR)
   const uploadsDir = resolveDir(root, options?.uploadsDir, DEFAULT_UPLOADS_DIR)
   const videosDir = resolveDir(root, options?.videosDir, DEFAULT_VIDEOS_DIR)
-  return {
+  const context: EditorContext = {
     root,
     contentDir,
     uploadsDir,
@@ -120,4 +101,10 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
     git: options?.git === true,
     formsDir: resolveFormsConfig(options?.forms, root)?.dir ?? null,
   }
+  // The local project keeps undo history on disk, commits with its own git work tree and finds form handlers in a folder.
+  context.history = fileHistory(context)
+  context.commits = fileGit(context)
+  const formsDir = context.formsDir
+  if (formsDir) context.formFile = (name) => formFile(formsDir, name)
+  return context
 }

@@ -1,39 +1,11 @@
 import { execFile } from 'node:child_process'
 import path from 'node:path'
 import { promisify } from 'node:util'
-import type { EditorContext } from './options.js'
+import { COMMIT_MESSAGE_LIMIT, GitError, type ChangedFile, type ChangeStatus, type GitInfo, type GitPort } from './git-types.js'
+import type { EditorContext } from './editor-context.js'
 import { isInside } from './security.js'
 
 const run = promisify(execFile)
-
-/** Longest commit message the editor sends. */
-export const COMMIT_MESSAGE_LIMIT = 1000
-
-export type ChangeStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'untracked'
-
-export interface ChangedFile {
-  /** Path relative to the project root, with `/` separators. */
-  path: string
-  status: ChangeStatus
-}
-
-export interface GitInfo {
-  /** The `git` option is on. */
-  enabled: boolean
-  /** The project is inside a git work tree. */
-  repo: boolean
-  branch?: string
-  files: ChangedFile[]
-}
-
-export class GitError extends Error {
-  constructor(
-    readonly code: 'disabled' | 'not_repo' | 'empty' | 'invalid' | 'failed',
-    message: string,
-  ) {
-    super(message)
-  }
-}
 
 async function git(root: string, args: string[]): Promise<string> {
   try {
@@ -127,4 +99,15 @@ export async function commitChanges(
   await git(context.root, ['commit', '-m', text, '--', ...chosen])
   const commit = (await git(context.root, ['rev-parse', '--short', 'HEAD'])).trim()
   return { commit, files: chosen.length }
+}
+
+export { COMMIT_MESSAGE_LIMIT, GitError }
+export type { ChangedFile, ChangeStatus, GitInfo, GitPort }
+
+/** Commit changes on the local git work tree of the project. */
+export function fileGit(context: EditorContext): GitPort {
+  return {
+    info: () => gitInfo(context),
+    commit: (message, paths) => commitChanges(context, message, paths),
+  }
 }
