@@ -15,7 +15,7 @@ The package's entry points, the integration options, the storage interface and h
 | `bearminion/rich-text` | Anywhere | `renderRichText` and the rich-text helpers |
 | `bearminion/marks` | Anywhere | Heading and wordmark marks |
 | `bearminion/forms` | A server or function: Node, Vercel, Netlify, Cloudflare | `defineForm`, `FormError` and `verifyTurnstile`, the server side of the Contact form. Web-standard `Request` and `Response` only. Never import it into browser code (see [Forms](forms/README.md)) |
-| `bearminion/hosted` | A Worker or serverless function (experimental) | `createHostedContext`, `handleHostedRequest` and `githubStore`: the editor API without Node (see [Hosted entry](#hosted-entry-experimental)) |
+| `bearminion/hosted` | A Worker or serverless function (experimental) | `createHostedEditor` (GitHub sign-in plus the editor API), `createHostedContext`, `handleHostedRequest` and `githubStore`: the editor API without Node (see [Hosted entry](#hosted-entry-experimental)) |
 
 `astro` and `zod` (v4) are peer dependencies. A test keeps the runtime-neutral entries (including `bearminion/forms` and `bearminion/hosted`) free of Node, Astro and Vite imports.
 
@@ -142,6 +142,44 @@ export default {
 - `handleHostedRequest` replaces the localhost check of the dev editor with a same-origin check (`Sec-Fetch-Site` and `Origin`), because the caller has authenticated the request. Never call it on a route with no sign-in in front of it: anyone who can reach it can write the content.
 - There is no undo history and no Commit changes in this entry. The repository is the history.
 - Tried in the Cloudflare Workers runtime (workerd): reads, a page create and a commit through `githubStore` work, and a cross-site request is refused.
+
+### Sign-in: `createHostedEditor`
+
+`createHostedEditor` puts GitHub sign-in in front of the editor API. A person signs in with their own GitHub account, and every request then runs on **their** token: commits are authored by them, and the repository's own rules (branch protection, required reviews) apply to them as they would anywhere else. Access is decided by GitHub: only people with push access to `repo` may sign in.
+
+```ts
+import { createHostedEditor } from 'bearminion/hosted'
+
+const editor = createHostedEditor({
+  ...contentModel, // sections and site, as for bearminion()
+  repo: 'acme/site',
+  auth: {
+    clientId: env.GITHUB_CLIENT_ID,
+    clientSecret: env.GITHUB_CLIENT_SECRET,
+    secret: env.SESSION_SECRET, // 32+ characters: openssl rand -base64 32
+    origin: 'https://admin.example.com',
+  },
+  store: { mode: 'pr' }, // or the default 'direct'; also branch, rootDir, contentDir
+  // collections, pages, maxImageBytes, imageConvert: as for bearminion()
+})
+
+export default {
+  async fetch(request: Request) {
+    return (await editor.handle(request)) ?? new Response('Not found', { status: 404 })
+  },
+}
+```
+
+`editor.handle` answers `/__bearminion/auth/*` (`login`, `callback`, `session`, and `logout` by POST) and `/__bearminion/api/*`, which answers `401` with a `login` link until someone is signed in. Any other path returns `null`.
+
+Set up a **GitHub App** (not an OAuth App, whose tokens do not expire and cannot be limited to one repository): Repository permissions Contents and Pull requests read and write, Metadata read; callback URL `<origin>/__bearminion/auth/callback`; "Expire user authorization tokens" on; install it on the repository. The client id and secret and your own session secret belong in the environment.
+
+- The sign-in uses PKCE and a one-time `state`. A return address must be a path on your own site.
+- The session is one cookie, encrypted and authenticated with AES-GCM (`HttpOnly`, `SameSite=Lax`, `Secure` on https, and the `__Host-` prefix). It holds the person's GitHub token, which never reaches the browser's JavaScript. Changing `secret` signs everyone out.
+- A session ends after `sessionDays` (default 7). GitHub's user tokens last 8 hours; they are renewed with the refresh token, and push access is checked again each time, so a person removed from the repository loses access within hours.
+- Behind a proxy that rewrites the scheme or host, set `origin`: it is what the callback address, the cookie flags and the same-origin check use.
+- Not done yet: serving the editor page itself (the overlay) and a site-rendering route. This is the API and its sign-in. Only tested against a fake GitHub so far; try it on a real GitHub App before relying on it.
+- Each request builds its own GitHub client, so the ETag cache does not carry over between requests.
 
 ## Build and package
 
