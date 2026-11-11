@@ -59,6 +59,10 @@
       "types": "./dist/hosted.d.ts",
       "import": "./dist/hosted.js"
     },
+    "./hosted-overlay": {
+      "types": "./dist/hosted-overlay.d.ts",
+      "import": "./dist/hosted-overlay.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -71,7 +75,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && tsdown -c tsdown.overlay.config.ts",
     "prepack": "node ../../scripts/prepack.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",

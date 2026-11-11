@@ -1,11 +1,14 @@
 import type { CollectionOptions } from './collections.js'
 import { type GithubStoreOptions, githubStore } from './github-store.js'
 import { AUTH_PREFIX, type HostedAuth, type HostedAuthOptions, createHostedAuth } from './hosted-auth.js'
-import { createHostedContext, handleHostedRequest } from './hosted.js'
+import { createHostedContext, handleHostedRequest } from './hosted-context.js'
 import type { ContentModel } from './model.js'
 import { API_PREFIX } from './model.js'
 import type { PageRules } from './page.js'
 import type { ImageConvertOptions } from './upload-rules.js'
+
+/** Where the signed-in editor loads the overlay from. */
+export const EDITOR_SCRIPT_PATH = '/__bearminion/editor.js'
 
 /*
  * The hosted editor's request handler: sign-in in front of the editor API, with each request running on the signed-in
@@ -23,6 +26,11 @@ export interface HostedEditorConfig extends ContentModel {
   pages?: Partial<PageRules>
   maxImageBytes?: number
   imageConvert?: false | ImageConvertOptions
+  /**
+   * The editor overlay as a browser script: `overlaySource` from `bearminion/hosted-overlay`. Served at
+   * `/__bearminion/editor.js` to signed-in people only, and added to the site's pages by `inject`.
+   */
+  overlay?: string
   /** GitHub Enterprise: the web and API addresses. */
   githubUrl?: string
   apiUrl?: string
@@ -37,6 +45,12 @@ export interface HostedEditor {
    * Returns `null` for any other path, so the site's own routes carry on.
    */
   handle(request: Request): Promise<Response | null>
+  /**
+   * Passes a page the site rendered through, adding the editor overlay when the request comes from a signed-in
+   * person. Anyone else gets the page untouched. A page with the overlay is marked `private, no-store`, so no cache
+   * can hand it to a visitor. Needs `overlay`.
+   */
+  inject(request: Request, response: Response): Promise<Response>
   auth: HostedAuth
 }
 
@@ -62,6 +76,21 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
     if (signIn) return signIn
 
     const pathname = new URL(request.url).pathname.replace(/\/+$/, '')
+    if (pathname === EDITOR_SCRIPT_PATH) {
+      if (config.overlay === undefined) return null
+      if (request.method !== 'GET') return new Response('Method not allowed', { status: 405, headers: { allow: 'GET' } })
+      const signedIn = await auth.authenticate(request)
+      if (!signedIn) return unauthenticated()
+      const script = new Response(config.overlay, {
+        headers: {
+          'content-type': 'text/javascript; charset=utf-8',
+          'cache-control': 'private, no-cache',
+          'x-content-type-options': 'nosniff',
+        },
+      })
+      if (signedIn.cookie) script.headers.append('set-cookie', signedIn.cookie)
+      return script
+    }
     if (pathname !== API_PREFIX && !pathname.startsWith(`${API_PREFIX}/`)) return null
 
     const found = await auth.authenticate(request)
@@ -90,5 +119,25 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
     return response
   }
 
-  return { handle, auth }
+  const tag = `<script type="module" src="${EDITOR_SCRIPT_PATH}"></script>`
+
+  async function inject(request: Request, response: Response): Promise<Response> {
+    if (config.overlay === undefined || request.method !== 'GET' || response.status !== 200) return response
+    if (!(response.headers.get('content-type') ?? '').toLowerCase().includes('text/html')) return response
+    const signedIn = await auth.authenticate(request)
+    if (!signedIn) return response
+    const html = await response.text()
+    if (html.includes(EDITOR_SCRIPT_PATH)) return new Response(html, response)
+    const close = html.search(/<\/body\s*>(?![\s\S]*<\/body\s*>)/i)
+    const body = close === -1 ? html + tag : html.slice(0, close) + tag + html.slice(close)
+    const headers = new Headers(response.headers)
+    headers.delete('content-length')
+    headers.delete('etag')
+    headers.set('cache-control', 'private, no-store')
+    headers.append('vary', 'Cookie')
+    if (signedIn.cookie) headers.append('set-cookie', signedIn.cookie)
+    return new Response(body, { status: response.status, statusText: response.statusText, headers })
+  }
+
+  return { handle, inject, auth }
 }

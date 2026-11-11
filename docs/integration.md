@@ -178,7 +178,8 @@ Set up a **GitHub App** (not an OAuth App, whose tokens do not expire and cannot
 - The session is one cookie, encrypted and authenticated with AES-GCM (`HttpOnly`, `SameSite=Lax`, `Secure` on https, and the `__Host-` prefix). It holds the person's GitHub token, which never reaches the browser's JavaScript. Changing `secret` signs everyone out.
 - A session ends after `sessionDays` (default 7). GitHub's user tokens last 8 hours; they are renewed with the refresh token, and push access is checked again each time, so a person removed from the repository loses access within hours.
 - Behind a proxy that rewrites the scheme or host, set `origin`: it is what the callback address, the cookie flags and the same-origin check use.
-- Not done yet: serving the editor page itself (the overlay) and a site-rendering route. This is the API and its sign-in. Only tested against a fake GitHub so far; try it on a real GitHub App before relying on it.
+- **The overlay.** `overlay: overlaySource` (from `bearminion/hosted-overlay`, the editor as one self-contained browser script, about 180 KB gzipped) makes `editor.handle` serve it at `/__bearminion/editor.js` to signed-in people, and `editor.inject(request, response)` adds it to a page your site rendered, for signed-in people only. A page that got the overlay is `Cache-Control: private, no-store` with `Vary: Cookie`, so no cache can hand it to a visitor. Do not cache the editor deployment's HTML at an edge cache in front of the Worker, or a signed-in person may be served a cached page without the overlay.
+- Not done yet: the Astro wiring that renders the site's pages in the editor deployment (the next step), and the preview endpoint. This is the API and its sign-in. Only tested against a fake GitHub so far; try it on a real GitHub App before relying on it.
 - Each request builds its own GitHub client, so the ETag cache does not carry over between requests.
 
 ## Build and package

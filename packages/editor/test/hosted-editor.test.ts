@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AUTH_PREFIX, createHostedAuth, createHostedEditor } from '../src/hosted.js'
+import { AUTH_PREFIX, EDITOR_SCRIPT_PATH, createHostedAuth, createHostedEditor } from '../src/hosted.js'
 import { API_PREFIX } from '../src/model.js'
 import { stableStringify } from '../src/stable-json.js'
 import { FakeGithub } from './fake-github.js'
@@ -86,6 +86,7 @@ function world(options: { sessionDays?: number } = {}) {
       origin: ORIGIN,
       ...(options.sessionDays ? { sessionDays: options.sessionDays } : {}),
     },
+    overlay: 'window.__overlay = true',
     fetch: fetchFake,
     now: () => clock,
   })
@@ -129,10 +130,15 @@ function world(options: { sessionDays?: number } = {}) {
     return { login, authorize, stateCookie, callback, session }
   }
 
+  async function inject(cookie: string | undefined, response: Response, method = 'GET'): Promise<Response> {
+    return editor.inject(new Request(`${ORIGIN}/about`, { method, headers: cookie ? { cookie } : {} }), response)
+  }
+
   return {
     github,
     call,
     signIn,
+    inject,
     same,
     cookiesOf,
     contentTokens,
@@ -325,5 +331,76 @@ describe('the editor API behind sign-in', () => {
   it('leaves other paths to the site', async () => {
     const { call } = world()
     await expect(call('GET', '/about')).rejects.toThrow('no response')
+  })
+})
+
+describe('the overlay', () => {
+  const page = () =>
+    new Response('<!doctype html><html><body><h1>About</h1></body></html>', {
+      headers: { 'content-type': 'text/html; charset=utf-8', etag: '"abc"', 'content-length': '57' },
+    })
+
+  it('serves the script to a signed-in person only', async () => {
+    const { call, signIn } = world()
+    expect((await call('GET', EDITOR_SCRIPT_PATH)).status).toBe(401)
+    const { session } = await signIn('tok-ann')
+    const script = await call('GET', EDITOR_SCRIPT_PATH, { cookie: session ?? '' })
+    expect(script.status).toBe(200)
+    expect(script.headers.get('content-type')).toContain('text/javascript')
+    expect(script.headers.get('cache-control')).toBe('private, no-cache')
+    expect(await script.text()).toBe('window.__overlay = true')
+    expect((await call('POST', EDITOR_SCRIPT_PATH, { cookie: session ?? '' })).status).toBe(405)
+  })
+
+  it('adds the script to a page for a signed-in person, and marks the page so no cache keeps it', async () => {
+    const { signIn, inject } = world()
+    const { session } = await signIn('tok-ann')
+    const out = await inject(session, page())
+    expect(await out.text()).toBe(
+      `<!doctype html><html><body><h1>About</h1><script type="module" src="${EDITOR_SCRIPT_PATH}"></script></body></html>`,
+    )
+    expect(out.headers.get('cache-control')).toBe('private, no-store')
+    expect(out.headers.get('vary')).toBe('Cookie')
+    expect(out.headers.get('content-length')).toBeNull()
+    expect(out.headers.get('etag')).toBeNull()
+  })
+
+  it('leaves the page alone for a visitor, a tampered cookie, a non-page, a failed page and a non-GET', async () => {
+    const { signIn, inject } = world()
+    const { session } = await signIn('tok-ann')
+    const original = '<html><body>x</body></html>'
+    const html = () => new Response(original, { headers: { 'content-type': 'text/html' } })
+    for (const out of [
+      await inject(undefined, html()),
+      await inject('__Host-bm-session=nope', html()),
+      await inject(session, new Response('{}', { headers: { 'content-type': 'application/json' } })),
+      await inject(session, new Response(original, { status: 404, headers: { 'content-type': 'text/html' } })),
+      await inject(session, html(), 'POST'),
+    ]) {
+      expect(await out.text()).not.toContain(EDITOR_SCRIPT_PATH)
+    }
+    const visitor = await inject(undefined, html())
+    expect(visitor.headers.get('cache-control')).toBeNull()
+  })
+
+  it('adds the script once, and at the end when there is no body tag', async () => {
+    const { signIn, inject } = world()
+    const { session } = await signIn('tok-ann')
+    const again = await (await inject(session, await inject(session, page()))).text()
+    expect(again.split(EDITOR_SCRIPT_PATH)).toHaveLength(2)
+    const bare = await inject(session, new Response('<p>fragment</p>', { headers: { 'content-type': 'text/html' } }))
+    expect(await bare.text()).toBe(`<p>fragment</p><script type="module" src="${EDITOR_SCRIPT_PATH}"></script>`)
+  })
+
+  it('is not served when no overlay is configured', async () => {
+    const editor = createHostedEditor({
+      sections: sectionRegistry,
+      site: siteDefinition,
+      repo: 'acme/site',
+      auth: { clientId: 'c', clientSecret: 's', secret: SECRET, origin: ORIGIN },
+    })
+    expect(await editor.handle(new Request(`${ORIGIN}${EDITOR_SCRIPT_PATH}`))).toBeNull()
+    const html = new Response('<body></body>', { headers: { 'content-type': 'text/html' } })
+    expect(await (await editor.inject(new Request(`${ORIGIN}/`), html)).text()).toBe('<body></body>')
   })
 })

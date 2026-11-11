@@ -7,5 +7,5 @@
  * - `createHostedContext` and `handleHostedRequest`: the editor API alone, when you do the signing in yourself.
  */
 export * from './hosted-context.js'
-export { type HostedEditor, type HostedEditorConfig, createHostedEditor } from './hosted-editor.js'
+export { EDITOR_SCRIPT_PATH, type HostedEditor, type HostedEditorConfig, createHostedEditor } from './hosted-editor.js'
 export { AUTH_PREFIX, type HostedAuth, type HostedAuthOptions, type HostedSession, createHostedAuth } from './hosted-auth.js'
