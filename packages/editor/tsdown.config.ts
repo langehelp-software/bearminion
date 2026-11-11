@@ -24,6 +24,8 @@ export default defineConfig({
     'rich-text': 'src/rich-text.ts',
     marks: 'src/marks.ts',
     forms: 'src/forms/index.ts',
+    // The editor API for a Worker or serverless function. Platform neutral, like `forms`.
+    hosted: 'src/hosted.ts',
     // `npx bearminion`. Node only: the library entries above stay platform neutral.
     cli: 'src/cli.ts',
     // The maintainers' registry tool; the published package leaves it out (see `files` in package.json).

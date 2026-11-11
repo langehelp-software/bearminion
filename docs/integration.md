@@ -15,8 +15,9 @@ The package's entry points, the integration options, the storage interface and h
 | `bearminion/rich-text` | Anywhere | `renderRichText` and the rich-text helpers |
 | `bearminion/marks` | Anywhere | Heading and wordmark marks |
 | `bearminion/forms` | A server or function: Node, Vercel, Netlify, Cloudflare | `defineForm`, `FormError` and `verifyTurnstile`, the server side of the Contact form. Web-standard `Request` and `Response` only. Never import it into browser code (see [Forms](forms/README.md)) |
+| `bearminion/hosted` | A Worker or serverless function (experimental) | `createHostedContext`, `handleHostedRequest` and `githubStore`: the editor API without Node (see [Hosted entry](#hosted-entry-experimental)) |
 
-`astro` and `zod` (v4) are peer dependencies. A test keeps the runtime-neutral entries (including `bearminion/forms`) free of Node, Astro and Vite imports.
+`astro` and `zod` (v4) are peer dependencies. A test keeps the runtime-neutral entries (including `bearminion/forms` and `bearminion/hosted`) free of Node, Astro and Vite imports.
 
 ## Astro integration
 
@@ -114,6 +115,31 @@ const model = { sections: sectionDefinitions, site: siteDefinition }
 const content = loadContent('/absolute/path/to/content', model) // { site, pages }
 sectionDefinitions.hero.schema.parse(sectionDefinitions.hero.defaults)
 ```
+
+## Hosted entry (experimental)
+
+`bearminion/hosted` is the editor API for a Worker or a serverless function, where there is no developer machine. It uses web-standard APIs only (a test fails if the entry ever reaches a Node module or global), and it is the piece a hosted editor is built on. It is not a hosted editor by itself: signing people in and serving the editor page are yours to add.
+
+```ts
+import { createHostedContext, githubStore, handleHostedRequest } from 'bearminion/hosted'
+
+const context = createHostedContext({
+  ...contentModel, // sections and site, as for bearminion()
+  store: githubStore({ repo: 'acme/site', token: env.GITHUB_TOKEN }),
+})
+
+export default {
+  async fetch(request: Request) {
+    // Sign the person in first. handleHostedRequest trusts that you did.
+    const response = await handleHostedRequest(request, context)
+    return response ?? new Response('Not found', { status: 404 })
+  },
+}
+```
+
+- `handleHostedRequest` replaces the localhost check of the dev editor with a same-origin check (`Sec-Fetch-Site` and `Origin`), because the caller has authenticated the request. Never call it on a route with no sign-in in front of it: anyone who can reach it can write the content.
+- There is no undo history and no Commit changes in this entry. The repository is the history.
+- Tried in the Cloudflare Workers runtime (workerd): reads, a page create and a commit through `githubStore` work, and a cross-site request is refused.
 
 ## Build and package
 

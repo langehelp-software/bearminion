@@ -72,3 +72,15 @@ export function draftImageUsages(
   if (drafts.page) for (const ref of assetRefs(drafts.page)) if (ref.src === src) usages.push(describePageRef(ref, drafts.page, labels))
   return usages
 }
+
+/** One validation issue per image path in `document` whose file does not exist. */
+export async function missingAssetIssues(
+  document: unknown,
+  exists: (src: string) => Promise<boolean>,
+): Promise<{ path: string; message: string }[]> {
+  const refs = assetRefs(document)
+  const present = await Promise.all(refs.map((ref) => exists(ref.src)))
+  return refs.flatMap((ref, index) =>
+    present[index] ? [] : [{ path: ref.path, message: `Image file not found: ${ref.src}. Choose another image or upload it again.` }],
+  )
+}

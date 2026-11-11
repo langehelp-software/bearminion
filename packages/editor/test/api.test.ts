@@ -9,6 +9,7 @@ import { defineSection } from '../src/define-section.js'
 import { API_PREFIX, type EditorContext, type SectionRegistry } from '../src/options.js'
 import { IMAGE_BYTE_LIMIT, JSON_BODY_LIMIT } from '../src/security.js'
 import { createMigrator } from '../src/migrate.js'
+import { formFile } from '../src/forms-dev.js'
 import { createFileStore } from '../src/store.js'
 import { contentCounts, sectionOptions, sectionRegistry, sectionTypes, siteDefinition, siteOptions } from './starter.js'
 import { stableStringify } from '../src/stable-json.js'
@@ -1086,7 +1087,7 @@ describe('the forms of the site', () => {
   it('says whether the handler file exists right now, so a new file shows up without a restart', async () => {
     const context = withRegistry(seed(), { inquiry: contactLike })
     const formsDir = path.join(context.root, 'src', 'forms')
-    const withForms = { ...context, formsDir }
+    const withForms = { ...context, formsDir, formFile: (name: string) => formFile(formsDir, name) }
 
     const before = await call(withForms, 'GET', `${API_PREFIX}/forms`)
     expect(before.status).toBe(200)
