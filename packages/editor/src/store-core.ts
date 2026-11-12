@@ -10,7 +10,9 @@ export { StoreKeyError }
  * place the files live is a choice: {@link createFileStore} uses the local project, and another
  * implementation (a Git host's API, say) can stand in without touching the API handlers.
  *
- * Keys are `/`-separated paths relative to the content directory: `site.json`, `pages/about.json`.
+ * Keys are `/`-separated paths relative to the content directory: `site.json`, `pages/about.json`. A key with a
+ * leading slash is relative to the project root instead (`/src/content/blog/en/post.md`), for files that live outside
+ * the content directory, such as Markdown collections. See {@link repoKey}.
  * Values are text. Parsing, validation and the JSON layout belong to the caller.
  *
  * Not part of the store: undo history (local editor state in `.editor/`), `Commit changes`
@@ -59,6 +61,25 @@ export interface VideoStore {
   list(): Promise<ListedVideo[]>
   save(input: { originalName: string; bytes: Uint8Array; kind: VideoKind }): Promise<SavedVideo>
   remove(filename: string): Promise<boolean>
+}
+
+/** The key of a file by its path from the project root, for content outside the content directory. */
+export function repoKey(path: string): string {
+  return `/${path}`
+}
+
+/** Where a key points: the content directory or the project root, and the path segments inside it. */
+export interface ParsedKey {
+  base: 'content' | 'root'
+  parts: string[]
+}
+
+/** Splits a store key and refuses anything empty, with empty or dot segments, or leaving its base. */
+export function parseKey(key: string): ParsedKey {
+  const base = key.startsWith('/') ? 'root' : 'content'
+  const parts = (base === 'root' ? key.slice(1) : key).split('/')
+  if (key === '' || parts.some((part) => part === '' || part === '.' || part === '..')) throw new StoreKeyError(key)
+  return { base, parts }
 }
 
 export const SITE_KEY = 'site.json'

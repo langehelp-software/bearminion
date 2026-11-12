@@ -17,7 +17,7 @@ function reachable(entry: string): Map<string, string> {
     if (files.has(file)) return
     const source = fs.readFileSync(file, 'utf8')
     files.set(file, source)
-    for (const match of source.matchAll(/(?:^|\n)\s*(?:import|export)\s+(type\s+)?(?:[^'"\n;]*?\s+from\s+)?['"]([^'"]+)['"]/g)) {
+    for (const match of source.matchAll(/(?:^|\n)\s*(?:import|export)\s+(type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g)) {
       const [, typeOnly, spec] = match
       if (typeOnly || !spec?.startsWith('.')) continue
       const base = path.resolve(path.dirname(file), spec)
@@ -34,7 +34,24 @@ function reachable(entry: string): Map<string, string> {
 describe('the hosted entry', () => {
   it('reaches no Node module or Node global, so it runs in a Worker', () => {
     const problems: string[] = []
-    for (const [file, source] of reachable(path.join(SRC, 'hosted.ts'))) {
+    const files = reachable(path.join(SRC, 'hosted.ts'))
+    // The check is only worth something if it reaches the code that matters.
+    for (const name of [
+      'hosted-auth.ts',
+      'hosted-editor.ts',
+      'hosted-context.ts',
+      'collections.ts',
+      'entry-source.ts',
+      'entry-blocks.ts',
+      'store-content.ts',
+      'hosted-middleware.ts',
+    ]) {
+      expect(
+        [...files.keys()].some((file) => file.endsWith(`/${name}`)),
+        name,
+      ).toBe(true)
+    }
+    for (const [file, source] of files) {
       const name = path.relative(SRC, file)
       const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
       for (const match of code.matchAll(/(?:from|import)\s*\(?\s*['"](node:[^'"]+)['"]/g)) problems.push(`${name} imports ${match[1]}`)

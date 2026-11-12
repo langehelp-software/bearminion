@@ -9,7 +9,7 @@ import type { EditorContext } from '../src/options.js'
 import { stableStringify } from '../src/stable-json.js'
 import { createMigrator } from '../src/migrate.js'
 import { githubStore } from '../src/github-store.js'
-import { StoreKeyError, createFileStore, pageKey, type ContentStore } from '../src/store.js'
+import { StoreKeyError, createFileStore, pageKey, repoKey, type ContentStore } from '../src/store.js'
 import { FakeGithub } from './fake-github.js'
 import { sectionRegistry, siteDefinition } from './starter.js'
 
@@ -61,7 +61,18 @@ describe('file store', () => {
 
   it('refuses keys outside the content directory and writes nothing for a bad batch', async () => {
     const { contentDir, store } = fileStore()
-    for (const key of ['', '../site.json', 'pages/../../x.json', '/etc/passwd', 'pages//a.json', './a.json']) {
+    for (const key of [
+      '',
+      '/',
+      '../site.json',
+      'pages/../../x.json',
+      'pages//a.json',
+      './a.json',
+      '//a.md',
+      '/../x',
+      '/src/../../x',
+      '/a/./b',
+    ]) {
       await expect(store.read(key)).rejects.toBeInstanceOf(StoreKeyError)
     }
     await expect(
@@ -71,6 +82,24 @@ describe('file store', () => {
       ]),
     ).rejects.toBeInstanceOf(StoreKeyError)
     expect(fs.existsSync(path.join(contentDir, 'pages', 'ok.json'))).toBe(false)
+  })
+
+  it('addresses files outside the content directory by a leading slash, from the project root', async () => {
+    const { root, store } = fileStore()
+    await store.apply([
+      { type: 'write', key: repoKey('src/content/blog/en/b.md'), text: 'b' },
+      { type: 'write', key: repoKey('src/content/blog/en/a.md'), text: 'a' },
+    ])
+    expect(fs.readFileSync(path.join(root, 'src', 'content', 'blog', 'en', 'a.md'), 'utf8')).toBe('a')
+    expect(await store.read('/src/content/blog/en/a.md')).toBe('a')
+    expect(await store.exists('/src/content/blog/en/b.md')).toBe(true)
+    expect(await store.exists('/src/content/blog/en/c.md')).toBe(false)
+    expect(await store.list('/src/content/blog/en')).toEqual(['a.md', 'b.md'])
+    expect(await store.list('/src/content/blog/fr')).toBeUndefined()
+    await store.apply([{ type: 'remove', key: '/src/content/blog/en/a.md' }])
+    expect(await store.list('/src/content/blog/en')).toEqual(['b.md'])
+    // A key without the slash still means the content directory.
+    expect(await store.read('src/content/blog/en/b.md')).toBeUndefined()
   })
 
   it('saves, lists and removes uploads', async () => {

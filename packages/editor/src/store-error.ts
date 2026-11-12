@@ -1,7 +1,7 @@
-/** A key that is empty, absolute or leaves the content directory. */
+/** A key that is empty, has an empty or dot segment, or leaves its base directory. */
 export class StoreKeyError extends Error {
   constructor(key: string) {
-    super(`"${key}" is not a path inside the content directory.`)
+    super(`"${key}" is not a valid store path.`)
     this.name = 'StoreKeyError'
   }
 }

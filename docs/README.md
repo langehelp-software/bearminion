@@ -13,6 +13,7 @@ BearMinion is three things: the [`bearminion`](https://www.npmjs.com/package/bea
 | [Forms](forms/README.md) | Make the Contact form send messages: the handler in `src/forms`, its keys in the environment, the glue for your host, form services, email, Turnstile and spam checks |
 | [The command line](cli.md) | Add sections to a site with `npx bearminion add`, what it does with files you changed, the lock file, and `sync` for your own section directories |
 | [Building a theme](themes.md) | Define section types, the header and footer, fonts, the live preview and content collections |
+| [Markdown collections](collections.md) | Edit an existing Astro content collection (Markdown and frontmatter) through the editor API, with the site's own schema and no reformatting of what you did not touch (experimental) |
 | [The editor](editor.md) | Learn every editing feature: inline text, sections, the sidebar tabs, images, drafts, saving, history and git |
 | [Astro integration and package](integration.md) | Configure `bearminion()` in `astro.config.ts`, use the entry points, plug in a custom content store |
 | [Dev API](dev-api.md) | Call the localhost API the editor uses, with curl examples |

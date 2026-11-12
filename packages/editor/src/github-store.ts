@@ -1,6 +1,7 @@
 import { isAssetPath } from './asset-paths.js'
 import type { ListedImage, SavedImage } from './images.js'
-import { StoreError, StoreKeyError } from './store-error.js'
+import { StoreError } from './store-error.js'
+import { parseKey } from './store-core.js'
 import type { ContentStore, StoreOperation, UploadStore } from './store.js'
 import { hasImageExtension, isUploadFilename, uploadFilename } from './upload-names.js'
 
@@ -105,6 +106,20 @@ interface Target {
 }
 
 function branchStem(scope: string): string {
+  // `collection:<id>:<slug>` keeps its parts apart: `blog-en` + `x` and `blog` + `en-x` must not share a branch.
+  if (scope.startsWith('collection:')) {
+    const parts = scope
+      .split(':')
+      .map((piece) =>
+        piece
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 40),
+      )
+      .filter((piece) => piece !== '')
+    return `bearminion/${parts.join('/')}`
+  }
   const part = scope
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -137,9 +152,8 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
 
   /** The repository path of a store key, checked the way the file store checks it. */
   function contentPath(key: string): string {
-    const parts = key.split('/')
-    if (key === '' || parts.some((part) => part === '' || part === '.' || part === '..')) throw new StoreKeyError(key)
-    return inRepo(contentDir, key)
+    const { base, parts } = parseKey(key)
+    return base === 'root' ? inRepo(...parts) : inRepo(contentDir, ...parts)
   }
 
   async function send(
@@ -442,7 +456,8 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
 
   async function openPullRequest(scope: string, name: string, change: { written: string[]; removed: string[] }): Promise<void> {
     if ((await pullState(name)) === 'open') return
-    const kind = scope.replace(':', ': ')
+    const [head, collectionId, entrySlug] = scope.split(':')
+    const kind = head === 'collection' && collectionId && entrySlug ? `${collectionId}: ${entrySlug}` : scope.replace(':', ': ')
     const files = [...change.written.map((path) => `- ${path}`), ...change.removed.map((path) => `- ${path} (removed)`)].join('\n')
     const text = options.pullRequest?.({ scope, ...change }) ?? {
       title: `Edit ${kind}`,

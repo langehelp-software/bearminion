@@ -15,7 +15,7 @@ The package's entry points, the integration options, the storage interface and h
 | `bearminion/rich-text` | Anywhere | `renderRichText` and the rich-text helpers |
 | `bearminion/marks` | Anywhere | Heading and wordmark marks |
 | `bearminion/forms` | A server or function: Node, Vercel, Netlify, Cloudflare | `defineForm`, `FormError` and `verifyTurnstile`, the server side of the Contact form. Web-standard `Request` and `Response` only. Never import it into browser code (see [Forms](forms/README.md)) |
-| `bearminion/hosted` | A Worker or serverless function (experimental) | `createHostedContext`, `handleHostedRequest` and `githubStore`: the editor API without Node (see [Hosted entry](#hosted-entry-experimental)) |
+| `bearminion/hosted` | A Worker or serverless function (experimental) | `createHostedEditor` (GitHub sign-in plus the editor API), `createHostedContext`, `handleHostedRequest` and `githubStore`: the editor API without Node (see [Hosted entry](#hosted-entry-experimental)) |
 
 `astro` and `zod` (v4) are peer dependencies. A test keeps the runtime-neutral entries (including `bearminion/forms` and `bearminion/hosted`) free of Node, Astro and Vite imports.
 
@@ -38,6 +38,8 @@ export default defineConfig({
 
 `contentDir` defaults to `content`. `uploadsDir` defaults to `src/assets/uploads`. `videosDir` defaults to `public/videos` and must stay inside `public/`, which serves videos as they are. `maxVideoBytes` caps one video upload (default 50 MB). `pages: { rename?: boolean, delete?: boolean }` locks page operations for a site whose addresses carry search ranking or are the target of redirects. Both default to `true`. `rename: false` refuses changing any page's slug, including making another page the home page (which moves the old home page to a new address); `delete: false` refuses deleting a page. The API refuses a locked operation with `409` `operation_locked`, whoever asks, and the editor hides the controls. A slug typed when a page is created cannot be corrected afterwards from the editor while renaming is locked. `maxImageBytes` caps one image upload (default 5 MB); the editor checks it in the browser before it uploads and the server checks it again. `imageConvert: { to: 'webp', maxWidth?, quality? }` makes the editor re-encode images as WebP in the browser before they are uploaded, scaled down to `maxWidth` (default: no cap, never scaled up) at `quality` 0.1 to 1 (default 0.82), so large phone photos stay out of the repository. It is off by default, an image that would come out larger is kept as it is, and GIFs are never converted. Both are resolved from the Astro project root unless they are already absolute. `sectionsDir` is the folder with your section directories and the files `npx bearminion sync` generates from them (the starter sets `'src/components/sections'`). When it is set, `astro build`, `astro check` and `astro sync` stop if those files no longer match the directories, and `astro dev` warns; without it nothing is checked. `forms` sets the dev route for the forms in your site: a file `src/forms/contact.ts` that default-exports `defineForm(...)` answers at `/api/contact` during `astro dev`, as a dry run unless `BEARMINION_FORMS_LIVE=on` is set in the environment or in `.env.local`. `forms: { dir, prefix }` changes the folder (default `src/forms`) and the path (default `/api`); `forms: false` turns the route off, for a site whose Astro adapter serves the endpoint itself. The route exists only in `astro dev`; see [Forms](forms/README.md). `sections` and `site` are required: the site's section definitions and its `defineSite` result. They validate page and site writes and feed the editor's catalog (labels, options, defaults, wireframes, header and footer controls and limits).
 
+`collections: { id: collection({ schema, path }) }` lets the editor API edit the Markdown entries of an existing content collection (experimental; see [Markdown collections](collections.md)). Entries live outside `contentDir`, so a store key that starts with a slash means the project root instead of the content directory: `/src/content/blog/en/post.md`. `createFileStore` and `githubStore` both accept it.
+
 The integration hooks `astro:config:setup` and `astro:server:setup`. Outside `astro dev` (`build`, `preview`, `sync`) it returns immediately: no routes, no injected scripts, no Vite plugin. Nothing from this API is added to the production build.
 
 During `astro dev` the integration injects `virtual:bearminion-editor` into the page. That module mounts a Preact overlay in an open shadow root, so the editor styles never meet the site's Tailwind layer. The overlay is not registered for `astro build`.
@@ -48,7 +50,7 @@ The editor API reads and writes content through a `ContentStore`, never through 
 
 ```ts
 interface ContentStore {
-  read(key: string): Promise<string | undefined> // `site.json`, `pages/about.json`: paths inside the content directory
+  read(key: string): Promise<string | undefined> // `site.json`, `pages/about.json`: paths inside the content directory; `/src/content/blog/a.md`: from the project root
   exists(key: string): Promise<boolean>
   list(dir: string): Promise<string[] | undefined> // file names in `pages`, or undefined when it does not exist
   apply(operations: StoreOperation[]): Promise<void> // writes and removals that belong together (a rename, set-home)
@@ -140,6 +142,94 @@ export default {
 - `handleHostedRequest` replaces the localhost check of the dev editor with a same-origin check (`Sec-Fetch-Site` and `Origin`), because the caller has authenticated the request. Never call it on a route with no sign-in in front of it: anyone who can reach it can write the content.
 - There is no undo history and no Commit changes in this entry. The repository is the history.
 - Tried in the Cloudflare Workers runtime (workerd): reads, a page create and a commit through `githubStore` work, and a cross-site request is refused.
+
+### Sign-in: `createHostedEditor`
+
+`createHostedEditor` puts GitHub sign-in in front of the editor API. A person signs in with their own GitHub account, and every request then runs on **their** token: commits are authored by them, and the repository's own rules (branch protection, required reviews) apply to them as they would anywhere else. Access is decided by GitHub: only people with push access to `repo` may sign in.
+
+```ts
+import { createHostedEditor } from 'bearminion/hosted'
+
+const editor = createHostedEditor({
+  ...contentModel, // sections and site, as for bearminion()
+  repo: 'acme/site',
+  auth: {
+    clientId: env.GITHUB_CLIENT_ID,
+    clientSecret: env.GITHUB_CLIENT_SECRET,
+    secret: env.SESSION_SECRET, // 32+ characters: openssl rand -base64 32
+    origin: 'https://admin.example.com',
+  },
+  store: { mode: 'pr' }, // or the default 'direct'; also branch, rootDir, contentDir
+  // collections, pages, maxImageBytes, imageConvert: as for bearminion()
+})
+
+export default {
+  async fetch(request: Request) {
+    return (await editor.handle(request)) ?? new Response('Not found', { status: 404 })
+  },
+}
+```
+
+`editor.handle` answers `/__bearminion/auth/*` (`login`, `callback`, `session`, and `logout` by POST) and `/__bearminion/api/*`, which answers `401` with a `login` link until someone is signed in. Any other path returns `null`.
+
+Set up a **GitHub App** (not an OAuth App, whose tokens do not expire and cannot be limited to one repository): Repository permissions Contents and Pull requests read and write, Metadata read; callback URL `<origin>/__bearminion/auth/callback`; "Expire user authorization tokens" on; install it on the repository. The client id and secret and your own session secret belong in the environment.
+
+- The sign-in uses PKCE and a one-time `state`. A return address must be a path on your own site.
+- The session is one cookie, encrypted and authenticated with AES-GCM (`HttpOnly`, `SameSite=Lax`, `Secure` on https, and the `__Host-` prefix). It holds the person's GitHub token, which never reaches the browser's JavaScript. Changing `secret` signs everyone out.
+- A session ends after `sessionDays` (default 7). GitHub's user tokens last 8 hours; they are renewed with the refresh token, and push access is checked again each time, so a person removed from the repository loses access within hours.
+- Behind a proxy that rewrites the scheme or host, set `origin`: it is what the callback address, the cookie flags and the same-origin check use.
+- **The overlay.** `overlay: overlaySource` (from `bearminion/hosted-overlay`, the editor as one self-contained browser script, about 180 KB gzipped) makes `editor.handle` serve it at `/__bearminion/editor.js` to signed-in people, and `editor.inject(request, response)` adds it to a page your site rendered, for signed-in people only. A page that got the overlay is `Cache-Control: private, no-store` with `Vary: Cookie`, so no cache can hand it to a visitor. Do not cache the editor deployment's HTML at an edge cache in front of the Worker, or a signed-in person may be served a cached page without the overlay.
+- Not done yet: the preview endpoint, and showing images uploaded after the last build. Only tested against a fake GitHub so far; try it on a real GitHub App before relying on it.
+- Each request builds its own GitHub client, so the ETag cache does not carry over between requests. Reading a page costs a few GitHub API calls per request.
+- `editor.scope(request)` gives the signed-in person's `{ login, store, content }` for a request (`content.getSite()` and `content.getPage(slug)` read from their store with the build's migrate-and-validate checks). Use it to draw your own pages from the repository's current content.
+
+### The editor deployment on Astro
+
+The public site stays a static build with no editor code in it. The editor is a **second deployment of the same repository**, at its own address such as `admin.example.com`: a server-rendered build that signs people in and draws each page from the repository's current content, with the overlay on top. Edit `admin.example.com/about` to edit the page that `example.com/about` serves; the public site's normal deploy publishes the commit.
+
+```ts
+// astro.config.ts: the editor build only
+import vercel from '@astrojs/vercel' // or @astrojs/cloudflare, ...
+import { bearminionHostedEditor } from 'bearminion/astro'
+
+export default defineConfig({
+  adapter: vercel(),
+  integrations: [bearminion({ /* as before */ }), bearminionHostedEditor({ module: './src/editor.ts' })],
+})
+```
+
+```ts
+// src/editor.ts
+import { createHostedEditor } from 'bearminion/hosted'
+import { overlaySource } from 'bearminion/hosted-overlay'
+import { contentModel } from './lib/content-model'
+
+const secret = (name: string): string => {
+  const value = process.env[name]
+  if (!value) throw new Error(`Missing ${name}.`)
+  return value
+}
+
+// A function, so a host that hands over its secrets per request (Cloudflare) works the same way.
+export default () =>
+  createHostedEditor({
+    ...contentModel,
+    repo: secret('BEARMINION_REPO'), // 'owner/name'
+    auth: {
+      clientId: secret('GITHUB_CLIENT_ID'),
+      clientSecret: secret('GITHUB_CLIENT_SECRET'),
+      secret: secret('SESSION_SECRET'), // 32+ characters: openssl rand -base64 32
+    },
+    overlay: overlaySource,
+  })
+```
+
+On Cloudflare Workers the secrets are not in `process.env`: read them from `import { env } from 'cloudflare:workers'` instead of `process.env`.
+
+- `bearminionHostedEditor` switches the build to server output, needs an adapter, and registers a middleware that runs first: it answers `/__bearminion/*`, sends visitors to sign in (`signIn: 'required'`, the default; a page load is redirected, anything else gets 401), and for signed-in people sets `Astro.locals.bearminion` and injects the overlay. `signIn: 'optional'` shows visitors the site as it is.
+- The default template's `[...slug].astro` and `404.astro` draw from `Astro.locals.bearminion` when it is set, and from the build's content otherwise, so the same pages serve both builds.
+- Never add this integration to the public site's build: a test fails if the static build ever contains editor code.
+- Tried against a fake GitHub, in two runtimes: the built `@astrojs/vercel` function (its fetch handler, on Node 22) and the built `@astrojs/cloudflare` Worker in workerd (miniflare). Both: sign-in, a page drawn from a commit made after the build, the overlay, and the 302, 401 and 404 paths. Not yet tried on a real host, and the Vercel run bypasses Vercel's own request launcher.
 
 ## Build and package
 

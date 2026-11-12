@@ -23,6 +23,10 @@ describe('production build', () => {
         text.includes('handleEditorRequest') ||
         text.includes('bearminion-editor-client') ||
         text.includes('virtual:bearminion-editor') ||
+        // The hosted editor belongs to a separate deployment, never to the public static site.
+        text.includes('virtual:bearminion/editor') ||
+        text.includes('createHostedEditor') ||
+        text.includes('createHostedMiddleware') ||
         text.includes('mountEditor') ||
         text.includes('bm-sidebar')
       ) {

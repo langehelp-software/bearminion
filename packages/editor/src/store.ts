@@ -8,6 +8,8 @@ import {
   SITE_KEY,
   StoreKeyError,
   pageKey,
+  parseKey,
+  repoKey,
   type ContentStore,
   type StoreOperation,
   type UploadStore,
@@ -29,9 +31,8 @@ export interface FileStoreOptions {
 /** The content store for a local project: content as JSON files, uploads in a folder. */
 export function createFileStore({ root, contentDir, uploadsDir, videosDir }: FileStoreOptions): ContentStore {
   function resolve(key: string): string {
-    const parts = key.split('/')
-    if (key === '' || parts.some((part) => part === '' || part === '.' || part === '..')) throw new StoreKeyError(key)
-    const resolved = resolveInside(contentDir, ...parts)
+    const { base, parts } = parseKey(key)
+    const resolved = resolveInside(base === 'root' ? root : contentDir, ...parts)
     if (resolved === null) throw new StoreKeyError(key)
     return resolved
   }
@@ -118,5 +119,5 @@ function isErrno(error: unknown): error is NodeJS.ErrnoException {
   return error instanceof Error && 'code' in error
 }
 
-export { PAGES_DIR, SITE_KEY, StoreKeyError, pageKey }
+export { PAGES_DIR, SITE_KEY, StoreKeyError, pageKey, repoKey }
 export type { ContentStore, StoreOperation, UploadStore, VideoStore }
