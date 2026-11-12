@@ -33,7 +33,7 @@ describe('bearminionHostedEditor', () => {
   it('switches to server output, registers the middleware first and bundles the package with the site', () => {
     const { updates, middleware } = setup({ module: './src/editor.ts' })
     expect(updates[0]?.output).toBe('server')
-    expect(updates[0]?.vite.ssr.noExternal).toEqual(['bearminion'])
+    expect(updates[0]?.vite.ssr.noExternal).toEqual(['bearminion', 'x'])
     expect(middleware).toEqual([{ entrypoint: 'bearminion/hosted-astro', order: 'pre' }])
   })
 

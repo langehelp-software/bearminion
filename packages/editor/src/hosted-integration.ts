@@ -38,8 +38,9 @@ export function bearminionHostedEditor(options: HostedEditorIntegrationOptions):
         updateConfig({
           ...(config.output === 'static' ? { output: 'server' as const } : {}),
           vite: {
-            // The middleware imports a module this integration generates, so Vite has to bundle it with the project.
-            ssr: { noExternal: ['bearminion'] },
+            // The middleware imports a module this integration generates, so Vite has to bundle it with the project. Naming
+            // `noExternal` replaces Astro's own default for the adapter's entry, so the adapter is named here as well.
+            ssr: { noExternal: ['bearminion', config.adapter.name] },
             plugins: [
               {
                 name: 'bearminion:hosted-editor-module',

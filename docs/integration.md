@@ -189,35 +189,47 @@ The public site stays a static build with no editor code in it. The editor is a 
 
 ```ts
 // astro.config.ts: the editor build only
-import cloudflare from '@astrojs/cloudflare' // or @astrojs/vercel, ...
+import vercel from '@astrojs/vercel' // or @astrojs/cloudflare, ...
 import { bearminionHostedEditor } from 'bearminion/astro'
 
 export default defineConfig({
-  adapter: cloudflare(),
+  adapter: vercel(),
   integrations: [bearminion({ /* as before */ }), bearminionHostedEditor({ module: './src/editor.ts' })],
 })
 ```
 
 ```ts
-// src/editor.ts: a function, so Workers secrets are read per request
-import { env } from 'cloudflare:workers'
+// src/editor.ts
 import { createHostedEditor } from 'bearminion/hosted'
 import { overlaySource } from 'bearminion/hosted-overlay'
 import { contentModel } from './lib/content-model'
 
+const secret = (name: string): string => {
+  const value = process.env[name]
+  if (!value) throw new Error(`Missing ${name}.`)
+  return value
+}
+
+// A function, so a host that hands over its secrets per request (Cloudflare) works the same way.
 export default () =>
   createHostedEditor({
     ...contentModel,
-    repo: env.BEARMINION_REPO,
-    auth: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET, secret: env.SESSION_SECRET },
+    repo: secret('BEARMINION_REPO'), // 'owner/name'
+    auth: {
+      clientId: secret('GITHUB_CLIENT_ID'),
+      clientSecret: secret('GITHUB_CLIENT_SECRET'),
+      secret: secret('SESSION_SECRET'), // 32+ characters: openssl rand -base64 32
+    },
     overlay: overlaySource,
   })
 ```
 
+On Cloudflare Workers the secrets are not in `process.env`: read them from `import { env } from 'cloudflare:workers'` instead of `process.env`.
+
 - `bearminionHostedEditor` switches the build to server output, needs an adapter, and registers a middleware that runs first: it answers `/__bearminion/*`, sends visitors to sign in (`signIn: 'required'`, the default; a page load is redirected, anything else gets 401), and for signed-in people sets `Astro.locals.bearminion` and injects the overlay. `signIn: 'optional'` shows visitors the site as it is.
 - The default template's `[...slug].astro` and `404.astro` draw from `Astro.locals.bearminion` when it is set, and from the build's content otherwise, so the same pages serve both builds.
 - Never add this integration to the public site's build: a test fails if the static build ever contains editor code.
-- Tried in workerd (miniflare) against a fake GitHub: sign-in, a page drawn from a commit made after the build, the overlay, and the 302, 401 and 404 paths. Not yet tried on a real host.
+- Tried against a fake GitHub, in two runtimes: the built `@astrojs/vercel` function (its fetch handler, on Node 22) and the built `@astrojs/cloudflare` Worker in workerd (miniflare). Both: sign-in, a page drawn from a commit made after the build, the overlay, and the 302, 401 and 404 paths. Not yet tried on a real host, and the Vercel run bypasses Vercel's own request launcher.
 
 ## Build and package
 
