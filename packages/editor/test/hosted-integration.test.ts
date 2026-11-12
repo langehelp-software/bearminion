@@ -10,6 +10,7 @@ interface Update {
   output?: string
   vite: {
     ssr: { noExternal: string[] }
+    define: Record<string, string>
     plugins: { resolveId(id: string): string | null; load(id: string): string | null }[]
   }
 }
@@ -34,6 +35,7 @@ describe('bearminionHostedEditor', () => {
     const { updates, middleware } = setup({ module: './src/editor.ts' })
     expect(updates[0]?.output).toBe('server')
     expect(updates[0]?.vite.ssr.noExternal).toEqual(['bearminion', 'x'])
+    expect(updates[0]?.vite.define).toEqual({ 'import.meta.env.BEARMINION_HOSTED': 'true' })
     expect(middleware).toEqual([{ entrypoint: 'bearminion/hosted-astro', order: 'pre' }])
   })
 

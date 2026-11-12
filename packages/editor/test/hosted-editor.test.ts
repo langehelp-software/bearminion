@@ -303,11 +303,38 @@ describe('the editor API behind sign-in', () => {
     expect((await call('GET', `${API_PREFIX}/site`, { cookie: renewed ?? '', headers: same })).status).toBe(200)
   })
 
+  it('shares one renewal between requests that arrive together, since a refresh token works once', async () => {
+    const { call, signIn, same, advance, tokenCalls, contentTokens, cookiesOf } = world()
+    const { session } = await signIn('tok-ann', undefined, 'ref-ann')
+    advance(3550 * 1000)
+    const answers = await Promise.all(
+      Array.from({ length: 5 }, () => call('GET', `${API_PREFIX}/site`, { cookie: session ?? '', headers: same })),
+    )
+    expect(answers.map((answer) => answer.status)).toEqual([200, 200, 200, 200, 200])
+    expect(tokenCalls.filter((body) => body.grant_type === 'refresh_token')).toHaveLength(1)
+    expect(new Set(contentTokens.slice(-5))).toEqual(new Set(['tok-ann-2']))
+    const cookies = answers.map((answer) => cookiesOf(answer).find((cookie) => cookie.startsWith('__Host-bm-session=')))
+    expect(new Set(cookies).size).toBe(1)
+  })
+
+  it('lets a request that lost the race to renew carry on with the token while it still works', async () => {
+    const { call, signIn, same, advance, breakRefresh, cookiesOf } = world()
+    const { session } = await signIn('tok-ann', undefined, 'ref-ann')
+    breakRefresh()
+    advance(3550 * 1000)
+    const answer = await call('GET', `${API_PREFIX}/site`, { cookie: session ?? '', headers: same })
+    expect(answer.status).toBe(200)
+    expect(cookiesOf(answer).find((cookie) => cookie.startsWith('__Host-bm-session='))).toBeUndefined()
+    // Once the token has expired, there is nothing left to carry on with.
+    advance(60 * 1000)
+    expect((await call('GET', `${API_PREFIX}/site`, { cookie: session ?? '', headers: same })).status).toBe(401)
+  })
+
   it('signs the person out when the token cannot be renewed', async () => {
     const { call, signIn, same, advance, breakRefresh } = world()
     const { session } = await signIn('tok-ann', undefined, 'ref-ann')
     breakRefresh()
-    advance(3550 * 1000)
+    advance(3601 * 1000)
     expect((await call('GET', `${API_PREFIX}/site`, { cookie: session ?? '', headers: same })).status).toBe(401)
     // No refresh token at all: the session ends with the token.
     const bare = await signIn('tok-ann')
@@ -331,6 +358,22 @@ describe('the editor API behind sign-in', () => {
   it('leaves other paths to the site', async () => {
     const { call } = world()
     await expect(call('GET', '/about')).rejects.toThrow('no response')
+  })
+})
+
+describe('images from the repository', () => {
+  it('serves an image to a signed-in person on their token, and to nobody else', async () => {
+    const { call, signIn, github, contentTokens } = world()
+    github.push({ 'src/assets/uploads/a.png': 'not-really-a-png' })
+    const route = '/__bearminion/assets?src=src%2Fassets%2Fuploads%2Fa.png'
+    expect((await call('GET', route)).status).toBe(401)
+    const { session } = await signIn('tok-ann')
+    const image = await call('GET', route, { cookie: session ?? '' })
+    expect(image.status).toBe(200)
+    expect(image.headers.get('content-type')).toBe('image/png')
+    expect(await image.text()).toBe('not-really-a-png')
+    expect(contentTokens.at(-1)).toBe('tok-ann')
+    expect((await call('GET', '/__bearminion/assets?src=content%2Fsite.json', { cookie: session ?? '' })).status).toBe(404)
   })
 })
 

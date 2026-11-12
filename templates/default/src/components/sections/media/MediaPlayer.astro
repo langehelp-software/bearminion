@@ -2,6 +2,7 @@
 import type { Image } from 'bearminion'
 import { imageSrcset, imageUrl } from '../../../lib/image-url'
 import { cn } from '../../../lib/cn'
+import { editing } from '../../../lib/editing'
 import MediaFrame from '../../molecules/MediaFrame.astro'
 import type { MediaProps } from './definition'
 import { parseMediaSource } from './source'
@@ -44,7 +45,7 @@ const looping = source?.kind === 'file' && playback === 'loop'
 {
   empty ? (
     // The empty frame is an editor hint, so a built site leaves it out.
-    import.meta.env.DEV && (
+    editing && (
       <div class={cn(frame, 'placeholder-stripes flex flex-col items-center justify-center gap-4 p-6 text-center')} data-field={kind === 'image' ? imageField : undefined}>
         {kind === 'video' && (
           <span class="flex size-14 items-center justify-center rounded-full bg-fg text-bg" aria-hidden="true">

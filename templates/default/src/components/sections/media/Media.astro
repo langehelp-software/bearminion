@@ -4,6 +4,7 @@ import Typography from '../../atoms/Typography.astro'
 import SectionHeader from '../../molecules/SectionHeader.astro'
 import SectionShell from '../../molecules/SectionShell.astro'
 import MediaPlayer from './MediaPlayer.astro'
+import { editing } from '../../../lib/editing'
 import { parseMediaSource } from './source'
 
 interface Props {
@@ -19,7 +20,7 @@ const reveal = section.motion ?? motion
 const intro = props.intro && Boolean(props.eyebrow || props.heading || props.body)
 const filled = props.kind === 'video' ? Boolean(props.video && parseMediaSource(props.video)) : Boolean(props.image?.src && props.image.src !== 'placeholder' && !props.image.hidden)
 // A built site leaves out an empty frame, and with no heading either, the whole section.
-const showFrame = filled || import.meta.env.DEV
+const showFrame = filled || editing
 const rendered = showFrame || intro
 const player = {
   kind: props.kind,

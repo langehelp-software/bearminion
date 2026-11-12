@@ -2,6 +2,7 @@
 import Image from '../atoms/Image.astro'
 import { isRemote, resolveLocalAsset } from '../../lib/assets'
 import { cn } from '../../lib/cn'
+import { editing } from '../../lib/editing'
 
 interface Props {
   src?: string
@@ -31,7 +32,7 @@ const {
 const looksLocal = Boolean(src && src.replace(/^\//, '').startsWith('src/assets/'))
 const asset = src && !isRemote(src) ? resolveLocalAsset(src) : undefined
 let devSrc: string | undefined
-if (import.meta.env.DEV && looksLocal && !asset && src) {
+if (editing && looksLocal && !asset && src) {
   devSrc = `/__bearminion/assets?src=${encodeURIComponent(src.replace(/^\//, ''))}`
 }
 if (looksLocal && !asset && !devSrc) {

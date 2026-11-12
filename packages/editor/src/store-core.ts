@@ -40,12 +40,21 @@ export interface ContentStore {
    */
   assetExists?(src: string): Promise<boolean>
   /**
+   * The bytes of an image that content points at (`src/assets/...`), for the hosted editor to show it before the site
+   * has been built again. `undefined` when there is no such file. With `ifNoneMatch` (a validator from an earlier answer)
+   * a store that can tell answers `{ notModified: true }` without the bytes. A store that only serves files from a
+   * folder the site is built from (the local file store) leaves it out.
+   */
+  readAsset?(src: string, options?: { ifNoneMatch?: string }): Promise<StoredAsset | undefined>
+  /**
    * A view of the store for editing one entry (`page:about`, `site`), for stores that keep each entry's pending edits
    * apart, such as `githubStore` in `pr` mode, where every scope is a branch and a pull request. Reads see the entry's
    * pending edits, writes go to them. Absent when every write goes to the same place.
    */
   scoped?(scope: string): ContentStore
 }
+
+export type StoredAsset = { notModified: true; etag: string } | { bytes: Uint8Array; etag?: string }
 
 export type StoreOperation = { type: 'write'; key: string; text: string } | { type: 'remove'; key: string }
 

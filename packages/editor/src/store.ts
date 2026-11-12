@@ -11,6 +11,7 @@ import {
   parseKey,
   repoKey,
   type ContentStore,
+  type StoredAsset,
   type StoreOperation,
   type UploadStore,
   type VideoStore,
@@ -120,4 +121,4 @@ function isErrno(error: unknown): error is NodeJS.ErrnoException {
 }
 
 export { PAGES_DIR, SITE_KEY, StoreKeyError, pageKey, repoKey }
-export type { ContentStore, StoreOperation, UploadStore, VideoStore }
+export type { ContentStore, StoredAsset, StoreOperation, UploadStore, VideoStore }

@@ -241,6 +241,19 @@ export function createHostedAuth(options: HostedAuthOptions): HostedAuth {
     return cookie(request, names(request).session, await seal(await keyPromise, 'session', session), maxAge)
   }
 
+  // GitHub accepts a refresh token once, and a page load asks for the page, the overlay and the API at the same moment.
+  // Requests that find the same token about to expire share one renewal instead of racing for it.
+  const renewing = new Map<string, Promise<{ session: HostedSession; cookie: string } | 'denied' | null>>()
+
+  async function renew(request: Request, stored: HostedSession, refreshToken: string) {
+    const reply = await tokenRequest({ grant_type: 'refresh_token', refresh_token: refreshToken })
+    // No answer: GitHub refused the token (another server may have used it a moment ago) or could not be reached.
+    if (!reply) return null
+    if (!(await hasPushAccess(reply.access_token))) return 'denied' as const
+    const session = sessionFrom(reply, stored, stored.issuedAt)
+    return { session, cookie: await sessionCookie(request, session) }
+  }
+
   async function authenticate(request: Request): Promise<{ session: HostedSession; cookie?: string } | null> {
     const key = await keyPromise
     const stored = (await open(
@@ -254,10 +267,19 @@ export function createHostedAuth(options: HostedAuthOptions): HostedAuth {
     if (at < stored.expiresAt - REFRESH_MARGIN_MS) return { session: stored }
     // The token is about to expire: renew it, and check again that the person may still write to the repository.
     if (!stored.refreshToken || !stored.refreshExpiresAt || at >= stored.refreshExpiresAt) return null
-    const reply = await tokenRequest({ grant_type: 'refresh_token', refresh_token: stored.refreshToken })
-    if (!reply || !(await hasPushAccess(reply.access_token))) return null
-    const session = sessionFrom(reply, stored, stored.issuedAt)
-    return { session, cookie: await sessionCookie(request, session) }
+    let pending = renewing.get(stored.refreshToken)
+    if (!pending) {
+      const token = stored.refreshToken
+      pending = renew(request, stored, token).catch(() => null)
+      renewing.set(token, pending)
+      void pending.finally(() => renewing.delete(token))
+    }
+    const renewed = await pending
+    if (renewed === 'denied') return null
+    if (renewed) return renewed
+    // Not renewed. The token still works until it expires, so a request that lost the race to renew it carries on with
+    // it; the request that won sets the new cookie. After that moment the person has to sign in again.
+    return at < stored.expiresAt ? { session: stored } : null
   }
 
   async function login(request: Request): Promise<Response> {

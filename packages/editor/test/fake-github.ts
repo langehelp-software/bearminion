@@ -250,7 +250,7 @@ export class FakeGithub {
         if (headers.get('if-none-match') === etag) return new Response(null, { status: 304, headers: { etag } })
         const raw = (headers.get('accept') ?? '').includes('raw')
         return raw
-          ? new Response(decoder.decode(file), { status: 200, headers: { etag } })
+          ? new Response(file as BodyInit, { status: 200, headers: { etag } })
           : json(200, { type: 'file', name: target.split('/').pop() }, { etag })
       }
       const prefix = `${target}/`

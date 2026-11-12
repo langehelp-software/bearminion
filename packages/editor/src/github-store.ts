@@ -2,7 +2,7 @@ import { isAssetPath } from './asset-paths.js'
 import type { ListedImage, SavedImage } from './images.js'
 import { StoreError } from './store-error.js'
 import { parseKey } from './store-core.js'
-import type { ContentStore, StoreOperation, UploadStore } from './store.js'
+import type { ContentStore, StoredAsset, StoreOperation, UploadStore } from './store.js'
 import { hasImageExtension, isUploadFilename, uploadFilename } from './upload-names.js'
 
 /*
@@ -180,6 +180,32 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
       throw new StoreError(502, 'github_unreachable', `Could not reach GitHub: ${reason}.`)
     }
     return { status: response.status, headers: response.headers, text: await response.text() }
+  }
+
+  /** A GET whose answer is bytes (an image), which `send` would turn into text. 304 is passed on, as are 404 and other answers. */
+  async function fetchBytes(
+    route: string,
+    ifNoneMatch?: string,
+  ): Promise<{ status: number; etag: string | null; bytes: Uint8Array; text: string }> {
+    let response: Response
+    try {
+      response = await doFetch(`${api}${route}`, {
+        method: 'GET',
+        headers: {
+          accept: RAW,
+          authorization: `Bearer ${options.token}`,
+          'x-github-api-version': API_VERSION,
+          'user-agent': 'bearminion',
+          ...(ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {}),
+        },
+      })
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'the request failed'
+      throw new StoreError(502, 'github_unreachable', `Could not reach GitHub: ${reason}.`)
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    const ok = response.status === 200
+    return { status: response.status, etag: response.headers.get('etag'), bytes, text: ok ? '' : new TextDecoder().decode(bytes) }
   }
 
   /** What went wrong, in words the person editing can act on. */
@@ -416,6 +442,21 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
 
       uploads,
 
+      async readAsset(src, readOptions = {}): Promise<StoredAsset | undefined> {
+        if (!isAssetPath(src)) return undefined
+        const path = inRepo(src)
+        const refs = await target.refs()
+        for (const ref of refs) {
+          // One validator only fits one branch. With several to try, ask for the bytes unless it is the only one.
+          const reply = await fetchBytes(contentsRoute(path, ref), refs.length === 1 ? readOptions.ifNoneMatch : undefined)
+          if (reply.status === 404) continue
+          if (reply.status === 304 && readOptions.ifNoneMatch) return { notModified: true, etag: readOptions.ifNoneMatch }
+          if (reply.status !== 200) throw failure({ status: reply.status, headers: new Headers(), text: reply.text }, `read ${path}`)
+          return { bytes: reply.bytes, ...(reply.etag ? { etag: reply.etag } : {}) }
+        }
+        return undefined
+      },
+
       async assetExists(src) {
         if (!isAssetPath(src)) return false
         const slash = src.lastIndexOf('/')
@@ -520,6 +561,8 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
     apply: edits.apply,
     uploads: uploadScope.uploads,
     assetExists: base.assetExists,
+    // An image uploaded in pull request mode lives on the uploads branch until it is merged, so look there as well.
+    readAsset: uploadScope.readAsset,
     scoped,
   }
 }
