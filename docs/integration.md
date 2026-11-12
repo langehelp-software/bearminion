@@ -177,6 +177,7 @@ Set up a **GitHub App** (not an OAuth App, whose tokens do not expire and cannot
 - The sign-in uses PKCE and a one-time `state`. A return address must be a path on your own site.
 - The session is one cookie, encrypted and authenticated with AES-GCM (`HttpOnly`, `SameSite=Lax`, `Secure` on https, and the `__Host-` prefix). It holds the person's GitHub token, which never reaches the browser's JavaScript. Changing `secret` signs everyone out.
 - A session ends after `sessionDays` (default 7). GitHub's user tokens last 8 hours; they are renewed with the refresh token, and push access is checked again each time, so a person removed from the repository loses access within hours.
+- **Who may sign in.** Everyone with push access to `repo`: the owner, collaborators with Write, Maintain or Admin, and organization members or teams with those roles. Read and Triage do not count. The GitHub App must also be installed on the repository. To allow only some of them, list their GitHub logins: `auth: { allowedLogins: ['ann', 'bob'] }` (case does not matter). The list narrows push access and never widens it. It is checked at sign-in and on every request, so a login taken off the list (after a redeploy) is signed out at its next request. An empty list is refused. Set the GitHub App to "Only on this account" so other accounts cannot even start the authorization.
 - Behind a proxy that rewrites the scheme or host, set `origin`: it is what the callback address, the cookie flags and the same-origin check use.
 - **The overlay.** `overlay: overlaySource` (from `bearminion/hosted-overlay`, the editor as one self-contained browser script, about 180 KB gzipped) makes `editor.handle` serve it at `/__bearminion/editor.js` to signed-in people, and `editor.inject(request, response)` adds it to a page your site rendered, for signed-in people only. A page that got the overlay is `Cache-Control: private, no-store` with `Vary: Cookie`, so no cache can hand it to a visitor. Do not cache the editor deployment's HTML at an edge cache in front of the Worker, or a signed-in person may be served a cached page without the overlay.
 - **Images.** `GET /__bearminion/assets?src=src/assets/...` (signed-in people only) serves an image straight from the repository, so the editor's previews and a page that uses a file the build does not hold yet (just uploaded) draw it at once, without waiting for the editor deployment to build again. Only image files under `src/assets/` are served, with a private five-minute cache and `ETag` revalidation (a `304` from GitHub does not count against the rate limit). In pull request mode it also looks at the uploads branch.
@@ -234,6 +235,27 @@ On Cloudflare Workers the secrets are not in `process.env`: read them from `impo
 - The integration also sets `import.meta.env.BEARMINION_HOSTED`, which the template's components read (through `src/lib/editing.ts`) to show the editor's empty-slot hints and to serve images from the route above. The public build never has it, so its output has neither.
 - Never add this integration to the public site's build: a test fails if the static build ever contains editor code.
 - Tried against a fake GitHub, in two runtimes: the built `@astrojs/vercel` function (its fetch handler, on Node 22) and the built `@astrojs/cloudflare` Worker in workerd (miniflare). Both: sign-in, a page drawn from a commit made after the build, the overlay, and the 302, 401 and 404 paths. Not yet tried on a real host, and the Vercel run bypasses Vercel's own request launcher.
+
+### Keeping the site's files current
+
+`npm update bearminion` moves the library. The site's own files (`src/lib`, the image components, the page routes) were copied from the starter when the site was created and stay the site's, so a release that fixes one of them does not reach the site by itself. The hosted editor needs these in step with the library:
+
+| File | Why |
+| --- | --- |
+| `src/lib/editing.ts` (new in 1.16) | The flag the components read to show editor hints and to serve images the build does not hold |
+| `src/lib/image-url.ts`, `src/components/atoms/Image.astro`, `src/components/molecules/MediaFrame.astro`, `src/components/sections/media/Media.astro`, `src/components/sections/media/MediaPlayer.astro` | Without `editing`, an image uploaded in the editor makes the page answer 500 until the next build |
+| `src/components/seo/Seo.astro`, `src/components/sections/logo-strip/LogoStrip.astro` | The same, for the share image and the logo strip (1.16.2) |
+| `src/env.d.ts` | The types of `import.meta.env.BEARMINION_HOSTED` and `Astro.locals.bearminion` |
+| `src/pages/[...slug].astro`, `src/pages/404.astro` | Draw from `Astro.locals.bearminion` when it is set. Add the `Site` and `Page` type imports with them |
+
+To bring them up to date:
+
+1. Commit first, so git is the undo.
+2. `npx bearminion@latest status` lists the section files that differ. Sections that are only older (not edited by you) update with `npx bearminion@latest add media logo-strip`. A site with no `bearminion.lock.json` cannot tell old from edited and reports `differs`; look at `add <name> --diff`, and when the release only adds to your file, `--overwrite` replaces it and writes the lock file.
+3. Copy the files that belong to no section (`Seo.astro`, `env.d.ts`, the two page routes) from the starter, `templates/default/src` in the repository, or merge their changes by hand if you edited them.
+4. `npx astro check`, then build.
+
+The editor build warns when `src/lib/editing.ts` is missing from a starter site, or when a page route never reads `Astro.locals.bearminion`. It does not fail the build, because a site with its own theme may do both differently.
 
 ## Build and package
 

@@ -17,13 +17,14 @@ const b64url = (bytes: Uint8Array): string =>
     .replace(/=+$/, '')
 
 /** GitHub as the sign-in sees it: the authorize redirect, the token endpoint, `/user`, the repo's permissions, and the content API behind them. */
-function world(options: { sessionDays?: number } = {}) {
+function world(options: { sessionDays?: number; allowedLogins?: string[] } = {}) {
   const github = new FakeGithub({ files: { 'content/site.json': stableStringify(site) } })
   let clock = Date.parse('2026-11-11T08:00:00Z')
   const users: Record<string, { login: string; id: number; push: boolean }> = {
     'tok-ann': { login: 'ann', id: 1, push: true },
     'tok-ann-2': { login: 'ann', id: 1, push: true },
     'tok-bob': { login: 'bob', id: 2, push: false },
+    'tok-cat': { login: 'Cat', id: 3, push: true },
   }
   const codes: Record<string, { token: string; refresh?: string; challenge?: string }> = {}
   const refreshes: Record<string, string> = { 'ref-ann': 'tok-ann-2' }
@@ -85,6 +86,7 @@ function world(options: { sessionDays?: number } = {}) {
       secret: SECRET,
       origin: ORIGIN,
       ...(options.sessionDays ? { sessionDays: options.sessionDays } : {}),
+      ...(options.allowedLogins ? { allowedLogins: options.allowedLogins } : {}),
     },
     overlay: 'window.__overlay = true',
     fetch: fetchFake,
@@ -241,6 +243,38 @@ describe('sign-in', () => {
     expect(callback.status).toBe(403)
     expect(await callback.text()).toContain('bob cannot write to acme/site')
     expect(session).toBeUndefined()
+  })
+
+  it('lets only the listed logins in, whatever the case', async () => {
+    const { signIn, github } = world({ allowedLogins: ['ANN', ' cat '] })
+    const ann = await signIn('tok-ann')
+    expect(ann.callback.status).toBe(302)
+    expect(ann.session).toBeDefined()
+    expect((await signIn('tok-cat')).callback.status).toBe(302)
+    expect(github.requests).toHaveLength(0)
+  })
+
+  it('refuses a person with push access who is not on the list, and sets no session', async () => {
+    const { signIn } = world({ allowedLogins: ['ann'] })
+    const { callback, session } = await signIn('tok-cat')
+    expect(callback.status).toBe(403)
+    expect(await callback.text()).toContain('Cat is not on the list')
+    expect(session).toBeUndefined()
+  })
+
+  it('signs a person out on the next request once the login leaves the list', async () => {
+    const before = world({ allowedLogins: ['ann', 'cat'] })
+    const { session } = await before.signIn('tok-cat')
+    expect(session).toBeDefined()
+    const after = world({ allowedLogins: ['ann'] })
+    const response = await after.call('GET', `${API_PREFIX}/site`, { cookie: session ?? '', headers: after.same })
+    expect(response.status).toBe(401)
+    const still = await before.call('GET', `${API_PREFIX}/site`, { cookie: session ?? '', headers: before.same })
+    expect(still.status).toBe(200)
+  })
+
+  it('refuses an empty list instead of locking everyone out', () => {
+    expect(() => world({ allowedLogins: [] })).toThrow(/allowedLogins is empty/)
   })
 })
 
