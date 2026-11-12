@@ -36,6 +36,12 @@ export interface HostedAuthOptions {
   /** `owner/name`. Only people with push access to this repository may sign in. */
   repo: string
   /**
+   * GitHub logins that may sign in, on top of having push access. Default: everyone with push access. Case does not
+   * matter. A login taken off the list is signed out on its next request, without waiting for its token to expire.
+   * An empty list is refused, because it would lock everyone out.
+   */
+  allowedLogins?: readonly string[]
+  /**
    * The public origin of the editor, `https://admin.example.com`. Default: the origin of the request, which is wrong
    * behind a proxy that rewrites the scheme or host, so set it there. The GitHub App's callback URL must be
    * `<origin>/__bearminion/auth/callback`.
@@ -176,6 +182,11 @@ export function createHostedAuth(options: HostedAuthOptions): HostedAuth {
   const now = options.now ?? Date.now
   const sessionMs = (options.sessionDays ?? 7) * 86_400_000
   const keyPromise = deriveKey(options.secret)
+  if (options.allowedLogins !== undefined && options.allowedLogins.length === 0) {
+    throw new Error('createHostedAuth(): allowedLogins is empty, so nobody could sign in. Leave it out to allow everyone with push access.')
+  }
+  const allowedLogins = options.allowedLogins ? new Set(options.allowedLogins.map((login) => login.trim().toLowerCase())) : undefined
+  const isAllowed = (login: string): boolean => !allowedLogins || allowedLogins.has(login.toLowerCase())
 
   const originOf = (request: Request): string => (options.origin ?? new URL(request.url).origin).replace(/\/+$/, '')
   const secure = (request: Request): boolean => originOf(request).startsWith('https://')
@@ -262,6 +273,7 @@ export function createHostedAuth(options: HostedAuthOptions): HostedAuth {
       readCookies(request.headers.get('cookie')).get(names(request).session),
     )) as HostedSession | null
     if (!stored || typeof stored.token !== 'string' || typeof stored.login !== 'string') return null
+    if (!isAllowed(stored.login)) return null
     const at = now()
     if (at >= stored.issuedAt + sessionMs) return null
     if (at < stored.expiresAt - REFRESH_MARGIN_MS) return { session: stored }
@@ -331,6 +343,11 @@ export function createHostedAuth(options: HostedAuthOptions): HostedAuth {
     const who = (await userReply.json()) as { login?: unknown; id?: unknown }
     if (typeof who.login !== 'string' || typeof who.id !== 'number') {
       return page(502, 'Sign-in failed', 'GitHub sent an unexpected answer. Start again.', { 'set-cookie': clearState })
+    }
+    if (!isAllowed(who.login)) {
+      return page(403, 'No access', `${who.login} is not on the list of people who may edit this site. Ask the owner to add you.`, {
+        'set-cookie': clearState,
+      })
     }
     if (!(await hasPushAccess(reply.access_token))) {
       return page(

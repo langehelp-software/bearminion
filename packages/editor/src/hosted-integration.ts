@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { AstroIntegration } from 'astro'
+import { TEMPLATE_DOCS, staleTemplateProblems } from './hosted-template-check.js'
 
 const VIRTUAL_ID = 'virtual:bearminion/editor'
 const RESOLVED_ID = `\0${VIRTUAL_ID}`
@@ -28,13 +29,20 @@ export function bearminionHostedEditor(options: HostedEditorIntegrationOptions):
   return {
     name: 'bearminion:hosted-editor',
     hooks: {
-      'astro:config:setup'({ config, updateConfig, addMiddleware }) {
+      'astro:config:setup'({ config, updateConfig, addMiddleware, logger }) {
         if (!config.adapter) {
           throw new Error(
             'bearminionHostedEditor renders on a server, so the project needs an adapter (for example @astrojs/cloudflare or @astrojs/vercel). Add it to the editor build only.',
           )
         }
-        const editorModule = path.resolve(fileURLToPath(config.root), options.module)
+        const root = fileURLToPath(config.root)
+        const editorModule = path.resolve(root, options.module)
+        const stale = staleTemplateProblems(root)
+        if (stale.length > 0) {
+          logger.warn(
+            `This site's files are older than the editor needs:\n${stale.map((problem) => `  - ${problem}`).join('\n')}\nHow to bring them up to date: ${TEMPLATE_DOCS}`,
+          )
+        }
         updateConfig({
           ...(config.output === 'static' ? { output: 'server' as const } : {}),
           vite: {
