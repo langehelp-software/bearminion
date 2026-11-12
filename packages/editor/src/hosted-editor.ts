@@ -1,5 +1,6 @@
 import type { CollectionOptions } from './collections.js'
 import { type GithubStoreOptions, githubStore } from './github-store.js'
+import { ASSETS_ROUTE, serveStoreAsset } from './asset-route.js'
 import { AUTH_PREFIX, type HostedAuth, type HostedAuthOptions, createHostedAuth } from './hosted-auth.js'
 import { createHostedContext, handleHostedRequest } from './hosted-context.js'
 import type { ContentModel } from './model.js'
@@ -134,6 +135,14 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
       })
       if (signedIn.cookie) script.headers.append('set-cookie', signedIn.cookie)
       return script
+    }
+    if (pathname === ASSETS_ROUTE) {
+      // Images straight from the repository: the editor's previews, and pages that use a file the build does not hold yet.
+      const signedIn = await authenticate(request)
+      if (!signedIn) return unauthenticated()
+      const image = await serveStoreAsset(request, storeFor(signedIn.session.token))
+      if (signedIn.cookie) image.headers.append('set-cookie', signedIn.cookie)
+      return image
     }
     if (pathname !== API_PREFIX && !pathname.startsWith(`${API_PREFIX}/`)) return null
 

@@ -203,6 +203,50 @@ describe('githubStore uploads', () => {
   })
 })
 
+describe('githubStore readAsset', () => {
+  it('returns the bytes of a committed image, with a validator that makes the next read free', async () => {
+    const { github, store } = setup({ 'src/assets/uploads/.gitkeep': '' })
+    const saved = await store.uploads.save({ originalName: 'a.png', bytes: PNG, kind: 'png' })
+    const read = await store.readAsset?.(saved.path)
+    expect(read && 'bytes' in read ? Array.from(read.bytes) : null).toEqual(Array.from(PNG))
+    const etag = read && 'etag' in read ? read.etag : undefined
+    expect(etag).toBeTruthy()
+    const again = await store.readAsset?.(saved.path, { ifNoneMatch: etag as string })
+    expect(again).toEqual({ notModified: true, etag })
+    expect(github.requests.length).toBeGreaterThan(0)
+  })
+
+  it('answers undefined for a missing file, and asks GitHub nothing for a path that is not an image path', async () => {
+    const { github, store } = setup({ 'src/assets/uploads/a.png': 'x', 'content/site.json': '{}' })
+    expect(await store.readAsset?.('src/assets/uploads/missing.png')).toBeUndefined()
+    const before = github.requests.length
+    for (const src of [
+      'content/site.json',
+      'src/assets/../site.json',
+      '/src/assets/a.png',
+      'https://example.com/a.png',
+      'src/assets/a.svg',
+    ]) {
+      expect(await store.readAsset?.(src)).toBeUndefined()
+    }
+    expect(github.requests.length).toBe(before)
+  })
+
+  it('honours rootDir', async () => {
+    const { store } = setup({ 'site/src/assets/hero.png': PNG }, { rootDir: 'site' })
+    const read = await store.readAsset?.('src/assets/hero.png')
+    expect(read && 'bytes' in read ? Array.from(read.bytes) : null).toEqual(Array.from(PNG))
+  })
+
+  it('finds an image that waits in the uploads pull request, which the base branch does not have yet', async () => {
+    const { github, store } = setup({ 'content/pages/about.json': '{}' }, { mode: 'pr' })
+    const saved = await store.uploads.save({ originalName: 'a.png', bytes: PNG, kind: 'png' })
+    expect(github.bytes(saved.path)).toBeUndefined()
+    const read = await store.readAsset?.(saved.path)
+    expect(read && 'bytes' in read ? Array.from(read.bytes) : null).toEqual(Array.from(PNG))
+  })
+})
+
 describe('githubStore errors', () => {
   it('maps GitHub failures to store errors', async () => {
     const cases: [FakeGithub['mode'], number, string][] = [

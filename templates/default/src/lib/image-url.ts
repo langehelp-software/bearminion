@@ -1,6 +1,7 @@
 import { getImage } from 'astro:assets'
 import type { Image } from 'bearminion'
 import { isRemote, resolveLocalAsset } from './assets'
+import { editing } from './editing'
 
 /**
  * An image as a plain URL, for attributes that take no `<img>`, such as a video's `poster`. A file in `src/assets` is
@@ -31,7 +32,7 @@ export async function imageUrl(image: Image | undefined, maxWidth = 1920): Promi
   const asset = resolveLocalAsset(path)
   if (asset) return (await getImage({ src: asset, width: Math.min(asset.width, maxWidth), format: 'webp' })).src
   if (path.startsWith('src/assets/')) {
-    if (import.meta.env.DEV) return `/__bearminion/assets?src=${encodeURIComponent(path)}`
+    if (editing) return `/__bearminion/assets?src=${encodeURIComponent(path)}`
     throw new Error(`No file in src/assets for the image "${image.src}". Restore the file, or choose another image in the editor and save.`)
   }
   return image.src

@@ -45,6 +45,7 @@ describe('the hosted entry', () => {
       'entry-blocks.ts',
       'store-content.ts',
       'hosted-middleware.ts',
+      'asset-route.ts',
     ]) {
       expect(
         [...files.keys()].some((file) => file.endsWith(`/${name}`)),
