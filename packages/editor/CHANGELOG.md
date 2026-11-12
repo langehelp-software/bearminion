@@ -1,5 +1,13 @@
 # bearminion
 
+## 1.16.0
+
+### Minor Changes
+
+- 7b4b9df: Add Markdown collections to the editor API (experimental): `collections: { blog: collection({ schema, path: 'src/content/blog/{slug}.md' }) }` lets the editor API list, read, create, save, rename and delete the entries of an existing Astro content collection, validated with the site's own Zod schema. A save rewrites only the frontmatter keys and body blocks that changed, so an unchanged entry produces no diff. Rename and delete are off unless enabled. Store keys with a leading slash now address the project root (`/src/content/blog/en/post.md`), which the file store and `githubStore` both support.
+- 3b789a4: Add `bearminionHostedEditor` to `bearminion/astro` (experimental): turns a second deployment of your site into the hosted editor. It switches to server output, signs people in, and draws each page from the repository's current content with the editor overlay on top, while the public site stays a static build with no editor code. The default template's pages read `Astro.locals.bearminion` when it is set. `bearminion/hosted` also gains `createStoreContent`, `createHostedMiddleware` and `HostedEditor.scope`.
+- d555385: Add `createHostedEditor` to `bearminion/hosted` (experimental): GitHub App sign-in (OAuth with PKCE, encrypted session cookie) in front of the editor API. Each request runs on the signed-in person's own GitHub token, so commits are authored by them and the repository's branch rules apply; only people with push access to the repository may sign in. The editor overlay is also built as one browser script (`bearminion/hosted-overlay`), which `createHostedEditor` serves and injects into pages for signed-in people only.
+
 ## 1.15.0
 
 ### Minor Changes
