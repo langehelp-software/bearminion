@@ -81,6 +81,25 @@ describe('createHostedMiddleware', () => {
     expect(calls).toEqual(['handle', 'scope', 'next', 'inject'])
   })
 
+  it('shows a signed-in person why a page failed, with the editor on it, instead of a blank 500', async () => {
+    const { editor, calls } = editorFor({ signedIn: true })
+    const response = await createHostedMiddleware(editor)({ request: page(), locals: {} }, async () => {
+      throw new Error('No file in src/assets for image path "src/assets/uploads/<new>.png".')
+    })
+    expect(response.status).toBe(500)
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    const html = await response.text()
+    expect(html).toContain('This page could not be drawn')
+    expect(html).toContain('No file in src/assets for image path &#34;src/assets/uploads/&#60;new&#62;.png&#34;.')
+    expect(calls).toContain('inject')
+    // A request that is not a page load gets the error as it is.
+    await expect(
+      createHostedMiddleware(editor)({ request: page('/data', { accept: '*/*' }), locals: {} }, async () => {
+        throw new Error('boom')
+      }),
+    ).rejects.toThrow('boom')
+  })
+
   it('in optional mode shows visitors the site as it is', async () => {
     const { editor, calls } = editorFor({ signedIn: false })
     const locals: { bearminion?: unknown } = {}

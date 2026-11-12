@@ -2,6 +2,7 @@
 import type { Section } from '../definitions'
 import Image from '../../atoms/Image.astro'
 import { isRemote, resolveLocalAsset } from '../../../lib/assets'
+import { editing } from '../../../lib/editing'
 import SectionShell from '../../molecules/SectionShell.astro'
 
 interface Props {
@@ -19,6 +20,8 @@ function showImage(src: string) {
   if (src === 'placeholder') return false
   if (isRemote(src)) return true
   if (src.replace(/^\//, '').startsWith('src/assets/') && !resolveLocalAsset(src)) {
+    // Just uploaded in the hosted editor: <Image> draws it from the editor's route.
+    if (editing) return true
     throw new Error(`No file in src/assets for image path "${src}". Restore the file, or choose another image in the editor and save.`)
   }
   return Boolean(resolveLocalAsset(src))

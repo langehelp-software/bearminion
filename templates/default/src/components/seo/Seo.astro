@@ -2,6 +2,7 @@
 import { hasJsonLdId, mergeJsonLd, siteJsonLdIds, type Page } from 'bearminion'
 import type { Site } from '../organisms/site-definition'
 import { isRemote, resolveLocalAsset } from '../../lib/assets'
+import { editing } from '../../lib/editing'
 
 interface Props {
   site: Site
@@ -16,9 +17,11 @@ function resolveAgainstSite(value: string): string {
   return new URL(value, site.url).href
 }
 
-function absoluteImage(src: string): string {
+function absoluteImage(src: string): string | undefined {
   if (isRemote(src)) return src
   const asset = resolveLocalAsset(src)
+  // An image just uploaded in the hosted editor is not in this build yet. A preview has no use for a share image.
+  if (!asset && editing) return undefined
   if (!asset) throw new Error(`No file in src/assets for image path "${src}". Restore the file, or choose another image in the editor and save.`)
   return new URL(asset.src, site.url).href
 }
