@@ -39,7 +39,9 @@ It asks for the site's name and web address. Open the address `npm run dev` prin
 - **Images**: upload, choose how they fill their frame and which part stays in view
 - **Colors**: pick three, and the editor builds a full light and dark palette that stays readable
 
-Content is plain JSON in your project, validated on every save and kept in your git history. The editor only runs during `astro dev`; the published site is static HTML with nothing from the editor in it.
+Content is plain JSON in your project, validated on every save and kept in your git history. The editor runs during `astro dev`; the published site is static HTML with nothing from the editor in it.
+
+**Editing online is opt-in.** `npx bearminion add hosted` sets up a second deployment where people sign in with GitHub and edit in the browser. Whoever may push to the repository may edit, and every save is a commit under their name. See [Edit online](https://docs.bearminion.com/hosted-editor/).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/design.png" alt="The Design tab: color mode, brand, neutral and link colors, and a preview of every section tone in light and dark mode" width="100%" />

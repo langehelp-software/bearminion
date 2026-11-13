@@ -59,3 +59,45 @@ export async function loadThemePreview(environment: object, previewModule: strin
   }
   return preview as ThemePreview
 }
+
+/** A theme's preview, or a function that loads it on first use (so a server only pays for it when someone edits). */
+export type ThemePreviewSource = ThemePreview | (() => ThemePreview | Promise<ThemePreview>)
+
+export interface PreviewRenderers {
+  renderPreview: (page: unknown, motion: boolean) => Promise<string>
+  renderSitePreview: (site: unknown, pathname: string) => Promise<SitePreviewHtml>
+}
+
+/**
+ * The two renderers the editor API calls, from a theme's preview. For a server that holds the theme's components in
+ * its own bundle (the hosted editor); the dev server loads the module through Vite instead.
+ */
+export function previewRenderers(source: ThemePreviewSource): PreviewRenderers {
+  let loading: Promise<ThemePreview> | undefined
+  const load = (): Promise<ThemePreview> => {
+    loading ??= Promise.resolve(typeof source === 'function' ? source() : source).then((preview) => {
+      if (!preview || typeof preview.page !== 'function') {
+        throw new Error('The preview module must default-export defineThemePreview({ page, site? }).')
+      }
+      return preview
+    })
+    // A failed load (a module that throws while it starts) is tried again on the next request.
+    loading.catch(() => {
+      loading = undefined
+    })
+    return loading
+  }
+  return {
+    async renderPreview(page, motion) {
+      const preview = await load()
+      const sections = typeof page === 'object' && page !== null && 'sections' in page && Array.isArray(page.sections) ? page.sections : []
+      return preview.page({ sections, motion })
+    },
+    async renderSitePreview(site, pathname) {
+      const preview = await load()
+      if (!preview.site)
+        throw new PreviewUnavailableError('The theme preview does not define `site`, so header and footer have no live preview.')
+      return preview.site({ site: site as never, pathname })
+    },
+  }
+}

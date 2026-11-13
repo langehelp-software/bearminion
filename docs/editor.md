@@ -3,7 +3,9 @@ title: The editor
 description: "Everything the BearMinion editor does: inline editing, sections, the sidebar tabs, images, drafts, saving, history and git."
 ---
 
-The editor is a dev-only overlay on your own site. You edit the page where it is, and the sidebar holds everything that is not on the page. Nothing reaches your files until you save.
+The editor is an overlay on your own site. You edit the page where it is, and the sidebar holds everything that is not on the page. Nothing reaches your files until you save.
+
+This page describes the editor on your computer, in `astro dev`. The same editor can run at a web address where people sign in with GitHub: see [Edit online](hosted-editor.md), which also lists [what differs there](hosted-editor.md#what-differs-from-the-editor-on-your-computer).
 
 ![The editor open on the home page: a section toolbar on the left of the page and the sidebar on the right.](images/editor-overview.webp)
 

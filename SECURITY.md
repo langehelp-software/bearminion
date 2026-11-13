@@ -22,7 +22,7 @@ Security fixes go to the latest `1.x` release.
 
 ## What the hosted editor protects
 
-The hosted editor (`bearminion/hosted`, see [the integration guide](docs/integration.md#hosted-entry-experimental)) is a separate, internet-facing deployment, so its model is different from the dev server's.
+The hosted editor (`bearminion/hosted`, see [Edit online](docs/hosted-editor.md) and [the integration guide](docs/integration.md#hosted-entry)) is a separate, internet-facing deployment, so its model is different from the dev server's.
 
 - **Who may edit.** A person signs in with their own GitHub account through a GitHub App. Sign-in succeeds only when that account has push access to the configured repository and, if `allowedLogins` is set, is on the list. Everyone else gets a 403 page and no cookie.
 - **No shared credential.** Every request runs on the signed-in person's own GitHub token. GitHub authors the commits as them and applies branch protection and required reviews to them. The deployment holds no write token of its own.
@@ -31,6 +31,6 @@ The hosted editor (`bearminion/hosted`, see [the integration guide](docs/integra
 - **Requests.** Every `/__bearminion/*` route except sign-in needs a session. Writes also need a same-origin request (`Sec-Fetch-Site`, `Origin`). A page with the editor overlay is never cacheable.
 - **Writes** are validated against the same schemas as the dev editor before anything is committed.
 
-Things to know: access follows GitHub, so removing a person's push access ends their writes at once but their cookie can keep loading the editor screens until the session ends (set `allowedLogins` and redeploy, or change the session secret, to cut it sooner). Anyone with push access can use the editor unless `allowedLogins` narrows it. A private GitHub App lets only its owner sign in; for a team, make it public and set `allowedLogins`. There is no rate limiting of sign-in beyond GitHub's own. This part of the package is experimental and has been exercised against a fake GitHub and one real Vercel deployment.
+Things to know: access follows GitHub, so removing a person's push access ends their writes at once, but their cookie can keep loading the editor screens until GitHub's token is next renewed (push access is checked again then, at most 8 hours later) or the session ends (set `allowedLogins` and redeploy, or change the session secret, to cut it sooner). Anyone with push access can use the editor unless `allowedLogins` narrows it. A private GitHub App lets only its owner sign in; for a team, make it public and set `allowedLogins`. There is no rate limiting of sign-in beyond GitHub's own. It has been exercised against a fake GitHub in tests and on real Vercel deployments with a real GitHub App; Cloudflare has not been run on a real account.
 
 Out of scope: `astro dev --host` on an untrusted network (the editor refuses non-local hosts, but the rest of the dev server does not), and the security of the static site you build, which is plain Astro output.

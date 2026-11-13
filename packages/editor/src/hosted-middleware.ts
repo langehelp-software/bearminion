@@ -1,5 +1,6 @@
 import { AUTH_PREFIX } from './hosted-auth.js'
 import type { HostedEditor, HostedScope } from './hosted-editor.js'
+import type { ThemePreviewSource } from './preview.js'
 
 /*
  * The hosted editor as request middleware for a server-rendered site (Astro's `onRequest`, or any framework with the same
@@ -16,6 +17,8 @@ export interface HostedMiddlewareOptions {
    * live content and the overlay.
    */
   signIn?: 'required' | 'optional'
+  /** The theme's preview renderer, for the editor's live preview. See `HostedHandleOptions.preview`. */
+  preview?: ThemePreviewSource
 }
 
 export interface HostedMiddlewareContext {
@@ -54,9 +57,10 @@ function failedPage(error: unknown): string {
 
 export function createHostedMiddleware(editor: HostedEditor, options: HostedMiddlewareOptions = {}): HostedMiddleware {
   const required = options.signIn !== 'optional'
+  const handleOptions = options.preview ? { preview: options.preview } : {}
 
   return async ({ request, locals }, next) => {
-    const handled = await editor.handle(request)
+    const handled = await editor.handle(request, handleOptions)
     if (handled) return handled
 
     const scope = await editor.scope(request)

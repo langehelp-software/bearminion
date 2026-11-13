@@ -3,7 +3,7 @@ import type { Site } from '../components/organisms/site-definition'
 import type { Page } from '../components/sections/definitions'
 import SectionList from '../components/sections/SectionList.astro'
 import Base from '../layouts/Base.astro'
-import { getPages, getSite } from '../lib/content'
+import { getPage, getPages, getSite } from '../lib/content'
 
 export async function getStaticPaths() {
   const site = await getSite()
@@ -31,6 +31,11 @@ if (live) {
   site = (await live.content.getSite()) as Site
   page = (await live.content.getPage(Astro.params.slug ?? 'index')) as Page | undefined
   if (!page) return Astro.rewrite('/404')
+} else if (!page) {
+  // A server build has no props: a visitor to a hosted editor with `signIn: 'optional'` gets the build's content.
+  site = await getSite()
+  page = await getPage(Astro.params.slug ?? 'index')
+  if (!page || page.slug === '404') return Astro.rewrite('/404')
 }
 if (!site || !page) throw new Error(`No content for ${Astro.url.pathname}.`)
 ---

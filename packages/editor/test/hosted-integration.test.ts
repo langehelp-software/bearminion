@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -18,16 +20,19 @@ interface Update {
 function setup(
   options: Parameters<typeof bearminionHostedEditor>[0],
   config: Record<string, unknown> = { adapter: { name: 'x' }, output: 'static' },
+  projectRoot = root,
 ) {
+  const warnings: string[] = []
   const updates: Update[] = []
   const middleware: unknown[] = []
   const hook = (bearminionHostedEditor(options).hooks as Hooks)['astro:config:setup'] as (input: unknown) => void
   hook({
-    config: { root: pathToFileURL(`${root}/`), ...config },
+    config: { root: pathToFileURL(`${projectRoot}/`), ...config },
+    logger: { warn: (message: string) => warnings.push(message) },
     updateConfig: (value: Update) => updates.push(value),
     addMiddleware: (value: unknown) => middleware.push(value),
   })
-  return { updates, middleware }
+  return { updates, middleware, warnings }
 }
 
 describe('bearminionHostedEditor', () => {
@@ -51,7 +56,47 @@ describe('bearminionHostedEditor', () => {
     const code = plugin.load(id as string) as string
     expect(code).toContain(`export { default as editor } from ${JSON.stringify(path.join(root, 'src/editor.ts'))}`)
     expect(code).toContain('export const signIn = "optional"')
+    expect(code).toContain('export const preview = undefined')
     expect(plugin.load('other')).toBeNull()
+  })
+
+  describe('the theme preview', () => {
+    const moduleCode = (options: Parameters<typeof bearminionHostedEditor>[0], projectRoot: string) => {
+      const result = setup(options, undefined, projectRoot)
+      const plugin = result.updates[0]?.vite.plugins[0] as Update['vite']['plugins'][number]
+      return { code: plugin.load('\0virtual:bearminion/editor') as string, warnings: result.warnings }
+    }
+    const project = (files: string[]) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bm-hosted-'))
+      for (const file of files) {
+        fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true })
+        fs.writeFileSync(path.join(dir, file), 'export default {}')
+      }
+      return dir
+    }
+
+    it('wires src/lib/render-preview.ts when the site has it, loaded on first use', () => {
+      const dir = project(['src/lib/render-preview.ts'])
+      const { code, warnings } = moduleCode({ module: './src/editor.ts' }, dir)
+      expect(code).toContain(`export const preview = () => import(${JSON.stringify(path.join(dir, 'src/lib/render-preview.ts'))})`)
+      expect(warnings.filter((warning) => warning.includes('live preview'))).toEqual([])
+    })
+
+    it('warns once when the site has none, and stays quiet when it was turned off', () => {
+      const dir = project([])
+      expect(moduleCode({ module: './src/editor.ts' }, dir).warnings.filter((warning) => warning.includes('live preview'))).toHaveLength(1)
+      const off = moduleCode({ module: './src/editor.ts', previewModule: false }, project(['src/lib/render-preview.ts']))
+      expect(off.code).toContain('export const preview = undefined')
+      expect(off.warnings.filter((warning) => warning.includes('live preview'))).toEqual([])
+    })
+
+    it('takes a module named by hand, and refuses one that does not exist', () => {
+      const dir = project(['src/theme/preview.ts'])
+      expect(moduleCode({ module: './src/editor.ts', previewModule: 'src/theme/preview.ts' }, dir).code).toContain(
+        JSON.stringify(path.join(dir, 'src/theme/preview.ts')),
+      )
+      expect(() => moduleCode({ module: './src/editor.ts', previewModule: 'src/nope.ts' }, dir)).toThrow(/previewModule/)
+    })
   })
 
   it('refuses a project with no adapter, a bad mode and a missing module', () => {

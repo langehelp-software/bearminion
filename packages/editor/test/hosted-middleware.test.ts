@@ -111,4 +111,18 @@ describe('createHostedMiddleware', () => {
     expect(locals.bearminion).toBeUndefined()
     expect(calls).not.toContain('inject')
   })
+
+  it('hands the theme preview to the editor with every request', async () => {
+    const got: unknown[] = []
+    const editor = {
+      async handle(_request: Request, options?: unknown) {
+        got.push(options)
+        return new Response('ok')
+      },
+    } as unknown as HostedEditor
+    const preview = { page: async () => '' }
+    await createHostedMiddleware(editor, { preview })({ request: page(), locals: {} }, async () => new Response('site'))
+    await createHostedMiddleware(editor)({ request: page(), locals: {} }, async () => new Response('site'))
+    expect(got).toEqual([{ preview }, {}])
+  })
 })

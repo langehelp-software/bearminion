@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { AUTH_PREFIX, EDITOR_SCRIPT_PATH, createHostedAuth, createHostedEditor } from '../src/hosted.js'
 import { API_PREFIX } from '../src/model.js'
+import type { ThemePreviewSource } from '../src/preview.js'
 import { stableStringify } from '../src/stable-json.js'
 import { FakeGithub } from './fake-github.js'
 import { sectionRegistry, siteDefinition } from './starter.js'
@@ -17,7 +18,7 @@ const b64url = (bytes: Uint8Array): string =>
     .replace(/=+$/, '')
 
 /** GitHub as the sign-in sees it: the authorize redirect, the token endpoint, `/user`, the repo's permissions, and the content API behind them. */
-function world(options: { sessionDays?: number; allowedLogins?: string[] } = {}) {
+function world(options: { sessionDays?: number; allowedLogins?: string[]; preview?: ThemePreviewSource } = {}) {
   const github = new FakeGithub({ files: { 'content/site.json': stableStringify(site) } })
   let clock = Date.parse('2026-11-11T08:00:00Z')
   const users: Record<string, { login: string; id: number; push: boolean }> = {
@@ -110,6 +111,7 @@ function world(options: { sessionDays?: number; allowedLogins?: string[] } = {})
         },
         body: init.body === undefined ? undefined : JSON.stringify(init.body),
       }),
+      options.preview ? { preview: options.preview } : undefined,
     )
     if (response === null) throw new Error(`no response for ${pathname}`)
     return response
@@ -392,6 +394,64 @@ describe('the editor API behind sign-in', () => {
   it('leaves other paths to the site', async () => {
     const { call } = world()
     await expect(call('GET', '/about')).rejects.toThrow('no response')
+  })
+})
+
+describe('live preview', () => {
+  const page = { slug: 'index', title: 'Home', seo: { title: 'Home', description: '', noindex: false, nofollow: false }, sections: [] }
+
+  it('answers 501 when the caller passes no theme preview', async () => {
+    const { call, signIn, same } = world()
+    const { session } = await signIn('tok-ann')
+    const response = await call('POST', `${API_PREFIX}/preview`, { cookie: session, headers: same, body: { page } })
+    expect(response.status).toBe(501)
+    expect(await response.json()).toMatchObject({ error: 'preview_unavailable' })
+  })
+
+  it('draws a draft page and the header and footer with the theme preview, loading it once', async () => {
+    let loads = 0
+    const seen: unknown[] = []
+    const { call, signIn, same } = world({
+      preview: async () => {
+        loads += 1
+        return {
+          async page(input) {
+            seen.push(input)
+            return '<section>draft</section>'
+          },
+          async site({ pathname }) {
+            return { header: `<header>${pathname}</header>`, footer: '<footer></footer>' }
+          },
+        }
+      },
+    })
+    const { session } = await signIn('tok-ann')
+    const drawn = await call('POST', `${API_PREFIX}/preview`, { cookie: session, headers: same, body: { page, motion: false } })
+    expect(drawn.status).toBe(200)
+    expect(await drawn.json()).toEqual({ html: '<section>draft</section>' })
+    expect(seen).toEqual([{ sections: [], motion: false }])
+    const chrome = await call('POST', `${API_PREFIX}/preview/site`, { cookie: session, headers: same, body: { site, pathname: '/about' } })
+    expect(chrome.status).toBe(200)
+    expect(await chrome.json()).toEqual({ header: '<header>/about</header>', footer: '<footer></footer>' })
+    expect(loads).toBe(1)
+  })
+
+  it('is closed to a visitor, and a preview module that fails to load is tried again', async () => {
+    let loads = 0
+    const { call, signIn, same } = world({
+      preview: async () => {
+        loads += 1
+        if (loads === 1) throw new Error('boom')
+        return { page: async () => '<section>ok</section>' }
+      },
+    })
+    expect((await call('POST', `${API_PREFIX}/preview`, { headers: same, body: { page } })).status).toBe(401)
+    expect(loads).toBe(0)
+    const { session } = await signIn('tok-ann')
+    expect((await call('POST', `${API_PREFIX}/preview`, { cookie: session, headers: same, body: { page } })).status).toBe(500)
+    expect((await call('POST', `${API_PREFIX}/preview`, { cookie: session, headers: same, body: { page } })).status).toBe(200)
+    const chrome = await call('POST', `${API_PREFIX}/preview/site`, { cookie: session, headers: same, body: { site, pathname: '/' } })
+    expect(chrome.status).toBe(501)
   })
 })
 

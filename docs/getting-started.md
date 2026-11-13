@@ -3,7 +3,7 @@ title: Getting started
 description: "Create a BearMinion site, edit it by clicking on the page, and put it online on Vercel, Netlify or Cloudflare."
 ---
 
-BearMinion gives you an Astro website you edit by clicking on it. Your content is plain files in your project, the editor only runs on your computer, and what you publish is a static site with no database and no server.
+BearMinion gives you an Astro website you edit by clicking on it. Your content is plain files in your project, the editor runs on your computer, and what you publish is a static site with no database and no server. When other people need to edit, [add the online editor](hosted-editor.md) later.
 
 You need [Node.js](https://nodejs.org) 22.12 or newer.
 
@@ -63,6 +63,10 @@ Press **Ctrl/Cmd+S** to save. The editor writes your changes to `content/` and n
 
 From then on: edit, save, commit, push. Your host rebuilds the site on every push.
 
+### Let other people edit
+
+A client or a colleague should not need a terminal. `npx bearminion add hosted` sets up a second deployment where they sign in with GitHub and edit in the browser. Who may edit is whoever may push to the repository, and each save is a commit under their name. The public site stays static. See [Edit online](hosted-editor.md).
+
 ### Analytics
 
 Paste the snippet your analytics tool gives you under **Site → Analytics & scripts**, save, commit and push. It runs on your live site only: not while you edit, and not on Vercel or Netlify preview deployments, so your own testing stays out of the numbers. There is nothing to configure. If your host does not mark its previews, or you want to force it either way, set the environment variable `BEARMINION_ANALYTICS` to `off` or `on` for that build (see the [template guide](../templates/default/README.md#analytics)).
@@ -88,10 +92,11 @@ The banner is a tool, not legal advice. Switch it off only when your analytics s
 | `astro.config.ts` | Astro's settings, including the `bearminion()` integration |
 | `AGENTS.md`, `CLAUDE.md` | Instructions for an AI assistant working in the site: keep secrets out of the chat and git, and set up the Contact form step by step. See [Forms](forms/README.md#with-an-ai-assistant) |
 
-The editor and its API exist only while `npm run dev` runs. `npm run build` leaves them out entirely.
+The editor and its API exist only while `npm run dev` runs. `npm run build` leaves them out entirely. The [online editor](hosted-editor.md) is a separate build you opt into; it never becomes part of this one.
 
 ## Next
 
 - [The editor](editor.md): everything you can do on the page and in the sidebar
+- [Edit online](hosted-editor.md): let people edit in the browser, signed in with GitHub
 - [Building a theme](themes.md): add a section type, or change the look
 - [Content files](content.md): the JSON the editor writes, for editing by hand or by script

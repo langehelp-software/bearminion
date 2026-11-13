@@ -60,6 +60,20 @@ From then on: edit, save, commit, push. The site rebuilds by itself.
 
 Your content is plain files in your project, so every change is in your git history and nothing can lock you in. The editor only exists on your computer: the published site is fast, static HTML.
 
+## Let other people edit, online
+
+A client or a colleague should not need a terminal. One command adds a second deployment, at an address such as `admin.example.com`, where people sign in with GitHub and edit in the browser:
+
+```bash
+npx bearminion add hosted
+```
+
+- **Access is repository access.** Whoever may push to the repository may edit. No extra accounts, passwords or roles.
+- **Every save is a commit under the editor's own name**, or a pull request if you want review first.
+- **The public site stays static.** The editor is a separate build on its own address and never ships to visitors.
+
+See [Edit online](https://docs.bearminion.com/hosted-editor/).
+
 ## Learn more
 
 - [bearminion.com](https://bearminion.com): what it looks like, with a demo of the editor

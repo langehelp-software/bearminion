@@ -87,7 +87,7 @@ Without `--host`, the command looks for `vercel.json`, `netlify.toml`, `wrangler
 
 ## Set up the hosted editor
 
-The [hosted editor](integration.md#the-editor-deployment-on-astro) is a second deployment of your site that signs people in with GitHub and edits the repository. `add hosted` prepares the repository for it:
+The [hosted editor](hosted-editor.md) is a second deployment of your site that signs people in with GitHub and edits the repository ([Edit online](hosted-editor.md) is the full guide). `add hosted` prepares the repository for it:
 
 ```sh
 npx bearminion add hosted --dry-run     # look first

@@ -15,7 +15,7 @@ The package's entry points, the integration options, the storage interface and h
 | `bearminion/rich-text` | Anywhere | `renderRichText` and the rich-text helpers |
 | `bearminion/marks` | Anywhere | Heading and wordmark marks |
 | `bearminion/forms` | A server or function: Node, Vercel, Netlify, Cloudflare | `defineForm`, `FormError` and `verifyTurnstile`, the server side of the Contact form. Web-standard `Request` and `Response` only. Never import it into browser code (see [Forms](forms/README.md)) |
-| `bearminion/hosted` | A Worker or serverless function (experimental) | `createHostedEditor` (GitHub sign-in plus the editor API), `createHostedContext`, `handleHostedRequest` and `githubStore`: the editor API without Node (see [Hosted entry](#hosted-entry-experimental)) |
+| `bearminion/hosted` | A serverless function or a Worker | `createHostedEditor` (GitHub sign-in plus the editor API), `createHostedContext`, `handleHostedRequest` and `githubStore`: the editor API without Node (see [Hosted entry](#hosted-entry)) |
 
 `astro` and `zod` (v4) are peer dependencies. A test keeps the runtime-neutral entries (including `bearminion/forms` and `bearminion/hosted`) free of Node, Astro and Vite imports.
 
@@ -60,7 +60,7 @@ interface ContentStore {
 
 Values are text. Validation, parsing and the file layout (sorted keys, two spaces, trailing newline) stay in the editor, so every store writes the same bytes. `apply` runs writes before removals; a store that can make the whole batch atomic, such as a single commit, should.
 
-### GitHub store (experimental)
+### GitHub store
 
 `githubStore` keeps content in a GitHub repository. It uses web-standard `fetch` only, so it also runs in a Worker or a serverless function.
 
@@ -118,7 +118,11 @@ const content = loadContent('/absolute/path/to/content', model) // { site, pages
 sectionDefinitions.hero.schema.parse(sectionDefinitions.hero.defaults)
 ```
 
-## Hosted entry (experimental)
+## Hosted entry
+
+Setting up the hosted editor for a site? Start with [Edit online](hosted-editor.md): what it is, who may edit, and the setup in five steps. This section is the reference for the pieces underneath.
+
+**Where it stands.** On Vercel the hosted editor is tested end to end on real deployments with a real GitHub App. On Cloudflare Workers it has run only in the local Workers runtime (workerd), never on a Cloudflare account, so that host is still experimental.
 
 `bearminion/hosted` is the editor API for a Worker or a serverless function, where there is no developer machine. It uses web-standard APIs only (a test fails if the entry ever reaches a Node module or global), and it is the piece a hosted editor is built on. It is not a hosted editor by itself: signing people in and serving the editor page are yours to add.
 
@@ -182,8 +186,9 @@ Set up a **GitHub App** (not an OAuth App, whose tokens do not expire and cannot
 - **The overlay.** `overlay: overlaySource` (from `bearminion/hosted-overlay`, the editor as one self-contained browser script, about 180 KB gzipped) makes `editor.handle` serve it at `/__bearminion/editor.js` to signed-in people, and `editor.inject(request, response)` adds it to a page your site rendered, for signed-in people only. A page that got the overlay is `Cache-Control: private, no-store` with `Vary: Cookie`, so no cache can hand it to a visitor. Do not cache the editor deployment's HTML at an edge cache in front of the Worker, or a signed-in person may be served a cached page without the overlay.
 - **Images.** `GET /__bearminion/assets?src=src/assets/...` (signed-in people only) serves an image straight from the repository, so the editor's previews and a page that uses a file the build does not hold yet (just uploaded) draw it at once, without waiting for the editor deployment to build again. Only image files under `src/assets/` are served, with a private five-minute cache and `ETag` revalidation (a `304` from GitHub does not count against the rate limit). In pull request mode it also looks at the uploads branch.
 - **A page that cannot be drawn** (content that fails validation, a template error) answers `500` with a page that says why and carries the overlay, for signed-in people. It is never cached. Visitors never reach it.
-- **Renewing the token.** GitHub accepts a refresh token once, and a page load asks for the page, the overlay and the API together, so requests that find the token about to expire share one renewal. A request that loses the race to renew carries on with the old token while it still works; after it expires the person signs in again. Not yet tried against GitHub for how long the old token lives after a renewal.
-- Not done yet: the preview endpoint. Only tested against a fake GitHub and one real deployment so far.
+- **Renewing the token.** GitHub accepts a refresh token once, and a page load asks for the page, the overlay and the API together, so requests that find the token about to expire share one renewal. A request that loses the race to renew carries on with the old token while it still works; after it expires the person signs in again. How long GitHub keeps the old token alive after a renewal has not been measured.
+- **Live preview.** `editor.handle(request, { preview })` takes the theme's preview renderer (the default export of `src/lib/render-preview.ts`, or a function that loads it), and the editor then redraws a draft as it changes: a section just added, a layout switched, the header and footer. Without it `POST /preview` answers `501` and those changes show after Save and a reload. `bearminionHostedEditor` passes it by itself.
+- Tried on a real Vercel deployment with a real GitHub App: sign-in, saves as commits under the person's name, access refused without push access and off `allowedLogins`, and token renewal after 8 hours.
 - Each request builds its own GitHub client, so the ETag cache does not carry over between requests. Reading a page costs a few GitHub API calls per request.
 - `editor.scope(request)` gives the signed-in person's `{ login, store, content }` for a request (`content.getSite()` and `content.getPage(slug)` read from their store with the build's migrate-and-validate checks). Use it to draw your own pages from the repository's current content.
 
@@ -236,11 +241,12 @@ export default () =>
 
 On Cloudflare Workers the secrets are not in `process.env`: read them from `import { env } from 'cloudflare:workers'` instead of `process.env`.
 
-- `bearminionHostedEditor` switches the build to server output, needs an adapter, and registers a middleware that runs first: it answers `/__bearminion/*`, sends visitors to sign in (`signIn: 'required'`, the default; a page load is redirected, anything else gets 401), and for signed-in people sets `Astro.locals.bearminion` and injects the overlay. `signIn: 'optional'` shows visitors the site as it is.
+- `bearminionHostedEditor` switches the build to server output, needs an adapter, and registers a middleware that runs first: it answers `/__bearminion/*`, sends visitors to sign in (`signIn: 'required'`, the default; a page load is redirected, anything else gets 401), and for signed-in people sets `Astro.locals.bearminion` and injects the overlay. `signIn: 'optional'` shows visitors the site as it was at build time.
+- **Live preview.** The integration wires the theme's preview renderer, `src/lib/render-preview.ts` when the file exists, so the editor redraws a section as it is added or its layout changes, as it does in `astro dev`. Name another file with `previewModule: 'src/theme/preview.ts'`, or pass `previewModule: false` to leave it out. The module is loaded on the first preview request, not at page load.
 - The default template's `[...slug].astro` and `404.astro` draw from `Astro.locals.bearminion` when it is set, and from the build's content otherwise, so the same pages serve both builds.
 - The integration also sets `import.meta.env.BEARMINION_HOSTED`, which the template's components read (through `src/lib/editing.ts`) to show the editor's empty-slot hints and to serve images from the route above. The public build never has it, so its output has neither.
 - Never add this integration to the public site's build: a test fails if the static build ever contains editor code.
-- Tried against a fake GitHub, in two runtimes: the built `@astrojs/vercel` function (its fetch handler, on Node 22) and the built `@astrojs/cloudflare` Worker in workerd (miniflare). Both: sign-in, a page drawn from a commit made after the build, the overlay, and the 302, 401 and 404 paths. Not yet tried on a real host, and the Vercel run bypasses Vercel's own request launcher.
+- Tried against a fake GitHub, in two runtimes: the built `@astrojs/vercel` function (its fetch handler, on Node 22) and the built `@astrojs/cloudflare` Worker in workerd (miniflare). Both: sign-in, a page drawn from a commit made after the build, the overlay, and the 302, 401 and 404 paths. On a real host it has run on Vercel only; Cloudflare has not been run on a real account.
 
 ### Keeping the site's files current
 
@@ -253,6 +259,7 @@ On Cloudflare Workers the secrets are not in `process.env`: read them from `impo
 | `src/components/seo/Seo.astro`, `src/components/sections/logo-strip/LogoStrip.astro` | The same, for the share image and the logo strip (1.16.2) |
 | `src/env.d.ts` | The types of `import.meta.env.BEARMINION_HOSTED` and `Astro.locals.bearminion` |
 | `src/pages/[...slug].astro`, `src/pages/404.astro` | Draw from `Astro.locals.bearminion` when it is set. Add the `Site` and `Page` type imports with them |
+| `src/lib/render-preview.ts` | The live preview. A site without it still works; added or rearranged sections then show after Save and a reload |
 
 To bring them up to date, the shortest way is `npx bearminion@latest add hosted`: it writes all of the files in the table, including the ones that belong to no section, and recognises files of any release back to 1.0 (a site without a lock file included). By hand:
 
