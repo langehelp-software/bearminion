@@ -7,6 +7,8 @@ By default the editor runs only on your computer, while `npm run dev` runs. The 
 
 Nobody clones anything, installs Node or opens a terminal. That makes it the way to let a client, a marketer or a colleague edit the site.
 
+<!-- TODO: screenshots. docs/images/hosted-sign-in.webp (GitHub's Authorize screen for the App, from the admin address in a private window) under "Set it up" step 5, and docs/images/hosted-editor.webp (the editor open on the admin address, address bar in frame) here. -->
+
 It is opt-in. A new site has no hosted editor and nothing of it in the public build. You add it with one command when you want it.
 
 ## How it fits together

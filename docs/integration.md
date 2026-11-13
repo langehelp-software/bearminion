@@ -15,7 +15,7 @@ The package's entry points, the integration options, the storage interface and h
 | `bearminion/rich-text` | Anywhere | `renderRichText` and the rich-text helpers |
 | `bearminion/marks` | Anywhere | Heading and wordmark marks |
 | `bearminion/forms` | A server or function: Node, Vercel, Netlify, Cloudflare | `defineForm`, `FormError` and `verifyTurnstile`, the server side of the Contact form. Web-standard `Request` and `Response` only. Never import it into browser code (see [Forms](forms/README.md)) |
-| `bearminion/hosted` | A Worker or serverless function (experimental) | `createHostedEditor` (GitHub sign-in plus the editor API), `createHostedContext`, `handleHostedRequest` and `githubStore`: the editor API without Node (see [Hosted entry](#hosted-entry-experimental)) |
+| `bearminion/hosted` | A serverless function or a Worker | `createHostedEditor` (GitHub sign-in plus the editor API), `createHostedContext`, `handleHostedRequest` and `githubStore`: the editor API without Node (see [Hosted entry](#hosted-entry)) |
 
 `astro` and `zod` (v4) are peer dependencies. A test keeps the runtime-neutral entries (including `bearminion/forms` and `bearminion/hosted`) free of Node, Astro and Vite imports.
 
@@ -60,7 +60,7 @@ interface ContentStore {
 
 Values are text. Validation, parsing and the file layout (sorted keys, two spaces, trailing newline) stay in the editor, so every store writes the same bytes. `apply` runs writes before removals; a store that can make the whole batch atomic, such as a single commit, should.
 
-### GitHub store (experimental)
+### GitHub store
 
 `githubStore` keeps content in a GitHub repository. It uses web-standard `fetch` only, so it also runs in a Worker or a serverless function.
 
@@ -118,9 +118,11 @@ const content = loadContent('/absolute/path/to/content', model) // { site, pages
 sectionDefinitions.hero.schema.parse(sectionDefinitions.hero.defaults)
 ```
 
-## Hosted entry (experimental)
+## Hosted entry
 
 Setting up the hosted editor for a site? Start with [Edit online](hosted-editor.md): what it is, who may edit, and the setup in five steps. This section is the reference for the pieces underneath.
+
+**Where it stands.** On Vercel the hosted editor is tested end to end on real deployments with a real GitHub App. On Cloudflare Workers it has run only in the local Workers runtime (workerd), never on a Cloudflare account, so that host is still experimental.
 
 `bearminion/hosted` is the editor API for a Worker or a serverless function, where there is no developer machine. It uses web-standard APIs only (a test fails if the entry ever reaches a Node module or global), and it is the piece a hosted editor is built on. It is not a hosted editor by itself: signing people in and serving the editor page are yours to add.
 

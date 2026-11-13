@@ -22,7 +22,7 @@ Security fixes go to the latest `1.x` release.
 
 ## What the hosted editor protects
 
-The hosted editor (`bearminion/hosted`, see [Edit online](docs/hosted-editor.md) and [the integration guide](docs/integration.md#hosted-entry-experimental)) is a separate, internet-facing deployment, so its model is different from the dev server's.
+The hosted editor (`bearminion/hosted`, see [Edit online](docs/hosted-editor.md) and [the integration guide](docs/integration.md#hosted-entry)) is a separate, internet-facing deployment, so its model is different from the dev server's.
 
 - **Who may edit.** A person signs in with their own GitHub account through a GitHub App. Sign-in succeeds only when that account has push access to the configured repository and, if `allowedLogins` is set, is on the list. Everyone else gets a 403 page and no cookie.
 - **No shared credential.** Every request runs on the signed-in person's own GitHub token. GitHub authors the commits as them and applies branch protection and required reviews to them. The deployment holds no write token of its own.
