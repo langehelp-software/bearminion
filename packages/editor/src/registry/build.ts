@@ -3,7 +3,7 @@ import path from 'node:path'
 import { scanSections } from '../sections-manifest.js'
 import { closureOf, filesUnder } from './closure.js'
 import { hashContent } from './hash.js'
-import { REGISTRY_SCHEMA_VERSION, type Registry, type RegistryHistory, type RegistryItem } from './types.js'
+import { REGISTRY_SCHEMA_VERSION, type Registry, type RegistryGroup, type RegistryHistory, type RegistryItem } from './types.js'
 
 export const SECTIONS_DIR = 'src/components/sections'
 
@@ -30,6 +30,8 @@ export interface BuildOptions {
   /** Hashes of earlier releases (`registry-history.json`). */
   history?: RegistryHistory
   template?: string
+  /** Files outside the sections that go together, by group name. Each must exist in the template. */
+  groups?: Record<string, RegistryGroup>
 }
 
 /** Everything the registry holds, worked out from the template and not yet written anywhere. */
@@ -62,6 +64,15 @@ export function readRegistry(options: BuildOptions): Registry {
     items[entry.dir] = { dir: entry.dir, type: entry.key, label, description, files: closure.files, npm }
   }
 
+  const groups: Record<string, RegistryGroup> = {}
+  for (const [name, group] of Object.entries(options.groups ?? {})) {
+    for (const file of group.files) {
+      if (!fs.existsSync(path.join(templateDir, file))) throw new Error(`The "${name}" group lists ${file}, which is not in the template.`)
+      tracked.add(file)
+    }
+    groups[name] = { ...group, files: [...group.files].sort() }
+  }
+
   const files: Registry['files'] = {}
   for (const file of [...tracked].sort()) {
     const hash = hashContent(file, fs.readFileSync(path.join(templateDir, file)))
@@ -70,7 +81,14 @@ export function readRegistry(options: BuildOptions): Registry {
       .filter((value): value is string => value !== undefined && value !== hash)
     files[file] = { hash, history: [...new Set(earlier)] }
   }
-  return { schemaVersion: REGISTRY_SCHEMA_VERSION, template: options.template ?? 'default', version, files, items }
+  return {
+    schemaVersion: REGISTRY_SCHEMA_VERSION,
+    template: options.template ?? 'default',
+    version,
+    files,
+    items,
+    ...(Object.keys(groups).length > 0 ? { groups } : {}),
+  }
 }
 
 /** Writes `registry.json` and a copy of every file it lists under `files/`, replacing what was there. */

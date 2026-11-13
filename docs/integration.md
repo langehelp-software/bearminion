@@ -191,16 +191,22 @@ Set up a **GitHub App** (not an OAuth App, whose tokens do not expire and cannot
 
 The public site stays a static build with no editor code in it. The editor is a **second deployment of the same repository**, at its own address such as `admin.example.com`: a server-rendered build that signs people in and draws each page from the repository's current content, with the overlay on top. Edit `admin.example.com/about` to edit the page that `example.com/about` serves; the public site's normal deploy publishes the commit.
 
-```ts
-// astro.config.ts: the editor build only
-import vercel from '@astrojs/vercel' // or @astrojs/cloudflare, ...
-import { bearminionHostedEditor } from 'bearminion/astro'
+The quick way is `npx bearminion add hosted` ([the command](cli.md#set-up-the-hosted-editor)): it brings the site's files up to date, writes `src/editor.ts` and a separate `astro.editor.config.ts`, adds a `build:editor` script, and prints the GitHub App and Vercel checklist. The rest of this section is what it writes.
 
-export default defineConfig({
+```ts
+// astro.editor.config.ts: the build of the editor deployment, beside your astro.config.ts
+import vercel from '@astrojs/vercel' // or @astrojs/cloudflare, ...
+import { mergeConfig } from 'astro/config'
+import { bearminionHostedEditor } from 'bearminion/astro'
+import site from './astro.config'
+
+export default mergeConfig(site, {
   adapter: vercel(),
-  integrations: [bearminion({ /* as before */ }), bearminionHostedEditor({ module: './src/editor.ts' })],
+  integrations: [bearminionHostedEditor({ module: './src/editor.ts' })],
 })
 ```
+
+The editor deployment builds with `astro build --config astro.editor.config.ts` (a `build:editor` script; set it as the second project's Build Command). The public site keeps building from `astro.config.ts`, which never mentions the editor. Putting the integration inside `astro.config.ts` behind an environment variable also works, but then the public build's config names editor code, and the variable has to be right on both projects.
 
 ```ts
 // src/editor.ts
@@ -248,7 +254,7 @@ On Cloudflare Workers the secrets are not in `process.env`: read them from `impo
 | `src/env.d.ts` | The types of `import.meta.env.BEARMINION_HOSTED` and `Astro.locals.bearminion` |
 | `src/pages/[...slug].astro`, `src/pages/404.astro` | Draw from `Astro.locals.bearminion` when it is set. Add the `Site` and `Page` type imports with them |
 
-To bring them up to date:
+To bring them up to date, the shortest way is `npx bearminion@latest add hosted`: it writes all of the files in the table, including the ones that belong to no section, and recognises files of any release back to 1.0 (a site without a lock file included). By hand:
 
 1. Commit first, so git is the undo.
 2. `npx bearminion@latest status` lists the section files that differ. Sections that are only older (not edited by you) update with `npx bearminion@latest add media logo-strip`. A site with no `bearminion.lock.json` cannot tell old from edited and reports `differs`; look at `add <name> --diff`, and when the release only adds to your file, `--overwrite` replaces it and writes the lock file.

@@ -6,8 +6,9 @@ import { applyPlan, SECTIONS_PATH } from './add/apply.js'
 import { formatCommand, detectPackageManager, installCommand, missingPackages, runInstall, type Exec } from './add/packages.js'
 import { checkForm } from './add/check-form.js'
 import { applyForm, detectHost, GLUE, HANDLER_PATH, HANDLERS, planForm } from './add/forms.js'
+import { applyHosted, BUILD_SCRIPT, checklist, HOSTS, planHosted, writesHosted, type HostedAction } from './add/hosted.js'
 import { readLock, writeLock } from './add/lock.js'
-import { isPresent, planAdd, writesFile, type FileAction, type Plan } from './add/plan.js'
+import { dirtyFiles, isPresent, planAdd, writesFile, type FileAction, type Plan } from './add/plan.js'
 import { statusOf, type FileState } from './add/status.js'
 import { REGISTRY_SCHEMA_VERSION, type Registry, type RegistryItem } from './registry/types.js'
 import { SectionsError, staleSectionsMessage, syncSections } from './sections-manifest.js'
@@ -20,12 +21,14 @@ Usage
   npx bearminion add <section...> [options]
   npx bearminion add --list
   npx bearminion add form [<service>] [--host <host>]
+  npx bearminion add hosted [--host vercel]
   npx bearminion status [--json]
   npx bearminion check form [--host <host>] [--json]
   npx bearminion sync [options]
 
 Commands
   add               Copy sections into this site, with the files they need
+  add hosted        Set the site up for the hosted editor: the starter files it needs, the editor module, and a build for the editor deployment
   status            Show which sections are in this site and whether their files match this release
   check form        Look for what keeps the Contact form from working: missing files, wrong names, unset variables
   sync              Rewrite sections/definitions.gen.ts and components.gen.ts from the section directories
@@ -42,6 +45,10 @@ Options for add
 Options for add form
   --host <host>     Where the site runs (found from the project when omitted). See --list
   --list            List the services and hosts
+
+Options for add hosted
+  --host <host>     Where the editor deployment runs. Only vercel so far (the default)
+  --dry-run, -y, --overwrite, --install, --json, --diff work as for sections
 
 Options for check form
   --host <host>     Where the site runs (found from the project when omitted)
@@ -182,6 +189,7 @@ function diffAgainstRelease(root: string, registryDir: string, file: string): st
 
 async function runAdd(root: string, names: string[], values: Values, io: Io): Promise<number> {
   if (names[0] === 'form') return runAddForm(root, names.slice(1), values, io)
+  if (names[0] === 'hosted') return runAddHosted(root, names.slice(1), values, io)
   const { log } = io
   const json = values.json === true
   const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
@@ -338,6 +346,158 @@ async function runAdd(root: string, names: string[], values: Values, io: Io): Pr
       log(`The sections import packages this site does not list. Install them: ${formatCommand(installPlan)}`)
     if (installed === 'failed') log(`Installing failed. Run it yourself: ${formatCommand(installPlan as NonNullable<typeof installPlan>)}`)
   }
+  return installed === 'failed' ? 1 : 0
+}
+
+async function runAddHosted(root: string, names: string[], values: Values, io: Io): Promise<number> {
+  const { log } = io
+  const json = values.json === true
+  const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
+    log(json ? JSON.stringify({ ok: false, error: message, ...extra }, null, 2) : message)
+    return code
+  }
+  if (names.length > 0) return fail('`add hosted` takes no names. For example: npx bearminion add hosted --host vercel', 2)
+  const hostName = values.host ?? 'vercel'
+  if (hostName === 'cloudflare') {
+    return fail(
+      'This command does not set up Cloudflare yet. The recipe for it is in the integration guide: https://docs.bearminion.com/integration/#the-editor-deployment-on-astro',
+    )
+  }
+  const host = HOSTS.find((candidate) => candidate.name === hostName)
+  if (host === undefined)
+    return fail(`There is no host called "${hostName}". The hosts are: ${HOSTS.map((candidate) => candidate.name).join(', ')}.`)
+
+  let loaded: ReturnType<typeof loadRegistry>
+  try {
+    loaded = loadRegistry(io.registryDir)
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
+  const { registry, dir: registryDir } = loaded
+  let plan: ReturnType<typeof planHosted>
+  let lock: ReturnType<typeof readLock>
+  try {
+    lock = readLock(root, registry.template)
+    plan = planHosted(root, registry, host, lock, values.overwrite === true)
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
+  plan.dirty = dirtyFiles(
+    root,
+    plan.files.filter((file) => file.action === 'update' || file.action === 'overwrite').map((file) => file.path),
+  )
+  const conflicts = plan.files.filter((file) => file.action === 'conflict')
+  const changes = plan.files.filter((file) => file.action !== 'same')
+  const installPlan = Object.keys(plan.npm).length > 0 ? installCommand(plan.packageManager, plan.npm) : undefined
+  const writes = plan.files.filter((file) => writesHosted(file.action)).length + (plan.script === 'add' ? 1 : 0)
+  const report = (extra: Record<string, unknown>) =>
+    JSON.stringify(
+      {
+        ok: conflicts.length === 0,
+        version: registry.version,
+        host: host.name,
+        files: plan.files.map(({ path: file, action }) => ({ path: file, action })),
+        script: plan.script,
+        npm: plan.npm,
+        notes: plan.notes,
+        dirty: plan.dirty,
+        ...extra,
+      },
+      null,
+      2,
+    )
+  const label = (action: HostedAction) => (LABELS as Record<string, string>)[action] ?? action
+
+  if (!json) {
+    log(`${values['dry-run'] ? 'Would set up' : 'Setting up'} the hosted editor for ${host.name} (bearminion ${registry.version})`)
+    log('')
+    for (const file of changes) {
+      const note = file.action === 'keep' ? 'yours, left alone' : NOTES[file.action as FileAction]
+      log(`  ${label(file.action).padEnd(9)} ${file.path}${note ? `  (${note})` : ''}`)
+    }
+    if (plan.script === 'add') log(`  ${'add'.padEnd(9)} package.json  (script "${BUILD_SCRIPT}": ${plan.scriptCommand})`)
+    const same = plan.files.length - changes.length
+    if (same > 0) log(`  ${same} file${same === 1 ? '' : 's'} already match.`)
+    log('')
+  }
+
+  if (conflicts.length > 0) {
+    if (values.diff && !json) {
+      for (const file of conflicts) {
+        log(diffAgainstRelease(root, registryDir, file.path))
+        log('')
+      }
+    }
+    if (json) log(report({ error: 'Some files differ from this release and were changed by you.', written: [] }))
+    else {
+      log(
+        `${conflicts.length} file${conflicts.length === 1 ? '' : 's'} differ${conflicts.length === 1 ? 's' : ''} from this release because you changed ${conflicts.length === 1 ? 'it' : 'them'}. Nothing was written.`,
+      )
+      log(
+        'Use --diff to see how, then merge the lines the editor needs by hand, or use --overwrite to replace them. Commit first: git keeps your version.',
+      )
+    }
+    return 1
+  }
+
+  if (writes === 0) {
+    if (json) log(report({ written: [] }))
+    else {
+      for (const note of plan.notes) log(note)
+      log('Nothing to write: every file is already in place.')
+    }
+    return 0
+  }
+
+  if (!json && plan.files.some((file) => file.action === 'update')) {
+    log('Files that you did not change are replaced by this release. Other parts of the site use them: read the diff and run your build.')
+  }
+  if (!json && plan.dirty.length > 0) log(`Uncommitted changes in ${plan.dirty.join(', ')} will be overwritten.`)
+
+  if (values['dry-run']) {
+    if (json) log(report({ dryRun: true, written: [] }))
+    else {
+      for (const note of plan.notes) log(note)
+      log('Dry run: nothing was written.')
+    }
+    return 0
+  }
+
+  if (!values.yes) {
+    if (json || io.confirm === undefined) {
+      return fail('Not asking in here: pass --yes to write, or --dry-run to look first.', 1, {
+        files: plan.files.map(({ path: file, action }) => ({ path: file, action })),
+      })
+    }
+    if (!(await io.confirm(`Write ${writes} file${writes === 1 ? '' : 's'}?`))) {
+      log('Nothing was written.')
+      return 1
+    }
+  }
+
+  let written: string[]
+  try {
+    const applied = applyHosted(root, registryDir, registry, plan, lock)
+    writeLock(root, applied.lock)
+    written = applied.written
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
+
+  let installed: 'done' | 'failed' | undefined
+  if (installPlan && values.install) installed = io.exec(installPlan.command, installPlan.args, root) === 0 ? 'done' : 'failed'
+
+  if (json) {
+    log(report({ written, installed: installed ?? null }))
+    return installed === 'failed' ? 1 : 0
+  }
+  log(`Wrote ${written.length} file${written.length === 1 ? '' : 's'} and noted them in bearminion.lock.json.`)
+  for (const note of plan.notes) log(note)
+  if (installPlan && installed === undefined)
+    log(`The editor build needs ${host.adapterPackage}. Install it: ${formatCommand(installPlan)}`)
+  if (installed === 'failed') log(`Installing failed. Run it yourself: ${formatCommand(installPlan as NonNullable<typeof installPlan>)}`)
+  log('')
+  for (const line of checklist(plan.packageManager, plan.base)) log(line)
   return installed === 'failed' ? 1 : 0
 }
 

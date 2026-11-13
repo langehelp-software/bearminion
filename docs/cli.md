@@ -85,6 +85,25 @@ Today that is one service, `resend` (email), and three hosts: `vercel` (`api/con
 
 Without `--host`, the command looks for `vercel.json`, `netlify.toml`, `wrangler.toml` and an Astro server adapter. If it finds none or two, it asks which host you use when it runs in a terminal (a numbered list; Enter writes the handler only). Without a terminal, with `--json`, or for a host it has no glue for (an Astro server adapter, say), it writes the handler only and says so. A file that is already there and differs from the recipe stops the command; `--overwrite` replaces it. `--dry-run`, `--yes` and `--json` work as for sections. The files are noted in `bearminion.lock.json`, and the command prints the three values to set. [Forms](forms/README.md) explains the handler.
 
+## Set up the hosted editor
+
+The [hosted editor](integration.md#the-editor-deployment-on-astro) is a second deployment of your site that signs people in with GitHub and edits the repository. `add hosted` prepares the repository for it:
+
+```sh
+npx bearminion add hosted --dry-run     # look first
+npx bearminion add hosted --install     # write, and install the Vercel adapter
+```
+
+It writes three kinds of file:
+
+- **The starter's files the editor depends on**, from this release, like a section's files: `src/lib/editing.ts`, `src/lib/image-url.ts`, `src/env.d.ts`, the image components (`Image.astro`, `MediaFrame.astro`), `Seo.astro`, the page routes (`[...slug].astro`, `404.astro`) and, for a site that has them, the Media and Logo strip sections. A file of an earlier release that you did not change is replaced; one you changed stops the command (`--diff` shows how, `--overwrite` replaces it). A site made before 1.9 or without a lock file is recognised by the release history, so an untouched file is replaced, not reported as yours. Page routes you customised are the usual stop: merge the lines that read `Astro.locals.bearminion`.
+- **Two files that are yours from then on**: `src/editor.ts` (the editor, reading its settings from the environment) and `astro.editor.config.ts` (the build of the editor deployment: your `astro.config.ts` merged with the adapter and the editor). A different file that is already there is kept, not overwritten, unless you pass `--overwrite`.
+- **A `build:editor` script** in `package.json`, added as one line without reformatting the file.
+
+Your `astro.config.ts` is never edited. The editor build is a separate config, so the public site's build cannot load any editor code. A site whose own config already adds `bearminionHostedEditor` (an environment-variable gate) is left as it is: the command writes the starter files and `src/editor.ts` and says so.
+
+The command ends with what is left to do outside the repository: the GitHub App, a second Vercel project whose Build Command is `npm run build:editor`, and four environment variables. Today the only host is `vercel` (the default); for Cloudflare see the [integration guide](integration.md#the-editor-deployment-on-astro). `--dry-run`, `-y`, `--overwrite`, `--install`, `--diff`, `--json` and `--cwd` work as for sections.
+
 ## Check the form
 
 When the Contact form does not deliver, start here:

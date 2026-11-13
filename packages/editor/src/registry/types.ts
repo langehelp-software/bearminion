@@ -26,6 +26,16 @@ export interface RegistryItem {
   npm: Record<string, string>
 }
 
+/**
+ * Files that belong to no section but go together: what the hosted editor needs in the site. `add hosted` writes them.
+ * The paths are from the site root, sorted.
+ */
+export interface RegistryGroup {
+  label: string
+  description: string
+  files: string[]
+}
+
 /** `registry/<template>/registry.json`, built from `templates/<template>` when the package is built. */
 export interface Registry {
   schemaVersion: typeof REGISTRY_SCHEMA_VERSION
@@ -33,6 +43,8 @@ export interface Registry {
   version: string
   files: Record<string, RegistryFile>
   items: Record<string, RegistryItem>
+  /** Files outside the sections that `add <group>` writes, such as `hosted`. Absent in a registry built without any. */
+  groups?: Record<string, RegistryGroup>
 }
 
 /** `bearminion.lock.json`: which release each tracked file came from, and what it held then. */
