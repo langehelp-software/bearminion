@@ -1,4 +1,4 @@
-import { editor, signIn } from 'virtual:bearminion/editor'
+import { editor, preview, signIn } from 'virtual:bearminion/editor'
 import { type HostedMiddleware, createHostedMiddleware } from './hosted-middleware.js'
 
 /*
@@ -11,7 +11,7 @@ let ready: Promise<HostedMiddleware> | undefined
 
 export const onRequest = async (context: { request: Request; locals: object }, next: () => Promise<Response>): Promise<Response> => {
   ready ??= Promise.resolve(typeof editor === 'function' ? editor(context) : editor).then((built) =>
-    createHostedMiddleware(built, { signIn }),
+    createHostedMiddleware(built, { signIn, ...(preview ? { preview } : {}) }),
   )
   try {
     return await (await ready)(context, next)

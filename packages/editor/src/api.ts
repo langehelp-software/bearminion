@@ -868,7 +868,7 @@ const previewBodySchema = z
 
 async function postPreview(request: Request, context: EditorContext, meta: HandleMeta): Promise<Response> {
   if (!meta.renderPreview) {
-    return problem(501, 'preview_unavailable', 'Live preview is only available while astro dev is running.')
+    return problem(501, 'preview_unavailable', 'Live preview is not available here: no theme preview renderer is wired in.')
   }
   const body = await readJsonBody(request)
   if (body.response) return body.response

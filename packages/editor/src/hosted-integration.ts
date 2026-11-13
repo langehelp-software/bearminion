@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { AstroIntegration } from 'astro'
@@ -14,6 +15,24 @@ export interface HostedEditorIntegrationOptions {
   module: string
   /** `required` (default): the whole deployment is the editor, so visitors are sent to sign in. See `createHostedMiddleware`. */
   signIn?: 'required' | 'optional'
+  /**
+   * The theme's preview renderer, relative to the project root: the module that default-exports `defineThemePreview`.
+   * Default `src/lib/render-preview.ts` when the file exists. It is what lets the editor redraw a draft as it changes
+   * (a section just added, a layout switched, the header and footer). `false` leaves it out: such changes then show
+   * after Save and a reload.
+   */
+  previewModule?: string | false
+}
+
+const DEFAULT_PREVIEW_MODULE = 'src/lib/render-preview.ts'
+
+/** The absolute path of the preview module, or `null` when the site has none. A module named by hand must exist. */
+function resolvePreviewModule(root: string, option: string | false | undefined): string | null {
+  if (option === false) return null
+  const file = path.resolve(root, option ?? DEFAULT_PREVIEW_MODULE)
+  if (fs.existsSync(file)) return file
+  if (option === undefined) return null
+  throw new Error(`bearminionHostedEditor: previewModule ${JSON.stringify(option)} does not exist (looked for ${file}).`)
 }
 
 /**
@@ -37,6 +56,12 @@ export function bearminionHostedEditor(options: HostedEditorIntegrationOptions):
         }
         const root = fileURLToPath(config.root)
         const editorModule = path.resolve(root, options.module)
+        const previewModule = resolvePreviewModule(root, options.previewModule)
+        if (!previewModule && options.previewModule === undefined) {
+          logger.warn(
+            `No ${DEFAULT_PREVIEW_MODULE}, so the editor has no live preview: a section just added shows after Save and a reload. Name the module with \`previewModule\`, or pass \`previewModule: false\` to silence this.`,
+          )
+        }
         const stale = staleTemplateProblems(root)
         if (stale.length > 0) {
           logger.warn(
@@ -58,7 +83,15 @@ export function bearminionHostedEditor(options: HostedEditorIntegrationOptions):
                 resolveId: (id) => (id === VIRTUAL_ID ? RESOLVED_ID : null),
                 load: (id) =>
                   id === RESOLVED_ID
-                    ? `export { default as editor } from ${JSON.stringify(editorModule)}\nexport const signIn = ${JSON.stringify(signIn)}\n`
+                    ? [
+                        `export { default as editor } from ${JSON.stringify(editorModule)}`,
+                        `export const signIn = ${JSON.stringify(signIn)}`,
+                        // Loaded on the first preview request, so a page load never pays for the renderer.
+                        previewModule
+                          ? `export const preview = () => import(${JSON.stringify(previewModule)}).then((module) => module.default)`
+                          : 'export const preview = undefined',
+                        '',
+                      ].join('\n')
                     : null,
               },
             ],

@@ -25,6 +25,7 @@ afterEach(() => {
 const current = {
   'src/components/molecules/MediaFrame.astro': '',
   'src/lib/editing.ts': '',
+  'src/lib/render-preview.ts': '',
   'src/pages/[...slug].astro': 'const live = Astro.locals.bearminion',
   'src/pages/404.astro': 'const live = Astro.locals.bearminion',
 }

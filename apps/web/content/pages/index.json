@@ -7,7 +7,7 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.19",
+          "tag": "BearMinion 1.20",
           "text": "Available now"
         },
         "button": false,
@@ -200,6 +200,53 @@
       "variant": "bento"
     },
     {
+      "anchor": "online",
+      "id": "online",
+      "props": {
+        "body": "One command adds a second deployment where people sign in with GitHub and edit in the browser. Your public site stays static and never loads the editor.",
+        "eyebrow": "Edit online",
+        "heading": "Hand over a login, not a terminal.",
+        "link": {
+          "href": "https://docs.bearminion.com/hosted-editor/",
+          "label": "Set up online editing"
+        },
+        "marks": [
+          {
+            "end": 34,
+            "font": "serif",
+            "italic": true,
+            "start": 19
+          }
+        ],
+        "numbered": true,
+        "steps": [
+          {
+            "description": "Run `npx bearminion add hosted`. You get an editor build next to your site, on its own address.",
+            "icon": "terminal",
+            "title": "Add it"
+          },
+          {
+            "description": "Whoever can push to the repo can edit. Add a collaborator to let them in, remove them to lock the door. No extra accounts.",
+            "icon": "git",
+            "title": "Invite with GitHub"
+          },
+          {
+            "description": "The same editor, in a browser. No clone, no Node, no terminal to explain over the phone.",
+            "icon": "cursor",
+            "title": "They click and type"
+          },
+          {
+            "description": "Under their own name, on main or as a pull request you review. Your host ships it like any other push.",
+            "icon": "check",
+            "title": "Save is a commit"
+          }
+        ]
+      },
+      "tone": "subtle",
+      "type": "steps",
+      "variant": "columns"
+    },
+    {
       "anchor": "tour",
       "id": "tour",
       "props": {
@@ -300,11 +347,11 @@
             "q": "Where is my content stored?"
           },
           {
-            "a": "No. The editor and its API exist only in astro dev. Production gets a static build with no editor, no server and no database to poke.",
+            "a": "No. Your live site is a static build with no editor, no server and no database to poke. The editor runs on your machine in astro dev, or, if you add it, on a separate admin address behind a GitHub sign-in.",
             "q": "Does the editor ship to my live site?"
           },
           {
-            "a": "Anyone with the repo cloned and the dev server running. The editor only answers your own machine, so other sites and your coworker's laptop can't touch your content. Editing a live site without a clone is planned.",
+            "a": "Out of the box: anyone with the repo cloned and the dev server running. Add the online editor and it is anyone who can push to the repo, signed in with GitHub, from a browser. Access follows the repository, so there are no extra accounts to manage. See [Edit online](https://docs.bearminion.com/hosted-editor/).",
             "q": "Who can edit, and from where?"
           },
           {
@@ -312,7 +359,7 @@
             "q": "Can I use my own design?"
           },
           {
-            "a": "Anywhere that serves static files: Vercel, Netlify, Cloudflare Pages, GitHub Pages or a server in your closet. The host runs npm run build and publishes dist.",
+            "a": "Anywhere that serves static files: Vercel, Netlify, Cloudflare Pages, GitHub Pages or a server in your closet. The host runs npm run build and publishes dist. The optional online editor is the one part that needs a server; it is tested on Vercel.",
             "q": "Where can I host it?"
           },
           {

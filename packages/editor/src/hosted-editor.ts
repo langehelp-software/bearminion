@@ -6,6 +6,7 @@ import { createHostedContext, handleHostedRequest } from './hosted-context.js'
 import type { ContentModel } from './model.js'
 import { API_PREFIX } from './model.js'
 import type { PageRules } from './page.js'
+import { type ThemePreviewSource, previewRenderers } from './preview.js'
 import { type StoreContent, createStoreContent } from './store-content.js'
 import type { ContentStore } from './store-core.js'
 import type { ImageConvertOptions } from './upload-rules.js'
@@ -42,12 +43,22 @@ export interface HostedEditorConfig extends ContentModel {
   now?: () => number
 }
 
+export interface HostedHandleOptions {
+  /**
+   * The theme's preview renderer (the default export of `src/lib/render-preview.ts`), or a function that loads it.
+   * With it the editor redraws a draft as it changes: a section just added, a layout switched, the header and footer.
+   * Without it the preview endpoints answer 501 and such changes show after Save and a reload.
+   * `bearminionHostedEditor` passes it by itself.
+   */
+  preview?: ThemePreviewSource
+}
+
 export interface HostedEditor {
   /**
    * Answers `/__bearminion/auth/*` (sign-in) and `/__bearminion/api/*` (the editor API, signed-in people only).
    * Returns `null` for any other path, so the site's own routes carry on.
    */
-  handle(request: Request): Promise<Response | null>
+  handle(request: Request, options?: HostedHandleOptions): Promise<Response | null>
   /**
    * Passes a page the site rendered through, adding the editor overlay when the request comes from a signed-in
    * person. Anyone else gets the page untouched. A page with the overlay is marked `private, no-store`, so no cache
@@ -116,7 +127,18 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
     return { login: found.session.login, store, content: createStoreContent(config, store) }
   }
 
-  async function handle(request: Request): Promise<Response | null> {
+  // One set of renderers per preview source, so a lazily loaded module is loaded once per server instance.
+  const renderers = new WeakMap<object, ReturnType<typeof previewRenderers>>()
+  function renderersFor(source: ThemePreviewSource): ReturnType<typeof previewRenderers> {
+    let found = renderers.get(source)
+    if (!found) {
+      found = previewRenderers(source)
+      renderers.set(source, found)
+    }
+    return found
+  }
+
+  async function handle(request: Request, options: HostedHandleOptions = {}): Promise<Response | null> {
     const signIn = await auth.handle(request)
     if (signIn) return signIn
 
@@ -161,7 +183,7 @@ export function createHostedEditor(config: HostedEditorConfig): HostedEditor {
       ...(config.schemaVersion === undefined ? {} : { schemaVersion: config.schemaVersion }),
       store: storeFor(found.session.token),
     })
-    const response = await handleHostedRequest(request, context)
+    const response = await handleHostedRequest(request, context, options.preview ? renderersFor(options.preview) : {})
     if (response && found.cookie) response.headers.append('set-cookie', found.cookie)
     return response
   }
