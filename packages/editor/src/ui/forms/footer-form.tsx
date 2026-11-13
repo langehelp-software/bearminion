@@ -25,7 +25,10 @@ export function FooterForm({
   onField: (path: string, value: unknown) => void
   onOptional: (path: string, value: string) => void
 }) {
-  const layout = options.filter((option) => option.name.startsWith('footer.') && option.name !== 'footer.badge')
+  const layout = options.filter(
+    (option) => option.name.startsWith('footer.') && option.name !== 'footer.badge' && option.name !== 'footer.poweredBy',
+  )
+  const poweredBy = options.find((option) => option.name === 'footer.poweredBy')
   return (
     <div class="bm-stack">
       <div class="bm-stack">
@@ -56,6 +59,7 @@ export function FooterForm({
             hint="Pill on the footer. Empty hides it."
           />
         )}
+        {poweredBy && siteOptionControl(site, poweredBy, onField)}
       </div>
       <FooterColumns
         columns={footerColumns(site)}

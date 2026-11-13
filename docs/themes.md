@@ -47,19 +47,19 @@ Shared fields are `text`, `richText`, `image` `{ src, alt }`, `link` `{ label, h
 
 ## Site definition
 
-The header and footer are the site's too. `defineSite` declares which layouts exist, how many buttons and columns they hold, and whether the footer has a badge:
+The header and footer are the site's too. `defineSite` declares which layouts exist, how many buttons and columns they hold, whether the footer has a badge, and whether it has a "Powered by BearMinion" link:
 
 ```ts
 import { defineSite, type SiteOf } from 'bearminion'
 
 export const siteDefinition = defineSite({
   header: { variants: ['bar', 'centered', 'floating'], defaultVariant: 'bar', maxActions: 2, recommendedLinks: 4 },
-  footer: { variants: ['simple', 'columns', 'wordmark'], defaultVariant: 'columns', maxColumns: 3, badge: true },
+  footer: { variants: ['simple', 'columns', 'wordmark'], defaultVariant: 'columns', maxColumns: 3, badge: true, poweredBy: true },
 })
 export type Site = SiteOf<typeof siteDefinition>
 ```
 
-It returns `schema` (validates `site.json`, with `header.variant` and `footer.variant` as the unions above), `options` (the Header and Footer controls), `counts` and `limits`. `maxActions` and `maxColumns` default to 2 and 3, and `badge` to false. `defineSite` throws when a default variant is not in its list. `GET /schema` serves the options and limits, so the editor takes its layout choices, the header button cap, the footer column cap and the badge field from the site.
+It returns `schema` (validates `site.json`, with `header.variant` and `footer.variant` as the unions above), `options` (the Header and Footer controls), `counts` and `limits`. `maxActions` and `maxColumns` default to 2 and 3, and `badge` and `poweredBy` to false. `poweredBy: true` adds a **Powered by BearMinion** switch to the Footer tab and allows `footer.poweredBy` in `site.json`; the theme draws the link and skips it when the value is `false` (the starter's `PoweredBy.astro` links to https://bearminion.com). Sites made before this option need to copy `Footer.astro` and `PoweredBy.astro` from the starter and add `poweredBy: true` to their `site-definition.ts`. `defineSite` throws when a default variant is not in its list. `GET /schema` serves the options and limits, so the editor takes its layout choices, the header button cap, the footer column cap and the badge field from the site.
 
 A theme also renders two optional content fields the library validates but cannot draw: `page.seo.jsonLd` (custom JSON-LD blocks, which replace whatever structured data the theme generates for the page itself), `site.seo.jsonLd` (blocks for every page: emit them all, let a page block with the same `@id` win, and use `mergeJsonLd`, `siteJsonLdIds` and `hasJsonLdId` so the generated page block can point at the site's `Organization` and `WebSite`), `site.analytics` (`head` and `bodyEnd` HTML snippets, which the default template emits in production builds only) and `site.consent` (the cookie banner's switch and texts: `consentCopy(site.consent)` gives the words with the library's defaults). A theme that emits the snippets should hold them back until the visitor accepts unless `site.consent.enabled` is `false`; the default template shows how. A theme that ignores these fields silently drops what the editor saves. Escape `<` as `\u003c` when serialising JSON-LD into a script tag.
 

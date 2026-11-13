@@ -33,7 +33,7 @@ The home page uses slug `index`. Other slugs are lowercase kebab-case (`about`).
 - `theme.mode` is `light` or `dark`. A legacy `system` reads as `light`.
 - `theme` — `mode` (`light`, `dark`, or `system`, default `light`) and `motion` (default `true`)
 - `header` — `variant` (`bar`, `centered`, `floating`), `tone`, `sticky`, `links`, and and `actions`, up to two header buttons shown left to right (the last is the primary button; an empty list hides them). Older `cta` and `signIn` fields are still read, as `signIn` then `cta`, and are rewritten as `actions` on the next save
-- `footer` — `variant` (`simple`, `columns`, `wordmark`), `tone`, optional `text`, `legal`, and `badge` (the columns pill), and up to three `columns` of `{ title, links }`
+- `footer` — `variant` (`simple`, `columns`, `wordmark`), `tone`, optional `text`, `legal`, `badge` (the columns pill) and `poweredBy` (the "Powered by BearMinion" link in the bottom row; only `false` hides it, so a missing field shows it), and up to three `columns` of `{ title, links }`
 
 ## Pages
 

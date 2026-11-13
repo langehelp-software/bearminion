@@ -4,6 +4,7 @@ import { markClass, splitMarkedText } from 'bearminion/marks'
 import { anchorAttrs } from '../../lib/link-attrs'
 import ConsentLink from '../atoms/ConsentLink.astro'
 import LogoMark from '../atoms/LogoMark.astro'
+import PoweredBy from '../atoms/PoweredBy.astro'
 import Typography from '../atoms/Typography.astro'
 import FooterLinks from './FooterLinks.astro'
 
@@ -15,6 +16,8 @@ interface Props {
 
 const { site, consentLabel } = Astro.props
 const { variant, tone, text, legal, badge, columns } = site.footer
+// Only `false` hides the credit, so a site.json written before the option existed keeps showing it.
+const poweredBy = site.footer.poweredBy !== false
 const flatLinks = columns
   .flatMap((column, columnIndex) => column.links.map((link, linkIndex) => ({ link, columnIndex, linkIndex })))
   .slice(0, 6)
@@ -44,10 +47,11 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
             ))}
           </ul>
         </div>
-        {(legal || consentLabel) && (
+        {(legal || consentLabel || poweredBy) && (
           <div class="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted">
             {legal && <p data-field="footer.legal">{legal}</p>}
             {consentLabel && <ConsentLink label={consentLabel} />}
+            {poweredBy && <PoweredBy />}
           </div>
         )}
       </div>
@@ -83,10 +87,11 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
             ))}
           </div>
         </div>
-        {(legal || consentLabel) && (
+        {(legal || consentLabel || poweredBy) && (
           <div class="mt-12 flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-[var(--line)] pt-6 text-[0.8125rem] text-muted">
             {legal && <p data-field="footer.legal">{legal}</p>}
             {consentLabel && <ConsentLink label={consentLabel} />}
+            {poweredBy && <PoweredBy />}
           </div>
         )}
       </div>
@@ -119,6 +124,7 @@ const wordmark = splitMarkedText(site.name, site.nameMarks)
           <div class="flex flex-wrap items-baseline gap-x-6 gap-y-2">
             {legal && <p data-field="footer.legal">{legal}</p>}
             {consentLabel && <ConsentLink label={consentLabel} />}
+            {poweredBy && <PoweredBy />}
           </div>
           <a href="#content" class="transition-colors hover:text-fg">
             Back to top ↑
