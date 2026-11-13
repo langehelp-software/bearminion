@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { currentHashes, readRegistry, writeRegistry } from './build.js'
+import { GROUPS } from './groups.js'
 import { recordFiles } from '../add/lock.js'
 import { hashesFromNpm, readHistory, recordRelease, releaseMatches } from './history.js'
 
@@ -25,7 +26,7 @@ const templateDir = path.resolve(packageRoot, values.template ?? '../../template
 const historyFile = path.resolve(packageRoot, values.history ?? 'registry-history.json')
 const outDir = path.resolve(packageRoot, values.out ?? 'registry/default')
 const { version } = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8')) as { version: string }
-const registry = () => readRegistry({ templateDir, version, history: readHistory(historyFile) })
+const registry = () => readRegistry({ templateDir, version, history: readHistory(historyFile), groups: GROUPS })
 
 const command = positionals[0]
 if (command === 'build') {

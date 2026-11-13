@@ -177,7 +177,7 @@ Set up a **GitHub App** (not an OAuth App, whose tokens do not expire and cannot
 - The sign-in uses PKCE and a one-time `state`. A return address must be a path on your own site.
 - The session is one cookie, encrypted and authenticated with AES-GCM (`HttpOnly`, `SameSite=Lax`, `Secure` on https, and the `__Host-` prefix). It holds the person's GitHub token, which never reaches the browser's JavaScript. Changing `secret` signs everyone out.
 - A session ends after `sessionDays` (default 7). GitHub's user tokens last 8 hours; they are renewed with the refresh token, and push access is checked again each time, so a person removed from the repository loses access within hours.
-- **Who may sign in.** Everyone with push access to `repo`: the owner, collaborators with Write, Maintain or Admin, and organization members or teams with those roles. Read and Triage do not count. The GitHub App must also be installed on the repository. To allow only some of them, list their GitHub logins: `auth: { allowedLogins: ['ann', 'bob'] }` (case does not matter). The list narrows push access and never widens it. It is checked at sign-in and on every request, so a login taken off the list (after a redeploy) is signed out at its next request. An empty list is refused. Set the GitHub App to "Only on this account" so other accounts cannot even start the authorization.
+- **Who may sign in.** Everyone with push access to `repo`: the owner, collaborators with Write, Maintain or Admin, and organization members or teams with those roles. Read and Triage do not count. The GitHub App must also be installed on the repository. To allow only some of them, list their GitHub logins: `auth: { allowedLogins: ['ann', 'bob'] }` (case does not matter). The list narrows push access and never widens it. It is checked at sign-in and on every request, so a login taken off the list (after a redeploy) is signed out at its next request. An empty list is refused. A private GitHub App can be authorized only by its owner (everyone else gets a 404 from GitHub), so private suits a site that only you edit. For a team, make the App public and name the people in `allowedLogins`: another account can start the authorization but never gets a session.
 - Behind a proxy that rewrites the scheme or host, set `origin`: it is what the callback address, the cookie flags and the same-origin check use.
 - **The overlay.** `overlay: overlaySource` (from `bearminion/hosted-overlay`, the editor as one self-contained browser script, about 180 KB gzipped) makes `editor.handle` serve it at `/__bearminion/editor.js` to signed-in people, and `editor.inject(request, response)` adds it to a page your site rendered, for signed-in people only. A page that got the overlay is `Cache-Control: private, no-store` with `Vary: Cookie`, so no cache can hand it to a visitor. Do not cache the editor deployment's HTML at an edge cache in front of the Worker, or a signed-in person may be served a cached page without the overlay.
 - **Images.** `GET /__bearminion/assets?src=src/assets/...` (signed-in people only) serves an image straight from the repository, so the editor's previews and a page that uses a file the build does not hold yet (just uploaded) draw it at once, without waiting for the editor deployment to build again. Only image files under `src/assets/` are served, with a private five-minute cache and `ETag` revalidation (a `304` from GitHub does not count against the rate limit). In pull request mode it also looks at the uploads branch.
@@ -191,16 +191,22 @@ Set up a **GitHub App** (not an OAuth App, whose tokens do not expire and cannot
 
 The public site stays a static build with no editor code in it. The editor is a **second deployment of the same repository**, at its own address such as `admin.example.com`: a server-rendered build that signs people in and draws each page from the repository's current content, with the overlay on top. Edit `admin.example.com/about` to edit the page that `example.com/about` serves; the public site's normal deploy publishes the commit.
 
-```ts
-// astro.config.ts: the editor build only
-import vercel from '@astrojs/vercel' // or @astrojs/cloudflare, ...
-import { bearminionHostedEditor } from 'bearminion/astro'
+The quick way is `npx bearminion add hosted` ([the command](cli.md#set-up-the-hosted-editor)): it brings the site's files up to date, writes `src/editor.ts` and a separate `astro.editor.config.ts`, adds a `build:editor` script, and prints the GitHub App and Vercel checklist. The rest of this section is what it writes.
 
-export default defineConfig({
+```ts
+// astro.editor.config.ts: the build of the editor deployment, beside your astro.config.ts
+import vercel from '@astrojs/vercel' // or @astrojs/cloudflare, ...
+import { mergeConfig } from 'astro/config'
+import { bearminionHostedEditor } from 'bearminion/astro'
+import site from './astro.config'
+
+export default mergeConfig(site, {
   adapter: vercel(),
-  integrations: [bearminion({ /* as before */ }), bearminionHostedEditor({ module: './src/editor.ts' })],
+  integrations: [bearminionHostedEditor({ module: './src/editor.ts' })],
 })
 ```
+
+The editor deployment builds with `astro build --config astro.editor.config.ts` (a `build:editor` script; set it as the second project's Build Command). The public site keeps building from `astro.config.ts`, which never mentions the editor. Putting the integration inside `astro.config.ts` behind an environment variable also works, but then the public build's config names editor code, and the variable has to be right on both projects.
 
 ```ts
 // src/editor.ts
@@ -248,7 +254,7 @@ On Cloudflare Workers the secrets are not in `process.env`: read them from `impo
 | `src/env.d.ts` | The types of `import.meta.env.BEARMINION_HOSTED` and `Astro.locals.bearminion` |
 | `src/pages/[...slug].astro`, `src/pages/404.astro` | Draw from `Astro.locals.bearminion` when it is set. Add the `Site` and `Page` type imports with them |
 
-To bring them up to date:
+To bring them up to date, the shortest way is `npx bearminion@latest add hosted`: it writes all of the files in the table, including the ones that belong to no section, and recognises files of any release back to 1.0 (a site without a lock file included). By hand:
 
 1. Commit first, so git is the undo.
 2. `npx bearminion@latest status` lists the section files that differ. Sections that are only older (not edited by you) update with `npx bearminion@latest add media logo-strip`. A site with no `bearminion.lock.json` cannot tell old from edited and reports `differs`; look at `add <name> --diff`, and when the release only adds to your file, `--overwrite` replaces it and writes the lock file.
