@@ -876,6 +876,22 @@ describe('editor overlay', () => {
     await page.close()
   }, 60_000)
 
+  it('switches the Powered by BearMinion footer link off and on', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    await openClean(page)
+    const link = page.locator('[data-organism="footer"] a[data-powered-by]')
+    await link.scrollIntoViewIfNeeded()
+    expect(await link.getAttribute('href')).toBe('https://bearminion.com')
+    await page.getByRole('toolbar', { name: 'Footer' }).getByRole('button', { name: 'Footer settings' }).click()
+    const toggle = page.getByRole('switch', { name: 'Powered by BearMinion' })
+    expect(await toggle.isChecked()).toBe(true)
+    await toggle.uncheck()
+    await link.waitFor({ state: 'detached' })
+    await toggle.check()
+    await link.waitFor()
+    await page.close()
+  }, 60_000)
+
   it('offers a name or logo image for the brand, with a height slider', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await openClean(page)
@@ -1283,6 +1299,14 @@ describe('editor overlay', () => {
   }, 60_000)
 
   it('generates sitewide JSON-LD in a dialog, saves it to site.json and emits it on the page', async () => {
+    // Seed About's own JSON-LD here, so this test does not depend on the SEO test having run first.
+    const aboutFile = path.join(contentDir, 'pages', 'about.json')
+    const about = JSON.parse(fs.readFileSync(aboutFile, 'utf8')) as { seo?: Record<string, unknown> }
+    about.seo = {
+      ...about.seo,
+      jsonLd: [{ '@context': 'https://schema.org', '@type': 'Article', headline: 'About us' }],
+    }
+    fs.writeFileSync(aboutFile, `${JSON.stringify(about, null, 2)}\n`)
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
@@ -1351,7 +1375,7 @@ describe('editor overlay', () => {
       isPartOf: { '@id': `${siteUrl}/#website` },
       publisher: { '@id': `${siteUrl}/#organization` },
     })
-    // About has its own JSON-LD from an earlier test. It replaces the generated WebPage and never the site's blocks.
+    // About has its own JSON-LD, seeded above. It replaces the generated WebPage and never the site's blocks.
     expect(await types('/about')).toEqual(['Event', 'Organization', 'WebSite', 'Article'])
     expect(errors, logs).toEqual([])
     await page.close()

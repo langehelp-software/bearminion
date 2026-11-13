@@ -178,7 +178,7 @@ An internal link to a missing page or anchor shows a warning. It does not block 
 ![The Footer tab: layout, text, legal line, badge and columns.](images/editor-tab-footer.webp)
 
 - **Layout.** Variant and tone.
-- **Text.** Footer text, the legal line and the badge.
+- **Text.** Footer text, the legal line and the badge, and a **Powered by BearMinion** switch. It controls the small link to bearminion.com in the footer's bottom row. Turn it off to remove the link.
 - **Columns.** Up to three. Add and remove columns, drag a column by its header to reorder, and drag a link onto another column to move it. Each drag shows what a drop will do.
 
 On the page, the columns stack on small screens, left-aligned: 1 column, then 2 from 416px of footer width, then 3 from 640px. From 896px they sit in a row on the right edge of the footer.

@@ -9,7 +9,7 @@ const SITE_DEBOUNCE_MS = 200
 
 /** Site edits that change the header or footer markup. Text typed on the page itself is skipped at render time. */
 const SITE_PREVIEW_PATH =
-  /^(name|nameMarks|brandLogo|header\.(variant|tone|sticky|actions|links)|footer\.(variant|tone|columns|text|legal|badge))(\.|$)/
+  /^(name|nameMarks|brandLogo|header\.(variant|tone|sticky|actions|links)|footer\.(variant|tone|columns|text|legal|badge|poweredBy))(\.|$)/
 
 export function affectsSitePreview(path: string): boolean {
   return SITE_PREVIEW_PATH.test(path)

@@ -75,6 +75,7 @@ interface FooterParts {
   defaultVariant: string
   maxColumns: number
   badge: boolean
+  poweredBy: boolean
 }
 
 function createHeaderSchema({ variants, defaultVariant, maxActions }: HeaderParts) {
@@ -106,7 +107,7 @@ function createHeaderSchema({ variants, defaultVariant, maxActions }: HeaderPart
     }))
 }
 
-function createFooterSchema({ variants, defaultVariant, maxColumns, badge }: FooterParts) {
+function createFooterSchema({ variants, defaultVariant, maxColumns, badge, poweredBy }: FooterParts) {
   return z
     .object({
       variant: z.enum(variants).default(defaultVariant),
@@ -115,12 +116,17 @@ function createFooterSchema({ variants, defaultVariant, maxColumns, badge }: Foo
       legal: z.string().optional(),
       /** Pill on the columns variant. Hidden when omitted. Only themes that enable it accept it. */
       badge: z.string().min(1).optional(),
+      /** The "Powered by BearMinion" link. Only `false` hides it. Only themes that enable it accept it. */
+      poweredBy: z.boolean().optional(),
       columns: z.array(footerColumnSchema).max(maxColumns),
     })
     .strict()
     .superRefine((footer, ctx) => {
       if (!badge && footer.badge !== undefined) {
         ctx.addIssue({ code: 'custom', message: 'This site has no footer badge', path: ['badge'] })
+      }
+      if (!poweredBy && footer.poweredBy !== undefined) {
+        ctx.addIssue({ code: 'custom', message: 'This site has no "Powered by BearMinion" link', path: ['poweredBy'] })
       }
     })
 }
@@ -280,6 +286,8 @@ export interface FooterConfig<TVariants extends readonly [string, ...string[]]> 
   maxColumns?: number
   /** The footer has a pill whose text the editor sets. Default false. */
   badge?: boolean
+  /** The footer has a "Powered by BearMinion" link that the editor can switch off. Default false. */
+  poweredBy?: boolean
 }
 
 export interface SiteConfig<
@@ -305,7 +313,12 @@ export interface SiteDefinition<THeader extends string = string, TFooter extends
   readonly counts: { readonly header: Readonly<Record<string, CountRule>>; readonly footer: Readonly<Record<string, CountRule>> }
   readonly limits: { readonly maxHeaderActions: number; readonly maxFooterColumns: number }
   readonly header: { readonly variants: readonly THeader[]; readonly defaultVariant: THeader }
-  readonly footer: { readonly variants: readonly TFooter[]; readonly defaultVariant: TFooter; readonly badge: boolean }
+  readonly footer: {
+    readonly variants: readonly TFooter[]
+    readonly defaultVariant: TFooter
+    readonly badge: boolean
+    readonly poweredBy: boolean
+  }
 }
 
 /** The site type a definition validates to. */
@@ -319,6 +332,7 @@ export function defineSite<
   const maxActions = header.maxActions ?? DEFAULT_MAX_HEADER_ACTIONS
   const maxColumns = footer.maxColumns ?? DEFAULT_MAX_FOOTER_COLUMNS
   const badge = footer.badge === true
+  const poweredBy = footer.poweredBy === true
   for (const [name, part] of [
     ['header', header],
     ['footer', footer],
@@ -332,7 +346,7 @@ export function defineSite<
 
   const schema = createSiteSchema(
     { variants: header.variants, defaultVariant: header.defaultVariant, maxActions },
-    { variants: footer.variants, defaultVariant: footer.defaultVariant, maxColumns, badge },
+    { variants: footer.variants, defaultVariant: footer.defaultVariant, maxColumns, badge, poweredBy },
   ) as unknown as z.ZodType<SiteWith<THeaderVariants[number], TFooterVariants[number]>>
 
   const options: Option[] = [
@@ -345,6 +359,7 @@ export function defineSite<
     { name: 'footer.variant', label: 'Footer variant', type: 'enum', choices: footer.variants, default: footer.defaultVariant },
     { name: 'footer.tone', label: 'Footer tone', type: 'enum', choices: tones, default: 'base' },
     ...(badge ? [{ name: 'footer.badge', label: 'Footer badge', type: 'string', default: '' } as const] : []),
+    ...(poweredBy ? [{ name: 'footer.poweredBy', label: 'Powered by BearMinion', type: 'boolean', default: true } as const] : []),
   ]
 
   return {
@@ -356,6 +371,6 @@ export function defineSite<
     },
     limits: { maxHeaderActions: maxActions, maxFooterColumns: maxColumns },
     header: { variants: header.variants, defaultVariant: header.defaultVariant },
-    footer: { variants: footer.variants, defaultVariant: footer.defaultVariant, badge },
+    footer: { variants: footer.variants, defaultVariant: footer.defaultVariant, badge, poweredBy },
   }
 }

@@ -602,6 +602,19 @@ describe('defineSite', () => {
     expect(plain.schema.safeParse({ ...base, footer: { columns: [], badge: 'New' } }).success).toBe(false)
   })
 
+  it('only offers the "Powered by BearMinion" switch when the theme enables it', () => {
+    const site = defineSite({ ...chrome, footer: { ...chrome.footer, poweredBy: true } })
+    expect(site.schema.safeParse({ ...base, footer: { columns: [], poweredBy: false } }).success).toBe(true)
+    expect(site.schema.safeParse({ ...base, footer: { columns: [] } }).success).toBe(true)
+    expect(site.schema.safeParse({ ...base, footer: { columns: [], poweredBy: 'no' } }).success).toBe(false)
+    const option = site.options.find((o) => o.name === 'footer.poweredBy')
+    expect(option).toMatchObject({ type: 'boolean', default: true })
+
+    const plain = defineSite(chrome)
+    expect(plain.options.some((o) => o.name === 'footer.poweredBy')).toBe(false)
+    expect(plain.schema.safeParse({ ...base, footer: { columns: [], poweredBy: false } }).success).toBe(false)
+  })
+
   it('rejects an invalid definition', () => {
     expect(() => defineSite({ ...chrome, header: { ...chrome.header, defaultVariant: 'wide' as never } })).toThrow(
       /header\.defaultVariant "wide"/,
@@ -615,7 +628,7 @@ describe('defineSite', () => {
 
   it('describes the starter chrome', () => {
     expect(siteDefinition.header.variants).toEqual(['bar', 'centered', 'floating'])
-    expect(siteDefinition.footer).toMatchObject({ defaultVariant: 'columns', badge: true })
+    expect(siteDefinition.footer).toMatchObject({ defaultVariant: 'columns', badge: true, poweredBy: true })
   })
 })
 
