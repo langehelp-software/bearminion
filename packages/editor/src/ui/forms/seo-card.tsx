@@ -12,6 +12,7 @@ export function SeoCard({
   siteUrl,
   siteOgImage,
   system,
+  address,
   onEdit,
 }: {
   page: PageDraft
@@ -20,6 +21,8 @@ export function SeoCard({
   /** The site's default social image, which a page without its own uses. */
   siteOgImage: string
   system: boolean
+  /** The document's address when it is not `/<slug>`: `/blog/first-post`. */
+  address?: string
   onEdit: () => void
 }) {
   const seo = page.seo
@@ -36,7 +39,7 @@ export function SeoCard({
       <SerpPreview
         seo={seo}
         pageTitle={page.title}
-        slug={page.slug}
+        slug={address === undefined ? page.slug : address === '/' ? 'index' : address.slice(1)}
         siteName={siteName}
         siteUrl={siteUrl}
         image={text(seo.ogImage) || siteOgImage || undefined}

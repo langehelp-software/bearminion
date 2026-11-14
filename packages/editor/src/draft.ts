@@ -20,6 +20,8 @@ export interface PageDraft {
   title: string
   seo: Record<string, unknown>
   sections: SectionDraft[]
+  /** The document's own fields, when its content type declares any. */
+  fields?: Record<string, unknown>
 }
 
 export interface NavLink {
@@ -460,9 +462,19 @@ export function anchorSet(sections: readonly { anchor?: string }[]): Set<string>
 export interface AnchorPage {
   slug: string
   anchors: readonly string[]
+  /** The document's address when it is not `/<slug>`: an entry of a declared type, a single, a listing page. */
+  path?: string
 }
 
-/** A warning for an internal link whose page or anchor is missing. External URLs are left alone. */
+/** The address of a listed document. */
+export function documentPath(page: { slug: string; path?: string }): string {
+  return page.path ?? pageHref(page.slug)
+}
+
+/**
+ * A warning for an internal link whose page or anchor is missing. External URLs are left alone. `currentSlug` names
+ * the open document: a page's slug, or the address (`/blog/first-post`) of anything that is not a page.
+ */
 export function linkWarning(href: string, pages: readonly AnchorPage[], currentSlug: string): string | null {
   if (href === '' || href === '#') return null
   if (/^(?:https?:|mailto:|tel:|\/\/)/i.test(href)) return null
@@ -473,10 +485,11 @@ export function linkWarning(href: string, pages: readonly AnchorPage[], currentS
   if (pathPart === '' || pathPart === '#') {
     return missingAnchor(hash, anchorsFor(pages, currentSlug), 'this page')
   }
-  const slug = pathPart === '/' ? 'index' : pathPart.replace(/^\//, '').replace(/\/$/, '')
-  const page = pages.find((item) => item.slug === slug)
+  const where = pathPart === '/' ? '/' : pathPart.replace(/\/$/, '')
+  // A page of a listing (`/blog/page/2`) is the listing's own document shown again.
+  const listed = where.replace(/\/page\/[1-9][0-9]*$/, '')
+  const page = pages.find((item) => documentPath(item) === where) ?? pages.find((item) => documentPath(item) === listed)
   if (!page) return `No page at ${pathPart}.`
-  const where = slug === 'index' ? '/' : `/${slug}`
   return missingAnchor(hash, page.anchors, where)
 }
 
@@ -554,6 +567,16 @@ function missingAnchor(hash: string, anchors: readonly string[], where: string):
   return `No anchor "#${hash}" on ${where}.`
 }
 
-function anchorsFor(pages: readonly AnchorPage[], slug: string): readonly string[] {
-  return pages.find((page) => page.slug === slug)?.anchors ?? []
+/** Whether `page` is the document `current` names: a page's slug, or the address of any other document. */
+export function isCurrentDocument(page: { slug: string; path?: string }, current: string): boolean {
+  return current.startsWith('/') ? documentPath(page) === current : page.path === undefined && page.slug === current
+}
+
+/** The address of the document `current` names. */
+export function currentDocumentPath(current: string): string {
+  return current.startsWith('/') ? current : pageHref(current)
+}
+
+function anchorsFor(pages: readonly AnchorPage[], current: string): readonly string[] {
+  return pages.find((page) => isCurrentDocument(page, current))?.anchors ?? []
 }

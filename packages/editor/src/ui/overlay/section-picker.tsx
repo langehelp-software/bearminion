@@ -43,29 +43,32 @@ export function SectionPicker() {
         />
       </div>
       <div class="bm-picker-grid">
-        {Object.keys(catalog.sectionLabels).map((type) => {
-          const label = catalog.sectionLabels[type] ?? type
-          const variants = catalog.sectionOptions[type]?.find((option) => option.name === 'variant')?.choices?.length ?? 0
-          const description = catalog.sectionDescriptions?.[type]
-          return (
-            <button type="button" key={type} aria-label={label} onClick={() => sections.insert(type, picker.where, picker.id)}>
-              <span class="bm-wire" aria-hidden="true">
-                {(catalog.sectionWireframes?.[type] ?? []).map(([x, y, w, h, kind], at) => (
-                  <span key={at} style={`left:${x}%;top:${y}%;width:${w}%;height:${h}%;${WIRE_FILL[kind] ?? ''}`} />
-                ))}
-              </span>
-              <span class="bm-type-text">
-                <span class="bm-type-name">{label}</span>
-                {variants > 0 && (
-                  <span class="bm-type-variants">
-                    {variants} {variants === 1 ? 'variant' : 'variants'}
-                  </span>
-                )}
-                {description && <span class="bm-type-desc">{description}</span>}
-              </span>
-            </button>
-          )
-        })}
+        {Object.keys(catalog.sectionLabels)
+          // A content type may list the sections its documents use. The others are not offered.
+          .filter((type) => doc.allowedSections.value?.includes(type) !== false)
+          .map((type) => {
+            const label = catalog.sectionLabels[type] ?? type
+            const variants = catalog.sectionOptions[type]?.find((option) => option.name === 'variant')?.choices?.length ?? 0
+            const description = catalog.sectionDescriptions?.[type]
+            return (
+              <button type="button" key={type} aria-label={label} onClick={() => sections.insert(type, picker.where, picker.id)}>
+                <span class="bm-wire" aria-hidden="true">
+                  {(catalog.sectionWireframes?.[type] ?? []).map(([x, y, w, h, kind], at) => (
+                    <span key={at} style={`left:${x}%;top:${y}%;width:${w}%;height:${h}%;${WIRE_FILL[kind] ?? ''}`} />
+                  ))}
+                </span>
+                <span class="bm-type-text">
+                  <span class="bm-type-name">{label}</span>
+                  {variants > 0 && (
+                    <span class="bm-type-variants">
+                      {variants} {variants === 1 ? 'variant' : 'variants'}
+                    </span>
+                  )}
+                  {description && <span class="bm-type-desc">{description}</span>}
+                </span>
+              </button>
+            )
+          })}
       </div>
       <p class="bm-picker-note">The new section starts with sample content. Nothing is written until you save.</p>
     </div>

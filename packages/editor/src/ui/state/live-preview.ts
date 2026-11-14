@@ -55,7 +55,9 @@ export function createLivePreview(doc: DocumentStore, onRendered: () => void) {
     const seq = ++pageSeq
     const site = doc.site.peek()
     const motion = site ? getAt(site, 'theme.motion') !== false : true
-    const result = await previewPage(pruneDraft(draft, doc.catalog.peek()?.optionalContent), motion)
+    // A listing page's draft carries its address as a slug, so it is checked as a page; everything else as its own type.
+    const { type, kind } = doc.ref.peek()
+    const result = await previewPage(pruneDraft(draft, doc.catalog.peek()?.optionalContent), motion, kind === 'listing' ? undefined : type)
     if (seq !== pageSeq || !result.ok || typeof result.value.html !== 'string') return
     const main = document.querySelector('main#content')
     if (!main) return

@@ -101,7 +101,7 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
       if (!page || !doc.site.value) return null
       return (
         <HistoryDialog
-          slug={doc.savedSlug.value}
+          slug={doc.historyKey.value}
           labels={doc.catalog.value?.sectionLabels ?? {}}
           page={page}
           onRestore={editor.restoreVersion}
@@ -123,7 +123,7 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
           page={page}
           siteName={text(doc.site.value?.name)}
           siteUrl={text(doc.site.value?.url)}
-          system={isSystemPage(page.slug)}
+          system={doc.ref.value.type === 'pages' && isSystemPage(page.slug)}
           images={doc.images.value}
           issues={ui.issues.value.filter((issue) => issue.file !== 'site')}
           onUploaded={doc.addImage}

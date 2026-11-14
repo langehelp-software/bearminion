@@ -3,7 +3,10 @@ import type {
   ApiProblem,
   CommitRequest,
   CommitResult,
+  ContentTypeInfo,
   CreatePageRequest,
+  DocumentAt,
+  EntryListItem,
   GitInfo,
   HistoryEntry,
   PageListItem,
@@ -55,15 +58,22 @@ const segment = encodeURIComponent
 export const getCatalog = () => request<Catalog>('/schema')
 export const getSite = () => request<SiteDraft>('/site')
 export const getPages = () => request<{ pages: PageListItem[] }>('/pages')
-export const getPage = (slug: string) => request<PageDraft>(`/pages/${segment(slug)}`)
-export const createPage = (body: CreatePageRequest) => request<PageDraft>('/pages', sendJson('POST', body))
-export const deletePage = (slug: string) => request<{ deleted: true; slug: string }>(`/pages/${segment(slug)}`, { method: 'DELETE' })
+/** The document the address shows, and of which content type it is. A listing page's document has no slug. */
+export const getDocumentAt = (pathname: string) => request<DocumentAt<PageDraft>>(`/document?path=${segment(pathname)}`)
+export const getTypes = () => request<{ types: ContentTypeInfo[] }>('/types')
+export const getEntries = (type: string) => request<{ entries: EntryListItem[] }>(`/types/${segment(type)}/entries`)
+/** Where the entries of a type are created and deleted. Pages keep their own route. */
+const entriesPath = (type: string) => (type === 'pages' ? '/pages' : `/types/${segment(type)}/entries`)
+export const createEntry = (type: string, body: CreatePageRequest) => request<PageDraft>(entriesPath(type), sendJson('POST', body))
+export const deleteEntry = (type: string, slug: string) =>
+  request<{ deleted: true; slug: string }>(`${entriesPath(type)}/${segment(slug)}`, { method: 'DELETE' })
 
 /** Validate and write the page (with any rename or move to home) and the site together. */
 export const saveDraft = (body: SaveRequest<PageDraft, SiteDraft>) =>
   request<SaveResponse<PageDraft, SiteDraft>>('/save', sendJson('POST', body))
 
-export const previewPage = (page: PageDraft, motion: boolean) => request<{ html: string }>('/preview', sendJson('POST', { page, motion }))
+export const previewPage = (page: PageDraft, motion: boolean, type?: string) =>
+  request<{ html: string }>('/preview', sendJson('POST', { page, motion, ...(type === undefined ? {} : { type }) }))
 export const previewSite = (site: SiteDraft, pathname: string) =>
   request<SitePreview>('/preview/site', sendJson('POST', { site, pathname }))
 
@@ -90,9 +100,12 @@ export const getGit = () => request<GitInfo>('/git')
 export const getForms = () => request<{ enabled: boolean; handlers: Record<string, { file: string | null }> }>('/forms')
 export const commit = (body: CommitRequest) => request<CommitResult>('/git/commit', sendJson('POST', body))
 
-/** Saved versions of the site (`scope` site) or of one page. */
-function historyPath(scope: 'page' | 'site', slug: string): string {
-  return scope === 'page' ? `/history/pages/${segment(slug)}` : '/history/site'
+/**
+ * Saved versions of the site (`scope` site) or of the open document. `key` says which document: `pages/about`,
+ * `types/blog/first-post`, `types/blog/_listing`, `types/about/_single` (see `DocumentStore.historyKey`).
+ */
+function historyPath(scope: 'page' | 'site', key: string): string {
+  return scope === 'page' ? `/history/${key.split('/').map(segment).join('/')}` : '/history/site'
 }
 export const listHistory = (scope: 'page' | 'site', slug: string) => request<{ entries: HistoryEntry[] }>(historyPath(scope, slug))
 export const getHistoryVersion = (scope: 'page' | 'site', slug: string, id: string) =>

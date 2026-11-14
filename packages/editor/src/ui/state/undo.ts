@@ -42,7 +42,7 @@ export function createUndo(doc: DocumentStore, apply: (snapshot: DraftSnapshot) 
     const next = snapshot()
     if (!next) return
     const current = history.peek()
-    const slug = doc.savedSlug.peek()
+    const slug = doc.draftId.peek()
     history.value = current === null || current.slug !== slug ? startHistory(slug, next) : recordSnapshot(current, next)
   }
 
@@ -50,7 +50,7 @@ export function createUndo(doc: DocumentStore, apply: (snapshot: DraftSnapshot) 
   function noteChange() {
     if (doc.page.peek() === null || doc.site.peek() === null) return
     const current = history.peek()
-    if (current === null || current.slug !== doc.savedSlug.peek()) {
+    if (current === null || current.slug !== doc.draftId.peek()) {
       flush()
       return
     }

@@ -126,7 +126,7 @@ export function Sidebar({ catalog }: { catalog: Catalog }) {
       </div>
       <IssueContext.Provider value={ui.issues.value.filter((issue) => issue.file === undefined || issue.file === TAB_FILE[tab])}>
         <LinksContext.Provider
-          value={{ pages: doc.pages.value, currentSlug: doc.currentSlug.value, anchors: doc.anchors.value, editLink: links.open }}
+          value={{ pages: doc.pages.value, currentSlug: doc.linkKey.value, anchors: doc.anchors.value, editLink: links.open }}
         >
           <div class="bm-body" role="tabpanel" id={`bm-panel-${tab}`} aria-labelledby={`bm-tab-${tab}`}>
             <SaveIssues />

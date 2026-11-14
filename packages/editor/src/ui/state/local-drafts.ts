@@ -63,11 +63,11 @@ export function createLocalDrafts(doc: DocumentStore, ui: UiState) {
   }
 
   function draftKey(id: string, scope: DraftScope): string {
-    return scope === 'page' ? pageDraftKey(id, doc.savedSlug.peek()) : siteDraftKey(id)
+    return scope === 'page' ? pageDraftKey(id, doc.draftId.peek()) : siteDraftKey(id)
   }
 
   function noticeKey(id: string, scope: DraftScope): string {
-    return scope === 'page' ? pageSavedKey(id, doc.savedSlug.peek()) : siteSavedKey(id)
+    return scope === 'page' ? pageSavedKey(id, doc.draftId.peek()) : siteSavedKey(id)
   }
 
   /** Write each dirty draft, and clear the stored copy of a clean one. An offer that is still up keeps its drafts. */

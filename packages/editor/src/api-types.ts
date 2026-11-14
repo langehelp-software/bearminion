@@ -61,6 +61,14 @@ export interface DocumentAt<TDocument = unknown> {
   document: TDocument
 }
 
+/** The body of `POST /pages` and `POST /types/:id/entries`. */
+export interface CreateEntryRequest {
+  slug: string
+  title: string
+  template?: string
+  fields?: Record<string, unknown>
+}
+
 /** `GET /types/:id/entries`. */
 export interface EntryListItem {
   slug: string
