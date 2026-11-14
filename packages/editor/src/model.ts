@@ -1,4 +1,5 @@
 import type { SectionDefinition } from './define-section.js'
+import type { ContentTypes } from './content-types.js'
 import type { ContentVersioning } from './migrate.js'
 import type { SiteDefinition } from './site.js'
 import type { ThemeDefinition } from './theme.js'
@@ -25,4 +26,9 @@ export interface ContentModel extends ContentVersioning {
   site: SiteDefinition
   /** What the theme tells the editor (font slot labels and families). Default: {@link defaultTheme}. */
   theme?: ThemeDefinition
+  /**
+   * The site's own content types, from `defineTypes`: `{ blog: multi({ path: '/blog/{slug}' }) }`. The home page, the
+   * 404 page and `pages` are built in and need no entry here. Default: only the built-in ones.
+   */
+  types?: ContentTypes
 }

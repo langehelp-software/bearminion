@@ -64,6 +64,8 @@ export type { SitePreviewHtml, ThemePreview } from './preview.js'
 
 export { collection } from './collections.js'
 export type { CollectionOptions } from './collections.js'
+export { defineTypes, multi, single } from './content-types.js'
+export type { ContentTypes, Entry, ListingDocument, ListingOptions, SingleOptions, SortRule, TypeOptions } from './content-types.js'
 export { API_PREFIX } from './model.js'
 export type { ContentModel, SectionRegistry } from './model.js'
 
