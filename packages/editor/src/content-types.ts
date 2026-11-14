@@ -79,6 +79,10 @@ export const NOT_FOUND_SLUG = '404'
 export const LISTING_FILE = '_listing.json'
 /** `/blog/page/2`: the segment before the page number. An entry cannot use it as its slug when the listing shares its prefix. */
 export const PAGINATION_SEGMENT = 'page'
+/** The Astro collection of listing page documents, one per type that has a listing. Entry id = type id. */
+export const LISTINGS_COLLECTION = 'bm-listings'
+/** The Astro collection of the singles a model declares. Entry id = type id. */
+export const SINGLES_COLLECTION = 'bm-singles'
 /** What a migration is told a listing page document is, in place of a content type's id. */
 export const LISTING_MIGRATION_TYPE = 'listing'
 export const DEFAULT_PER_PAGE = 10
@@ -152,8 +156,8 @@ const RESERVED_IDS = new Set([
   'edits',
   'uploads',
   'listing',
-  'bm-listings',
-  'bm-singles',
+  LISTINGS_COLLECTION,
+  SINGLES_COLLECTION,
 ])
 /** Root addresses a type or a listing cannot take. */
 const RESERVED_SEGMENTS = new Set([HOME_SLUG, NOT_FOUND_SLUG])

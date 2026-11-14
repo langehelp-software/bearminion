@@ -3,8 +3,10 @@ import { pathToFileURL } from 'node:url'
 import { glob } from 'astro/loaders'
 import { z } from 'zod'
 import {
+  LISTINGS_COLLECTION,
   LISTING_FILE,
   LISTING_MIGRATION_TYPE,
+  SINGLES_COLLECTION,
   SINGLES_DIR,
   createEntrySchema,
   createListingSchema,
@@ -131,10 +133,7 @@ export function contentCollections<TModel extends ContentModel>(model: TModel, o
   }
 }
 
-/** The collection of listing page documents, one per type that has a listing. Entry id = type id. */
-export const LISTINGS_COLLECTION = 'bm-listings'
-/** The collection of the singles a model declares. Entry id = type id. */
-export const SINGLES_COLLECTION = 'bm-singles'
+export { LISTINGS_COLLECTION, SINGLES_COLLECTION }
 
 function pageType(types: ResolvedTypes, slug: string): ContentType {
   return slug === types.home.slug ? types.home : slug === types.notFound.slug ? types.notFound : types.pages

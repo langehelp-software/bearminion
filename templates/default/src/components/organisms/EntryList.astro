@@ -1,0 +1,83 @@
+---
+import type { ListedEntry } from 'bearminion'
+import Typography from '../atoms/Typography.astro'
+import MediaFrame from '../molecules/MediaFrame.astro'
+
+/**
+ * The entries of a content type on its listing page, one card each. It shows what an entry has: `date`, `excerpt`
+ * and `cover` when the type declares fields by those names, and the entry's SEO description when there is no excerpt.
+ * A type with other fields: change this file, it is yours.
+ */
+interface Props {
+  entries: ListedEntry[]
+  /** Shown above the list when the listing page has no sections of its own to introduce it. */
+  heading?: string
+  /** The site's language, for the date. */
+  lang: string
+}
+
+const { entries, heading, lang } = Astro.props
+
+const text = (value: unknown): string | undefined => (typeof value === 'string' && value !== '' ? value : undefined)
+
+/** A cover is an image field (`{ src, alt }`) or a plain path. */
+function coverOf(value: unknown): { src: string; alt: string } | undefined {
+  if (typeof value === 'string' && value !== '') return { src: value, alt: '' }
+  if (typeof value !== 'object' || value === null || !('src' in value) || typeof value.src !== 'string') return undefined
+  if ('hidden' in value && value.hidden === true) return undefined
+  return { src: value.src, alt: 'alt' in value && typeof value.alt === 'string' ? value.alt : '' }
+}
+
+/** `2026-01-05` as the site's language writes a date. Anything that is not a date is shown as it is. */
+function dateOf(value: unknown): { iso: string; label: string } | undefined {
+  const raw = value instanceof Date ? value.toISOString() : text(value)
+  if (!raw) return undefined
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return { iso: raw, label: raw }
+  return { iso: raw, label: new Intl.DateTimeFormat(lang, { dateStyle: 'long', timeZone: 'UTC' }).format(date) }
+}
+
+const cards = entries.map((entry) => ({
+  entry,
+  cover: coverOf(entry.fields.cover),
+  date: dateOf(entry.fields.date),
+  excerpt: text(entry.fields.excerpt) ?? text(entry.description),
+}))
+---
+
+<section data-entry-list class="relative overflow-clip">
+  <div class="section-container">
+    {heading && <Typography as="h1" size="h2">{heading}</Typography>}
+    {
+      cards.length === 0 ? (
+        <Typography as="p" size="lead" color="muted" class={heading ? 'mt-6' : undefined}>
+          Nothing here yet.
+        </Typography>
+      ) : (
+        <ul class:list={['grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-4', heading && 'mt-12']}>
+          {cards.map(({ entry, cover, date, excerpt }) => (
+            <li class="relative flex flex-col gap-4 rounded-card-lg bg-surface p-6 ring-line transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_40px_-28px_oklch(0.2_0.02_255/0.4)]">
+              {cover && <MediaFrame src={cover.src} alt={cover.alt} aspectClass="aspect-[16/9]" />}
+              {date && (
+                <p class="font-mono text-[0.6875rem] tracking-[0.08em] text-muted">
+                  <time datetime={date.iso}>{date.label}</time>
+                </p>
+              )}
+              <Typography as="h2" size="h3">
+                {/* The link covers the whole card, so the title is the one thing a screen reader announces as the link. */}
+                <a href={entry.path} class="after:absolute after:inset-0 after:rounded-card-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-accent">
+                  {entry.title}
+                </a>
+              </Typography>
+              {excerpt && (
+                <Typography as="p" size="body" color="muted">
+                  {excerpt}
+                </Typography>
+              )}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</section>

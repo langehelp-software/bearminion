@@ -2,6 +2,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sitemap from '@astrojs/sitemap'
 import tailwindcss from '@tailwindcss/vite'
+import { siteRoutes } from 'bearminion'
 import bearminion, { loadContent } from 'bearminion/astro'
 import type { AstroIntegration } from 'astro'
 import { defineConfig } from 'astro/config'
@@ -13,6 +14,10 @@ import { createSitemapFilter } from './src/lib/sitemap'
 const contentDir = contentDirectory()
 // Tolerant, so `astro dev` still starts when a page holds a section type the site dropped: the editor can then remove it.
 const content = loadContent(contentDir, contentModel, { tolerateOrphans: true })
+// Every published address with its document: pages, and the entries, singles and listing pages of declared content
+// types. Two documents on one address stop here, before anything is built.
+const routes = siteRoutes(contentModel, content, { locale: content.site.lang ?? 'en' })
+const documents = routes.map((route) => route.page)
 
 /** The style guide and the variants gallery are theme workshops: `astro dev` serves them, `astro build` leaves them out. */
 const devPages: AstroIntegration = {
@@ -39,10 +44,10 @@ const formCheck: AstroIntegration = {
   name: 'bearminion-site:form-check',
   hooks: {
     'astro:server:start': ({ logger }) => {
-      for (const form of unhandledForms(content.pages, hasFormHandler(formsDir))) logger.warn(unhandledFormMessage(form))
+      for (const form of unhandledForms(documents, hasFormHandler(formsDir))) logger.warn(unhandledFormMessage(form))
     },
     'astro:build:start': ({ logger }) => {
-      const forms = unhandledForms(content.pages, hasFormHandler(formsDir))
+      const forms = unhandledForms(documents, hasFormHandler(formsDir))
       const failure = formsRequired(process.env.BEARMINION_FORMS) ? requiredFormsError(forms) : undefined
       if (failure) throw failure
       for (const form of forms) logger.warn(unhandledFormMessage(form))
@@ -68,7 +73,7 @@ export default defineConfig({
       ...(process.env.BEARMINION_FORMS_DIR ? { forms: { dir: path.resolve(process.env.BEARMINION_FORMS_DIR) } } : {}),
     }),
     sitemap({
-      filter: createSitemapFilter(content.pages),
+      filter: createSitemapFilter(routes),
     }),
     devPages,
     formCheck,

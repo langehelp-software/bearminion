@@ -106,6 +106,12 @@ export function listedEntries(type: MultiType, entries: readonly Entry[], option
   return sortEntries(type, options.drafts ? entries : entries.filter((entry) => !isDraft(entry)), options.locale)
 }
 
+/** A canonical address set on the listing belongs to its first page; page 2 is its own address. */
+function laterPageSeo(seo: ListingDocument['seo'], page: number): ListingDocument['seo'] {
+  const { canonical: _canonical, ...rest } = seo
+  return { ...rest, title: `${seo.title} - Page ${page}` }
+}
+
 /** One page of a type's listing. `entries` is what {@link listedEntries} returned. Undefined when there is no such page. */
 export function listingRoute(
   type: MultiType,
@@ -127,7 +133,7 @@ export function listingRoute(
       slug,
       title: document.title,
       // Every listing page is its own address, so each needs a title of its own for search results and tabs.
-      seo: first ? document.seo : { ...document.seo, title: `${document.seo.title} - Page ${page}` },
+      seo: first ? document.seo : laterPageSeo(document.seo, page),
       sections: first ? document.sections : [],
     },
     entries: entries.slice((page - 1) * perPage, page * perPage).map((entry) => ({
