@@ -2,6 +2,7 @@ import { type HandleMeta, handleEditorRequest } from './api.js'
 import { type CollectionOptions, resolveCollections } from './collections.js'
 import type { EditorContext } from './editor-context.js'
 import { githubStore } from './github-store.js'
+import { resolveTypes } from './content-types.js'
 import { createMigrator } from './migrate.js'
 import type { ContentModel } from './model.js'
 import { type PageRules, resolvePageRules } from './page.js'
@@ -36,6 +37,7 @@ export function createHostedContext(options: HostedEditorOptions): EditorContext
   if (!options.sections) throw new Error("createHostedContext() needs the `sections` option: the site's section definitions.")
   if (!options.site) throw new Error('createHostedContext() needs the `site` option: the site definition from defineSite().')
   if (!options.store) throw new Error('createHostedContext() needs the `store` option, such as githubStore({ ... }).')
+  const pageRules = resolvePageRules(options.pages)
   return {
     // There is no local project: these folders mean nothing to a store that is not the file system.
     root: '',
@@ -44,9 +46,10 @@ export function createHostedContext(options: HostedEditorOptions): EditorContext
     videosDir: '',
     maxVideoBytes: DEFAULT_VIDEO_BYTE_LIMIT,
     maxImageBytes: resolveMaxImageBytes(options.maxImageBytes),
-    pageRules: resolvePageRules(options.pages),
+    pageRules,
     imageConvert: resolveConvert(options.imageConvert),
     sections: options.sections,
+    types: resolveTypes(options, pageRules),
     site: options.site,
     theme: options.theme ?? defaultTheme,
     store: options.store,

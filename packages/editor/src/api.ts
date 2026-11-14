@@ -11,6 +11,26 @@ import {
   renameEntry,
   updateEntry,
 } from './collections.js'
+import {
+  HOME_SLUG,
+  NOT_FOUND_SLUG,
+  PAGES_TYPE,
+  PAGINATION_SEGMENT,
+  createEntrySchema,
+  createListingSchema,
+  entryKey,
+  entryPath,
+  listingKey,
+  listingPath,
+  reservedSlugs,
+  resolveTypes,
+  sortEntries,
+  type ContentType,
+  type Entry,
+  type MultiType,
+  type ResolvedTypes,
+  type SingleType,
+} from './content-types.js'
 import type { BlockEdit } from './entry-blocks.js'
 import { ContentReadError, ContentValidationError, type ContentIssue } from './errors.js'
 import { imageBodyLimit, imageTooLarge, kindFromMime, sniffImage } from './image-sniff.js'
@@ -25,17 +45,17 @@ import type { Wireframe } from './wireframe.js'
 import { JSON_BODY_LIMIT, isLocalRequest, isSameOriginRequest, readSlug } from './request-guards.js'
 import { formatBytes, type UploadRules } from './upload-rules.js'
 import { projectId } from './draft-store.js'
-import { NO_HISTORY, isHistoryId } from './history-types.js'
-import { fieldIssues, validateEditorPage, validatePage, validateSite, type FieldIssue } from './validate.js'
+import { NO_HISTORY, isHistoryId, type HistoryScope } from './history-types.js'
+import { fieldIssues, validateEditorPage, validateSite, type FieldIssue } from './validate.js'
 import { assetRefs, describePageRef, describeSiteRef, missingAssetIssues } from './asset-paths.js'
 import { COMMIT_MESSAGE_LIMIT, GitError, NO_GIT } from './git-types.js'
 import { PreviewUnavailableError } from './preview.js'
-import { isSystemPage, withoutOrphanSections, type Page } from './page.js'
+import { isSystemPage, withoutOrphanSections } from './page.js'
 import { isOrphanSection } from './section-schema.js'
 import type { Site } from './site.js'
 import { SCHEMA_VERSION_KEY, type DocumentKind } from './migrate.js'
 import { stableStringify } from './stable-json.js'
-import { PAGES_DIR, SITE_KEY, pageKey } from './store-core.js'
+import { SITE_KEY } from './store-core.js'
 import { StoreError, StoreKeyError } from './store-error.js'
 
 export interface HandleMeta {
@@ -63,7 +83,46 @@ interface StoredPage {
   /** Store key, `pages/<file>.json`. */
   key: string
   fileName: string
-  page: Page
+  page: Entry
+}
+
+/** The site's content types. A context built by hand without them has the built-in ones. */
+const typesOf = (context: EditorContext): ResolvedTypes => context.types ?? resolveTypes({})
+
+const isPages = (type: MultiType): boolean => type.id === PAGES_TYPE
+const noun = (type: MultiType): string => (isPages(type) ? 'page' : 'entry')
+/** The pull-request scope of one entry. Pages keep `page:<slug>`, so pull requests opened before types existed still match. */
+const entryScope = (type: MultiType, slug: string): string => (isPages(type) ? `page:${slug}` : `${type.id}:${slug}`)
+const entryHistory = (type: MultiType, slug: string): [HistoryScope, string] =>
+  isPages(type) ? ['page', slug] : ['entry', `${type.id}/${slug}`]
+const entryRoute = (type: MultiType, slug: string): string => (isPages(type) ? `/pages/${slug}` : `/types/${type.id}/entries/${slug}`)
+
+/** Rename and delete locks. The `pages` option of `bearminion()` rules pages; other types carry their own. */
+function entryRules(context: EditorContext, type: MultiType): { rename: boolean; delete: boolean } {
+  return isPages(type) ? context.pageRules : { rename: type.rename, delete: type.delete }
+}
+
+/** The type of a document stored in `type`'s folder: the home and 404 pages are stored among the pages. */
+function documentType(context: EditorContext, type: MultiType, slug: string): ContentType {
+  if (!isPages(type)) return type
+  const types = typesOf(context)
+  return slug === HOME_SLUG ? types.home : slug === NOT_FOUND_SLUG ? types.notFound : type
+}
+
+/** Validate an entry for the editor (orphaned sections kept), or strictly as the build would. */
+function validateEntry(context: EditorContext, type: MultiType, slug: string, input: unknown, strict = false) {
+  return createEntrySchema(context.sections, documentType(context, type, slug), { tolerateOrphans: !strict }).safeParse(input)
+}
+
+/** Why `slug` cannot be an entry of `type`, or null when it can. */
+function reservedSlug(context: EditorContext, type: MultiType, slug: string): Response | null {
+  // The home page's own slug is handled where it matters: a site without a home page may create it.
+  if (slug === HOME_SLUG || !reservedSlugs(typesOf(context), type).has(slug)) return null
+  const why =
+    !isPages(type) && slug === PAGINATION_SEGMENT
+      ? `"/${type.prefix}/${slug}" is where the listing's page numbers live.`
+      : `"/${slug}" is the address of another content type.`
+  return problem(409, 'reserved_slug', `"${slug}" cannot be used here: ${why}`)
 }
 
 /**
@@ -117,11 +176,13 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
 
   if (parts.length === 1 && parts[0] === 'pages') {
     if (method === 'GET') return getPages(context)
-    if (method === 'POST') return createPage(request, context)
+    if (method === 'POST') return createPage(request, context, typesOf(context).pages)
     return methodNotAllowed(['GET', 'POST'])
   }
 
   if (parts[0] === 'collections') return collectionRoute(request, context, parts.slice(1), method)
+
+  if (parts[0] === 'types') return typeRoute(request, context, parts.slice(1), method)
 
   if (parts.length === 1 && parts[0] === 'forms') {
     if (method === 'GET') return getForms(context)
@@ -170,6 +231,21 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
     return methodNotAllowed(['POST'])
   }
 
+  if (parts[0] === 'history' && parts[1] === 'types' && parts.length >= 4 && parts.length <= 5) {
+    if (method !== 'GET') return methodNotAllowed(['GET'])
+    const type = typesOf(context).get(decodeSegment(parts[2] ?? ''))
+    const name = parts[3] ?? ''
+    if (!type) return problem(404, 'not_found', 'Unknown content type.')
+    if (type.kind === 'single') {
+      if (name !== SINGLE_HISTORY) return problem(404, 'not_found', 'Unknown editor API route.')
+      return getHistory(context, ...singleHistory(type), parts[4])
+    }
+    if (name === LISTING_HISTORY && type.listing) return getHistory(context, 'entry', `${type.id}/${LISTING_HISTORY}`, parts[4])
+    const slug = readSlug(name)
+    if (slug === null) return badSlug()
+    return getHistory(context, ...entryHistory(type, slug), parts[4])
+  }
+
   if (parts[0] === 'history' && (parts[1] === 'site' || parts[1] === 'pages')) {
     if (method !== 'GET') return methodNotAllowed(['GET'])
     if (parts[1] === 'site' && parts.length <= 3) return getHistory(context, 'site', '', parts[2])
@@ -184,16 +260,17 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
     const slug = readSlug(parts[1] ?? '')
     if (slug === null) return badSlug()
     const entry = scoped(context, `page:${slug}`)
-    if (method === 'GET') return getPage(entry, slug)
-    if (method === 'PUT') return putPage(request, entry, slug)
-    if (method === 'DELETE') return deletePage(entry, slug)
+    const pages = typesOf(context).pages
+    if (method === 'GET') return getPage(entry, slug, pages)
+    if (method === 'PUT') return putPage(request, entry, slug, pages)
+    if (method === 'DELETE') return deletePage(entry, slug, pages)
     return methodNotAllowed(['GET', 'PUT', 'DELETE'])
   }
 
   if (parts.length === 3 && parts[0] === 'pages' && parts[2] === 'rename') {
     const slug = readSlug(parts[1] ?? '')
     if (slug === null) return badSlug()
-    if (method === 'POST') return renamePage(request, scoped(context, `page:${slug}`), slug)
+    if (method === 'POST') return renamePage(request, scoped(context, `page:${slug}`), slug, typesOf(context).pages)
     return methodNotAllowed(['POST'])
   }
 
@@ -433,6 +510,8 @@ const saveSchema = z
   .object({
     page: z
       .object({
+        /** The id of the entry's content type. Default `pages`. */
+        type: z.string().optional(),
         /** The slug the page is stored under now. The document's own `slug` is where it goes. */
         from: z.string(),
         document: z.unknown(),
@@ -458,7 +537,7 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
   const writes: [key: string, value: unknown][] = []
   const removals: string[] = []
   const after: (() => Promise<void>)[] = []
-  const result: { page?: Page; site?: Site } = {}
+  const result: { page?: Entry; site?: Site } = {}
 
   // Validate both documents before answering, so one failed save reports every problem in the page and the site.
   const failures: FieldIssue[] = []
@@ -486,7 +565,11 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
   }
 
   if (parsed.data.page !== undefined) {
-    const planned = await planPageSave(context, parsed.data.page)
+    const type = parsed.data.page.type === undefined ? typesOf(context).pages : typesOf(context).get(parsed.data.page.type)
+    const planned: PagePlan =
+      type?.kind === 'multi'
+        ? await planPageSave(context, parsed.data.page, type)
+        : { response: problem(404, 'not_found', `No content type "${parsed.data.page.type}" with entries.`) }
     if (planned.issues) {
       failures.push(...tagIssues(planned.issues, 'page'))
     } else if (planned.response) {
@@ -514,62 +597,54 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
 }
 
 type PagePlan =
-  | { page: Page; writes: [string, unknown][]; removals: string[]; after: () => Promise<void>; response?: undefined; issues?: undefined }
+  | { page: Entry; writes: [string, unknown][]; removals: string[]; after: () => Promise<void>; response?: undefined; issues?: undefined }
   | { response: Response; issues?: undefined }
   /** Field errors; the caller decides how to answer, since a save reports the site's alongside them. */
   | { issues: FieldIssue[]; response?: undefined }
 
-async function planPageSave(context: EditorContext, input: { from: string; document: unknown }): Promise<PagePlan> {
+async function planPageSave(context: EditorContext, input: { from: string; document: unknown }, type: MultiType): Promise<PagePlan> {
   const from = readSlug(input.from)
   if (from === null) return { response: badSlug() }
-  const upgraded = context.migrator.upgrade(input.document, 'page')
+  const upgraded = context.migrator.upgrade(input.document, 'page', documentType(context, type, from).id)
   if (!upgraded.ok) return { issues: [{ path: SCHEMA_VERSION_KEY, message: upgraded.message }] }
-  const parsed = validateEditorPage(upgraded.value, context.sections)
+  const parsed = validateEntry(context, type, from, upgraded.value)
   if (!parsed.success) return { issues: fieldIssues(parsed.error) }
-  const page = parsed.data as Page
+  const page = parsed.data
   const target = page.slug
   const missing = await missingAssets(context, page)
   if (missing.length > 0) return { issues: missing }
 
-  const loaded = await loadStoredPages(context)
+  const loaded = await loadStoredPages(context, {}, type)
   if (loaded.response) return { response: loaded.response }
   const found = loaded.pages.find((entry) => entry.page.slug === from)
-  if (!found) return { response: problem(404, 'not_found', `No page with slug "${from}".`) }
+  if (!found) return { response: problem(404, 'not_found', `No ${noun(type)} with slug "${from}".`) }
 
-  // The editor may keep an orphaned section the stored page already has, but never add one.
-  const stored = new Set(found.page.sections.filter((section) => isOrphanSection(context.sections, section)).map(orphanKey))
-  const added = page.sections.flatMap((section, index) =>
-    isOrphanSection(context.sections, section) && !stored.has(orphanKey(section))
-      ? [
-          {
-            path: `sections.${index}.type`,
-            message: `Unknown section type "${section.type}". Expected one of: ${Object.keys(context.sections).join(', ')}.`,
-          },
-        ]
-      : [],
-  )
+  const added = addedOrphans(context, found.page.sections, page.sections)
   if (added.length > 0) return { issues: added }
 
   const after = async () => {
-    await history(context).ensureBaseline('page', target, found.page)
-    await history(context).write('page', target, page)
+    await history(context).ensureBaseline(...entryHistory(type, target), found.page)
+    await history(context).write(...entryHistory(type, target), page)
   }
 
   if (target === from) return { page, writes: [[found.key, page]], removals: [], after }
-  if (!context.pageRules.rename) return { response: locked('rename') }
+  if (!entryRules(context, type).rename) return { response: locked('rename', type) }
 
-  if (from === 'index') {
-    return { response: problem(409, 'conflict', 'The home page is served at / and keeps the slug index.') }
+  if (isPages(type)) {
+    if (from === HOME_SLUG) {
+      return { response: problem(409, 'conflict', 'The home page is served at / and keeps the slug index.') }
+    }
+    if (isSystemPage(from) || isSystemPage(target)) {
+      return { response: problem(409, 'reserved_slug', 'System pages cannot be renamed, and no page can take their slug.') }
+    }
+    if (target === HOME_SLUG) return { response: homeIsFixed() }
   }
-  if (isSystemPage(from) || isSystemPage(target)) {
-    return { response: problem(409, 'reserved_slug', 'System pages cannot be renamed, and no page can take their slug.') }
-  }
-
-  if (target === 'index') return { response: homeIsFixed() }
+  const reserved = reservedSlug(context, type, target)
+  if (reserved) return { response: reserved }
   if (loaded.pages.some((entry) => entry.page.slug === target)) {
-    return { response: problem(409, 'conflict', `A page with slug "${target}" already exists.`) }
+    return { response: problem(409, 'conflict', `A ${noun(type)} with slug "${target}" already exists.`) }
   }
-  const nextKey = pageKey(target)
+  const nextKey = entryKey(type, target)
   if (await context.store.exists(nextKey)) {
     return { response: problem(409, 'conflict', `A file named ${target}.json already exists.`) }
   }
@@ -601,13 +676,20 @@ async function postCommit(request: Request, context: EditorContext): Promise<Res
   }
 }
 
-async function getHistory(context: EditorContext, scope: 'page' | 'site', slug: string, id: string | undefined): Promise<Response> {
+async function getHistory(context: EditorContext, scope: HistoryScope, slug: string, id: string | undefined): Promise<Response> {
   if (id === undefined) return json(200, { entries: await history(context).list(scope, slug) })
   if (!isHistoryId(id)) return problem(400, 'invalid_id', 'Not a history id.')
   const snapshot = await history(context).read(scope, slug, id)
   if (snapshot === null) return problem(404, 'not_found', 'No saved version with that id.')
   return json(200, snapshot)
 }
+
+const sectionAnchors = (sections: readonly unknown[]): string[] =>
+  sections.flatMap((section) =>
+    typeof section === 'object' && section !== null && 'anchor' in section && typeof section.anchor === 'string' && section.anchor !== ''
+      ? [section.anchor]
+      : [],
+  )
 
 async function getPages(context: EditorContext): Promise<Response> {
   const loaded = await loadStoredPages(context)
@@ -618,40 +700,64 @@ async function getPages(context: EditorContext): Promise<Response> {
       title: entry.page.title,
       file: entry.fileName,
       system: isSystemPage(entry.page.slug),
-      anchors: entry.page.sections.flatMap((section) =>
-        'anchor' in section && typeof section.anchor === 'string' && section.anchor !== '' ? [section.anchor] : [],
-      ),
+      anchors: sectionAnchors(entry.page.sections),
     })),
   })
 }
 
-async function getPage(context: EditorContext, slug: string): Promise<Response> {
-  const loaded = await loadStoredPages(context)
+/** The language strings are ordered in: the site's own (`site.json` `lang`), so a listing reads right to its visitors. */
+async function siteLang(context: EditorContext): Promise<string> {
+  try {
+    const lang = ((await readSite(context)) as { lang?: unknown }).lang
+    return typeof lang === 'string' && lang !== '' ? lang : 'en'
+  } catch {
+    return 'en'
+  }
+}
+
+/** The entries of a declared type, in the type's sort order: what its listing page shows, drafts included. */
+async function getEntries(context: EditorContext, type: MultiType): Promise<Response> {
+  const loaded = await loadStoredPages(context, {}, type)
+  if (loaded.response) return loaded.response
+  const own = loaded.pages.filter((entry) => documentType(context, type, entry.page.slug) === type)
+  const files = new Map(own.map((entry) => [entry.page.slug, entry.fileName]))
+  const sorted = sortEntries(
+    type,
+    own.map((entry) => entry.page),
+    await siteLang(context),
+  )
+  const by = type.sort && type.sort.by !== 'title' ? type.sort.by : null
+  return json(200, {
+    entries: sorted.map((entry) => ({
+      slug: entry.slug,
+      title: entry.title,
+      file: files.get(entry.slug),
+      path: entryPath(type, entry.slug),
+      ...(by === null ? {} : { sortValue: entry.fields?.[by] }),
+      anchors: sectionAnchors(entry.sections),
+    })),
+  })
+}
+
+async function getPage(context: EditorContext, slug: string, type: MultiType): Promise<Response> {
+  const loaded = await loadStoredPages(context, {}, type)
   if (loaded.response) return loaded.response
   const found = loaded.pages.find((entry) => entry.page.slug === slug)
-  if (!found) return problem(404, 'not_found', `No page with slug "${slug}".`)
+  if (!found) return problem(404, 'not_found', `No ${noun(type)} with slug "${slug}".`)
   return json(200, found.page)
 }
 
-async function putPage(request: Request, context: EditorContext, slug: string): Promise<Response> {
-  const body = await readJsonBody(request)
-  if (body.response) return body.response
-  const parsed = validateEditorPage(body.value, context.sections)
-  if (!parsed.success) return validation(fieldIssues(parsed.error))
-  const page = parsed.data as Page
-  if (page.slug !== slug) {
-    return problem(400, 'slug_mismatch', `Slug in the body must be "${slug}". Rename the page with POST /pages/${slug}/rename.`)
-  }
-  const missing = await missingAssets(context, page)
-  if (missing.length > 0) return validation(missing)
-  const loaded = await loadStoredPages(context)
-  if (loaded.response) return loaded.response
-  const found = loaded.pages.find((entry) => entry.page.slug === slug)
-  if (!found) return problem(404, 'not_found', `No page with slug "${slug}".`)
-  // The editor may keep an orphaned section the stored page already has, but never add one.
-  const stored = new Set(found.page.sections.filter((section) => isOrphanSection(context.sections, section)).map(orphanKey))
-  const added = page.sections.flatMap((section, index) =>
-    isOrphanSection(context.sections, section) && !stored.has(orphanKey(section))
+const orphanKey = (section: { id: string; type: string }): string => `${section.id}:${section.type}`
+
+/** The editor may keep an orphaned section the stored document already has, but never add one. */
+function addedOrphans(
+  context: EditorContext,
+  stored: readonly { id: string; type: string }[],
+  sections: readonly { id: string; type: string }[],
+): FieldIssue[] {
+  const kept = new Set(stored.filter((section) => isOrphanSection(context.sections, section)).map(orphanKey))
+  return sections.flatMap((section, index) =>
+    isOrphanSection(context.sections, section) && !kept.has(orphanKey(section))
       ? [
           {
             path: `sections.${index}.type`,
@@ -660,40 +766,66 @@ async function putPage(request: Request, context: EditorContext, slug: string): 
         ]
       : [],
   )
+}
+
+async function putPage(request: Request, context: EditorContext, slug: string, type: MultiType): Promise<Response> {
+  const body = await readJsonBody(request)
+  if (body.response) return body.response
+  const parsed = validateEntry(context, type, slug, body.value)
+  if (!parsed.success) return validation(fieldIssues(parsed.error))
+  const page = parsed.data
+  if (page.slug !== slug) {
+    return problem(
+      400,
+      'slug_mismatch',
+      `Slug in the body must be "${slug}". Rename the ${noun(type)} with POST ${entryRoute(type, slug)}/rename.`,
+    )
+  }
+  const missing = await missingAssets(context, page)
+  if (missing.length > 0) return validation(missing)
+  const loaded = await loadStoredPages(context, {}, type)
+  if (loaded.response) return loaded.response
+  const found = loaded.pages.find((entry) => entry.page.slug === slug)
+  if (!found) return problem(404, 'not_found', `No ${noun(type)} with slug "${slug}".`)
+  const added = addedOrphans(context, found.page.sections, page.sections)
   if (added.length > 0) return validation(added)
-  await history(context).ensureBaseline('page', slug, found.page)
+  await history(context).ensureBaseline(...entryHistory(type, slug), found.page)
   await writeDocuments(context, [[found.key, page]])
-  await history(context).write('page', slug, page)
+  await history(context).write(...entryHistory(type, slug), page)
   return json(200, page)
 }
 
-const orphanKey = (section: { id: string; type: string }): string => `${section.id}:${section.type}`
-
-async function createPage(request: Request, baseContext: EditorContext): Promise<Response> {
+async function createPage(request: Request, baseContext: EditorContext, type: MultiType): Promise<Response> {
   const body = await readJsonBody(request)
   if (body.response) return body.response
   const parsed = createPageSchema.safeParse(body.value)
   if (!parsed.success) return validation(fieldIssues(parsed.error))
-  const context = scoped(baseContext, `page:${parsed.data.slug}`)
+  const slug = parsed.data.slug
+  const context = scoped(baseContext, entryScope(type, slug))
 
-  if (isSystemPage(parsed.data.slug)) {
-    return problem(409, 'reserved_slug', `"${parsed.data.slug}" is a system page and cannot be created.`)
+  if (isPages(type) && isSystemPage(slug)) {
+    return problem(409, 'reserved_slug', `"${slug}" is a system page and cannot be created.`)
   }
-  const loaded = await loadStoredPages(context, { allowMissing: true })
+  const reserved = reservedSlug(context, type, slug)
+  if (reserved) return reserved
+  const loaded = await loadStoredPages(context, { allowMissing: true }, type)
   if (loaded.response) return loaded.response
-  if (loaded.pages.some((entry) => entry.page.slug === parsed.data.slug)) {
-    return problem(409, 'conflict', `A page with slug "${parsed.data.slug}" already exists.`)
+  if (loaded.pages.some((entry) => entry.page.slug === slug)) {
+    return problem(409, 'conflict', `A ${noun(type)} with slug "${slug}" already exists.`)
   }
 
-  const key = pageKey(parsed.data.slug)
+  const key = entryKey(type, slug)
   if (await context.store.exists(key)) {
-    return problem(409, 'conflict', `A file named ${parsed.data.slug}.json already exists.`)
+    return problem(409, 'conflict', `A file named ${slug}.json already exists.`)
   }
 
-  const drafted = draftPage(parsed.data, loaded.pages, context.sections)
+  const drafted = draftPage(parsed.data, loaded.pages, context.sections, type)
   if (drafted.response) return drafted.response
-  const validated = validatePage(drafted.page, context.sections)
+  const validated = validateEntry(context, type, slug, drafted.page, true)
   if (!validated.success) return validation(fieldIssues(validated.error))
+  // A new entry's sections hold only defaults, but its fields come from the request and may name an image.
+  const missing = await missingAssets(context, validated.data)
+  if (missing.length > 0) return validation(missing)
 
   await writeDocuments(context, [[key, validated.data]])
   return json(201, validated.data)
@@ -704,68 +836,261 @@ function homeIsFixed(): Response {
   return problem(409, 'reserved_slug', 'The home page is fixed at /. Edit its content instead of moving another page there.')
 }
 
-function locked(operation: 'rename' | 'delete'): Response {
-  const what = operation === 'rename' ? 'Renaming pages' : 'Deleting pages'
-  return problem(409, 'operation_locked', `${what} is turned off for this site (pages.${operation} in the bearminion() options).`)
+function locked(operation: 'rename' | 'delete', type: MultiType): Response {
+  const what = operation === 'rename' ? 'Renaming' : 'Deleting'
+  const message = isPages(type)
+    ? `${what} pages is turned off for this site (pages.${operation} in the bearminion() options).`
+    : `${what} entries is turned off for ${type.label} (${operation}: false in its type options).`
+  return problem(409, 'operation_locked', message)
 }
 
-async function deletePage(context: EditorContext, slug: string): Promise<Response> {
-  if (!context.pageRules.delete) return locked('delete')
-  if (slug === 'index') {
-    return problem(409, 'conflict', 'Refusing to delete the index page.')
+async function deletePage(context: EditorContext, slug: string, type: MultiType): Promise<Response> {
+  if (!entryRules(context, type).delete) return locked('delete', type)
+  if (isPages(type)) {
+    if (slug === HOME_SLUG) {
+      return problem(409, 'conflict', 'Refusing to delete the index page.')
+    }
+    if (isSystemPage(slug)) {
+      return problem(409, 'reserved_slug', `"${slug}" is a system page and cannot be deleted.`)
+    }
   }
-  if (isSystemPage(slug)) {
-    return problem(409, 'reserved_slug', `"${slug}" is a system page and cannot be deleted.`)
-  }
-  const loaded = await loadStoredPages(context)
+  const loaded = await loadStoredPages(context, {}, type)
   if (loaded.response) return loaded.response
   const found = loaded.pages.find((entry) => entry.page.slug === slug)
-  if (!found) return problem(404, 'not_found', `No page with slug "${slug}".`)
+  if (!found) return problem(404, 'not_found', `No ${noun(type)} with slug "${slug}".`)
   await writeDocuments(context, [], [found.key])
   return json(200, { deleted: true, slug })
 }
 
-async function renamePage(request: Request, context: EditorContext, slug: string): Promise<Response> {
+async function renamePage(request: Request, context: EditorContext, slug: string, type: MultiType): Promise<Response> {
   const body = await readJsonBody(request)
   if (body.response) return body.response
   const parsed = renameSchema.safeParse(body.value)
   if (!parsed.success) return validation(fieldIssues(parsed.error))
   const nextSlug = parsed.data.slug
-  if (!context.pageRules.rename) return locked('rename')
+  if (!entryRules(context, type).rename) return locked('rename', type)
   if (nextSlug === slug) {
     return problem(400, 'invalid_slug', 'The new slug is the same as the current slug.')
   }
-  if (slug === 'index') {
-    return problem(409, 'conflict', 'Refusing to rename the index page.')
+  if (isPages(type)) {
+    if (slug === HOME_SLUG) {
+      return problem(409, 'conflict', 'Refusing to rename the index page.')
+    }
+    if (isSystemPage(slug) || isSystemPage(nextSlug)) {
+      return problem(409, 'reserved_slug', 'System pages cannot be renamed, and no page can take their slug.')
+    }
+    if (nextSlug === HOME_SLUG) return homeIsFixed()
   }
-  if (isSystemPage(slug) || isSystemPage(nextSlug)) {
-    return problem(409, 'reserved_slug', 'System pages cannot be renamed, and no page can take their slug.')
-  }
-  if (nextSlug === 'index') return homeIsFixed()
+  const reserved = reservedSlug(context, type, nextSlug)
+  if (reserved) return reserved
 
-  const loaded = await loadStoredPages(context)
+  const loaded = await loadStoredPages(context, {}, type)
   if (loaded.response) return loaded.response
   const found = loaded.pages.find((entry) => entry.page.slug === slug)
-  if (!found) return problem(404, 'not_found', `No page with slug "${slug}".`)
+  if (!found) return problem(404, 'not_found', `No ${noun(type)} with slug "${slug}".`)
   if (loaded.pages.some((entry) => entry.page.slug === nextSlug)) {
-    return problem(409, 'conflict', `A page with slug "${nextSlug}" already exists.`)
+    return problem(409, 'conflict', `A ${noun(type)} with slug "${nextSlug}" already exists.`)
   }
 
-  const nextKey = pageKey(nextSlug)
+  const nextKey = entryKey(type, nextSlug)
   if (await context.store.exists(nextKey)) {
     return problem(409, 'conflict', `A file named ${nextSlug}.json already exists.`)
   }
 
   const renamed = { ...found.page, slug: nextSlug }
-  const validated = validateEditorPage(renamed, context.sections)
+  const validated = validateEntry(context, type, nextSlug, renamed)
   if (!validated.success) return validation(fieldIssues(validated.error))
   await writeDocuments(context, [[nextKey, validated.data]], [found.key])
   return json(200, validated.data)
 }
 
+const SINGLE_HISTORY = '_single'
+const LISTING_HISTORY = '_listing'
+
+/** Where a single's undo history is kept. The home and 404 pages share theirs with the pages API. */
+const singleHistory = (type: SingleType): [HistoryScope, string] =>
+  type.builtIn ? ['page', type.slug] : ['entry', `${type.id}/${SINGLE_HISTORY}`]
+
+const emptySeo = (title: string) => ({ title, description: '', noindex: false, nofollow: false })
+
+/** What the editor and the API tell about each type: enough to draw its list, its form and its links. */
+function describeTypes(context: EditorContext) {
+  const types = typesOf(context)
+  const shared = (type: ContentType) => ({
+    id: type.id,
+    kind: type.kind,
+    label: type.label,
+    fields: type.fields ? fieldDefinitions(type.fields) : null,
+    sections: type.sections,
+  })
+  return [
+    ...types.singles.map((type) => ({ ...shared(type), path: type.path, builtIn: type.builtIn })),
+    ...types.multi.map((type) => ({
+      ...shared(type),
+      path: entryPath(type, '{slug}'),
+      builtIn: isPages(type),
+      sort: type.sort,
+      listing: type.listing ? { ...type.listing, path: listingPath(type) } : null,
+      rename: entryRules(context, type).rename,
+      delete: entryRules(context, type).delete,
+    })),
+  ]
+}
+
+interface StoredDocument {
+  key: string
+  schema: z.ZodType<{ sections: { id: string; type: string }[] }>
+  /** What a migration is told the document is. */
+  migrateAs: string
+  /** What is served while the file does not exist yet, or undefined when the file must exist. */
+  fallback: unknown
+  history: [HistoryScope, string]
+}
+
+function singleDocument(context: EditorContext, type: SingleType): StoredDocument {
+  return {
+    key: type.key,
+    schema: createEntrySchema(context.sections, type, { tolerateOrphans: true }) as StoredDocument['schema'],
+    migrateAs: type.id,
+    // Every site has a home page and a 404 page. A single the site declares starts empty until its first save.
+    fallback: type.builtIn
+      ? undefined
+      : { slug: type.slug, title: type.label, seo: emptySeo(type.label), sections: [], ...(type.fields ? { fields: {} } : {}) },
+    history: singleHistory(type),
+  }
+}
+
+function listingDocument(context: EditorContext, type: MultiType): StoredDocument {
+  return {
+    key: listingKey(type),
+    schema: createListingSchema(context.sections, { tolerateOrphans: true }) as StoredDocument['schema'],
+    migrateAs: `${type.id}:listing`,
+    fallback: { title: type.label, seo: emptySeo(type.label), sections: [] },
+    history: ['entry', `${type.id}/${LISTING_HISTORY}`],
+  }
+}
+
+type ReadDocument =
+  | { document: unknown; stored: { sections: { id: string; type: string }[] } | null; response?: undefined }
+  | { response: Response }
+
+async function readDocument(context: EditorContext, target: StoredDocument): Promise<ReadDocument> {
+  const text = await context.store.read(target.key)
+  if (text === undefined) {
+    if (target.fallback === undefined) return { response: problem(404, 'not_found', `Content file not found: ${target.key}`) }
+    // The defaults may not satisfy the type's own fields yet; the editor fills them in and the save validates.
+    const parsed = target.schema.safeParse(target.fallback)
+    return { document: parsed.success ? parsed.data : target.fallback, stored: null }
+  }
+  let raw: unknown
+  try {
+    raw = JSON.parse(text) as unknown
+  } catch (error) {
+    return {
+      response: problem(400, 'invalid_json', `Invalid JSON in ${target.key}: ${error instanceof Error ? error.message : String(error)}`),
+    }
+  }
+  const invalid = (issues: FieldIssue[]): ReadDocument => ({
+    response: json(422, { error: 'validation', message: `Invalid content in ${target.key}.`, issues }),
+  })
+  const upgraded = context.migrator.upgrade(raw, 'page', target.migrateAs)
+  if (!upgraded.ok) return invalid([{ path: SCHEMA_VERSION_KEY, message: upgraded.message }])
+  const parsed = target.schema.safeParse(upgraded.value)
+  if (!parsed.success) return invalid(fieldIssues(parsed.error))
+  return { document: parsed.data, stored: parsed.data }
+}
+
+async function getDocument(context: EditorContext, target: StoredDocument): Promise<Response> {
+  const read = await readDocument(context, target)
+  return read.response ?? json(200, read.document)
+}
+
+/** Save a document that has one fixed place: a single, or a type's listing page. The first save creates the file. */
+async function putDocument(request: Request, context: EditorContext, target: StoredDocument, slug?: string): Promise<Response> {
+  const body = await readJsonBody(request)
+  if (body.response) return body.response
+  const upgraded = context.migrator.upgrade(body.value, 'page', target.migrateAs)
+  if (!upgraded.ok) return validation([{ path: SCHEMA_VERSION_KEY, message: upgraded.message }])
+  const parsed = target.schema.safeParse(upgraded.value)
+  if (!parsed.success) return validation(fieldIssues(parsed.error))
+  const document = parsed.data
+  if (slug !== undefined && (document as { slug?: unknown }).slug !== slug) {
+    return problem(400, 'slug_mismatch', `Slug in the body must be "${slug}": this document has a fixed address.`)
+  }
+  const missing = await missingAssets(context, document)
+  if (missing.length > 0) return validation(missing)
+  const read = await readDocument(context, target)
+  if (read.response) return read.response
+  const added = addedOrphans(context, read.stored?.sections ?? [], document.sections)
+  if (added.length > 0) return validation(added)
+  if (read.stored) await history(context).ensureBaseline(...target.history, read.stored)
+  await writeDocuments(context, [[target.key, document]])
+  await history(context).write(...target.history, document)
+  return json(200, document)
+}
+
+/**
+ * `/types`, `/types/<id>/document` (a single), `/types/<id>/listing`, `/types/<id>/entries`,
+ * `/types/<id>/entries/<slug>` and `.../rename`. `/pages` is the same as `/types/pages/entries`, plus the home and 404 pages.
+ */
+async function typeRoute(request: Request, context: EditorContext, parts: string[], method: string): Promise<Response> {
+  if (parts.length === 0) {
+    if (method !== 'GET') return methodNotAllowed(['GET'])
+    return json(200, { types: describeTypes(context) })
+  }
+  const type = typesOf(context).get(decodeSegment(parts[0] ?? ''))
+  if (!type) return problem(404, 'not_found', 'Unknown content type.')
+
+  if (type.kind === 'single') {
+    if (parts.length !== 2 || parts[1] !== 'document') return problem(404, 'not_found', 'Unknown editor API route.')
+    const entry = scoped(context, type.builtIn ? `page:${type.slug}` : type.id)
+    const target = singleDocument(entry, type)
+    if (method === 'GET') return getDocument(entry, target)
+    if (method === 'PUT') return putDocument(request, entry, target, type.slug)
+    return methodNotAllowed(['GET', 'PUT'])
+  }
+
+  if (parts.length === 2 && parts[1] === 'listing') {
+    if (!type.listing) return problem(404, 'not_found', `${type.label} has no listing page (listing in its type options).`)
+    const entry = scoped(context, `${type.id}:${LISTING_HISTORY}`)
+    const target = listingDocument(entry, type)
+    if (method === 'GET') return getDocument(entry, target)
+    if (method === 'PUT') return putDocument(request, entry, target)
+    return methodNotAllowed(['GET', 'PUT'])
+  }
+
+  if (parts[1] !== 'entries') return problem(404, 'not_found', 'Unknown editor API route.')
+
+  if (parts.length === 2) {
+    if (method === 'GET') return getEntries(context, type)
+    if (method === 'POST') return createPage(request, context, type)
+    return methodNotAllowed(['GET', 'POST'])
+  }
+
+  const slug = readSlug(parts[2] ?? '')
+  if (slug === null) return badSlug()
+  const entry = scoped(context, entryScope(type, slug))
+
+  if (parts.length === 3) {
+    if (method === 'GET') return getPage(entry, slug, type)
+    if (method === 'PUT') return putPage(request, entry, slug, type)
+    if (method === 'DELETE') return deletePage(entry, slug, type)
+    return methodNotAllowed(['GET', 'PUT', 'DELETE'])
+  }
+
+  if (parts.length === 4 && parts[3] === 'rename') {
+    if (method === 'POST') return renamePage(request, entry, slug, type)
+    return methodNotAllowed(['POST'])
+  }
+
+  return problem(404, 'not_found', 'Unknown editor API route.')
+}
+
 const previewBodySchema = z
   .object({
     page: z.unknown(),
+    /** The id of the document's content type. Default `pages`. */
+    type: z.string().optional(),
     motion: z.boolean().optional(),
   })
   .strict()
@@ -778,7 +1103,11 @@ async function postPreview(request: Request, context: EditorContext, meta: Handl
   if (body.response) return body.response
   const payload = previewBodySchema.safeParse(body.value)
   if (!payload.success) return validation(fieldIssues(payload.error))
-  const parsed = validateEditorPage(payload.data.page, context.sections)
+  const type = payload.data.type === undefined ? null : typesOf(context).get(payload.data.type)
+  if (type === undefined) return problem(404, 'not_found', `Unknown content type "${payload.data.type}".`)
+  const parsed = type
+    ? createEntrySchema(context.sections, type, { tolerateOrphans: true }).safeParse(payload.data.page)
+    : validateEditorPage(payload.data.page, context.sections)
   if (!parsed.success) return validation(fieldIssues(parsed.error))
   // The site cannot render a section it does not define, so the preview leaves orphaned sections out.
   const renderable = withoutOrphanSections(parsed.data, context.sections)
@@ -836,6 +1165,27 @@ async function missingAssets(context: EditorContext, document: unknown): Promise
 }
 
 /**
+ * Every stored document that is drawn as a page, read raw so one that fails validation still counts: the entries and
+ * the listing page of each type, and the singles the site declares. The home and 404 pages are among the pages.
+ */
+async function storedDocuments(context: EditorContext): Promise<{ name: string; document: Record<string, unknown> }[]> {
+  const types = typesOf(context)
+  const keys: [key: string, name: string][] = []
+  for (const type of types.multi) {
+    for (const file of (await context.store.list(type.dir)) ?? []) {
+      if (file.endsWith('.json') && !file.startsWith('.')) keys.push([`${type.dir}/${file}`, file.replace(/\.json$/, '')])
+    }
+  }
+  for (const type of types.singles) if (!type.builtIn) keys.push([type.key, type.label])
+  const found: { name: string; document: Record<string, unknown> }[] = []
+  for (const [key, name] of keys) {
+    const document = await readStoredJson(context, key, 'page')
+    if (typeof document === 'object' && document !== null) found.push({ name, document: document as Record<string, unknown> })
+  }
+  return found
+}
+
+/**
  * Where the saved content uses the image at `src`: "Home page › Hero", "Site settings › brand logo". Read from the
  * raw files, so a page that fails validation still counts. Unsaved drafts are not on disk: the editor checks its own
  * drafts before it asks to delete, and saving a draft that still points at a deleted image fails validation.
@@ -845,11 +1195,8 @@ async function imageUsages(context: EditorContext, src: string): Promise<string[
   const usages: string[] = []
   const site = await readStoredJson(context, SITE_KEY, 'site')
   for (const ref of assetRefs(site)) if (ref.src === src) usages.push(describeSiteRef(ref))
-  for (const name of (await context.store.list(PAGES_DIR)) ?? []) {
-    if (!name.endsWith('.json') || name.startsWith('.')) continue
-    const page = await readStoredJson(context, `${PAGES_DIR}/${name}`, 'page')
-    if (typeof page !== 'object' || page === null) continue
-    const title = 'title' in page && typeof page.title === 'string' ? page.title : name.replace(/\.json$/, '')
+  for (const { name, document: page } of await storedDocuments(context)) {
+    const title = 'title' in page && typeof page.title === 'string' ? page.title : name
     const sections = 'sections' in page && Array.isArray(page.sections) ? (page.sections as { type: string }[]) : []
     for (const ref of assetRefs(page)) if (ref.src === src) usages.push(describePageRef(ref, { title, sections }, labels))
   }
@@ -893,15 +1240,14 @@ async function videoUsages(context: EditorContext, url: string): Promise<string[
   const usages: string[] = []
   const site = await readStoredJson(context, SITE_KEY, 'site')
   if ([...strings(site)].includes(url)) usages.push('Site settings')
-  for (const name of (await context.store.list(PAGES_DIR)) ?? []) {
-    if (!name.endsWith('.json') || name.startsWith('.')) continue
-    const page = await readStoredJson(context, `${PAGES_DIR}/${name}`, 'page')
-    if (typeof page !== 'object' || page === null) continue
-    const title = 'title' in page && typeof page.title === 'string' ? page.title : name.replace(/\.json$/, '')
+  for (const { name, document: page } of await storedDocuments(context)) {
+    const title = 'title' in page && typeof page.title === 'string' ? page.title : name
     const sections = 'sections' in page && Array.isArray(page.sections) ? (page.sections as { type?: string }[]) : []
     for (const section of sections) {
       if ([...strings(section)].includes(url)) usages.push(`${title} › ${labels[section.type ?? ''] ?? section.type ?? 'section'}`)
     }
+    // A type's own fields sit beside the sections, not in them.
+    if ('fields' in page && [...strings(page.fields)].includes(url)) usages.push(`${title} › fields`)
   }
   return usages
 }
@@ -1002,6 +1348,8 @@ const createPageSchema = z
     slug: z.string(),
     title: z.string(),
     template: z.string().min(1).optional(),
+    /** The entry's own fields, for a type that declares them. */
+    fields: z.record(z.string(), z.unknown()).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -1056,31 +1404,53 @@ function pageFromSection(
 }
 
 function draftPage(
-  input: { slug: string; title: string; template?: string },
+  input: { slug: string; title: string; template?: string; fields?: Record<string, unknown> },
   pages: readonly StoredPage[],
   registry: SectionRegistry,
+  type: MultiType,
 ): { page: unknown; response?: undefined } | { page?: undefined; response: Response } {
   const slug = readSlug(input.slug)
   if (slug === null) return { response: badSlug() }
   const seo = { title: input.title, description: '', noindex: false, nofollow: false }
+  // Fields the body did not send are left for the type's schema: its defaults fill in, and a required one is reported.
+  const fields = type.fields || input.fields ? { fields: input.fields ?? {} } : {}
+  const allowed = (name: string): boolean => type.sections === null || type.sections.includes(name)
+  const drafted = (definition: SectionRegistry[string]) => ({
+    ...(pageFromSection(slug, input.title, seo, definition) as object),
+    ...fields,
+  })
 
   if (input.template === undefined) {
-    const definition = registry.hero ?? Object.values(registry)[0]
+    const definition =
+      (registry.hero && allowed('hero') ? registry.hero : undefined) ?? Object.values(registry).find((item) => allowed(item.type))
     if (!definition) {
       return { response: problem(400, 'unknown_template', 'No section types are registered.') }
     }
-    return { page: pageFromSection(slug, input.title, seo, definition) }
+    return { page: drafted(definition) }
   }
 
   const definition = registry[input.template]
   if (definition) {
-    return { page: pageFromSection(slug, input.title, seo, definition) }
+    if (!allowed(definition.type)) {
+      return {
+        response: problem(
+          400,
+          'unknown_template',
+          `Section type "${definition.type}" is not allowed in ${type.label}. Allowed: ${(type.sections ?? []).join(', ')}.`,
+        ),
+      }
+    }
+    return { page: drafted(definition) }
   }
 
   const source = pages.find((entry) => entry.page.slug === input.template)
   if (!source) {
     return {
-      response: problem(400, 'unknown_template', `Unknown template "${input.template}". Use a section type or an existing page slug.`),
+      response: problem(
+        400,
+        'unknown_template',
+        `Unknown template "${input.template}". Use a section type or an existing ${noun(type)} slug.`,
+      ),
     }
   }
   return {
@@ -1089,6 +1459,7 @@ function draftPage(
       title: input.title,
       seo,
       sections: structuredClone(source.page.sections),
+      ...(input.fields === undefined && source.page.fields ? { fields: structuredClone(source.page.fields) } : fields),
     },
   }
 }
@@ -1101,23 +1472,26 @@ function sectionId(type: string): string {
 async function loadStoredPages(
   context: EditorContext,
   options: { allowMissing?: boolean } = {},
+  type: MultiType = typesOf(context).pages,
 ): Promise<{ pages: StoredPage[]; response?: undefined } | { pages?: undefined; response: Response }> {
   let listed: string[] | undefined
   try {
-    listed = await context.store.list(PAGES_DIR)
+    listed = await context.store.list(type.dir)
   } catch (error) {
     return { response: contentFailure(error) }
   }
   if (listed === undefined) {
-    if (options.allowMissing) return { pages: [] }
-    return { response: problem(404, 'not_found', `Pages directory not found: ${PAGES_DIR}`) }
+    // A declared type whose folder does not exist yet simply has no entries. A site without pages is broken.
+    if (options.allowMissing || !isPages(type)) return { pages: [] }
+    return { response: problem(404, 'not_found', `Pages directory not found: ${type.dir}`) }
   }
-  const names = listed.filter((name) => name.endsWith('.json') && !name.startsWith('.'))
+  // A leading underscore marks a file that is not an entry, such as a type's listing page.
+  const names = listed.filter((name) => name.endsWith('.json') && !name.startsWith('.') && !name.startsWith('_'))
 
   const pages: StoredPage[] = []
   const seen = new Map<string, string>()
   for (const name of names) {
-    const key = `${PAGES_DIR}/${name}`
+    const key = `${type.dir}/${name}`
     let raw: unknown
     try {
       raw = JSON.parse((await context.store.read(key)) ?? '') as unknown
@@ -1127,7 +1501,8 @@ async function loadStoredPages(
       const message = error instanceof Error ? error.message : String(error)
       return { response: problem(400, 'invalid_json', `Invalid JSON in ${name}: ${message}`) }
     }
-    const upgraded = context.migrator.upgrade(raw, 'page')
+    const rawSlug = typeof raw === 'object' && raw !== null && 'slug' in raw && typeof raw.slug === 'string' ? raw.slug : ''
+    const upgraded = context.migrator.upgrade(raw, 'page', documentType(context, type, rawSlug).id)
     if (!upgraded.ok) {
       return {
         response: json(422, {
@@ -1137,7 +1512,7 @@ async function loadStoredPages(
         }),
       }
     }
-    const parsed = validateEditorPage(upgraded.value, context.sections)
+    const parsed = validateEntry(context, type, rawSlug, upgraded.value)
     if (!parsed.success) {
       return {
         response: json(422, {
@@ -1147,7 +1522,7 @@ async function loadStoredPages(
         }),
       }
     }
-    const page = parsed.data as Page
+    const page = parsed.data
     const previous = seen.get(page.slug)
     if (previous !== undefined) {
       return {

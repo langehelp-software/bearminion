@@ -5,7 +5,11 @@ import type { HistoryEntry } from './api-types.js'
  * run where there is no file system. `history.ts` keeps the copies in `.editor/history/` on disk.
  */
 
-export type HistoryScope = 'page' | 'site'
+/**
+ * `page` is a page by slug (the home and 404 pages included). `entry` is a document of a declared content type, with
+ * `<type>/<slug>` as its slug, `<type>/_listing` for a listing page and `<type>/_single` for a single.
+ */
+export type HistoryScope = 'page' | 'site' | 'entry'
 
 export type { HistoryEntry }
 
