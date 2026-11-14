@@ -49,6 +49,18 @@ export interface ContentTypeInfo {
   delete?: boolean
 }
 
+/** `GET /document?path=…`: the document an address shows, and what it is. */
+export interface DocumentAt<TDocument = unknown> {
+  /** Id of the content type. The home and 404 pages answer as `pages`. */
+  type: string
+  kind: 'entry' | 'single' | 'listing'
+  /** The entry's slug, the single's address segment, or the listing's slug. */
+  slug: string
+  /** The page number, for a listing. */
+  page?: number
+  document: TDocument
+}
+
 /** `GET /types/:id/entries`. */
 export interface EntryListItem {
   slug: string
@@ -90,8 +102,10 @@ export interface SaveRequest<TPage = unknown, TSite = unknown> {
   page?: {
     /** The id of the entry's content type. Default `pages`. */
     type?: string
-    /** Slug the page is stored under now. When `document.slug` differs, the page is renamed. */
-    from: string
+    /** True when `document` is the listing page of `type`. */
+    listing?: boolean
+    /** Slug the page is stored under now. When `document.slug` differs, the page is renamed. A single and a listing page need none. */
+    from?: string
     document: TPage
   }
   site?: TSite

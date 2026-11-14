@@ -158,13 +158,24 @@ describe('entries of a declared type', () => {
     expect(exists(context, 'pages/first-post.json')).toBe(false)
   })
 
-  it('reports a missing required field and writes nothing', async () => {
+  it('starts a new entry with today in a required date, so a title is enough to create one', async () => {
     const context = seed()
     const response = await call(context, 'POST', '/types/blog/entries', { slug: 'p', title: 'P' })
+    expect(response.status).toBe(201)
+    expect(stored(context, 'blog/p.json').fields).toEqual({ date: new Date().toISOString().slice(0, 10) })
+  })
+
+  it('reports a required field it cannot start, and writes nothing', async () => {
+    const context = seed({
+      team: multi({ fields: z.object({ role: z.string().min(1), level: z.enum(['junior', 'senior']), order: z.number() }) }),
+    })
+    const response = await call(context, 'POST', '/types/team/entries', { slug: 'p', title: 'P' })
     expect(response.status).toBe(400)
-    const body = await data<{ issues: { path: string }[] }>(response)
-    expect(body.issues.map((issue) => issue.path)).toEqual(['fields.date'])
-    expect(exists(context, 'blog')).toBe(false)
+    expect((await data<{ issues: { path: string }[] }>(response)).issues.map((issue) => issue.path)).toEqual(['fields.role'])
+    expect(exists(context, 'team')).toBe(false)
+    const filled = await call(context, 'POST', '/types/team/entries', { slug: 'p', title: 'P', fields: { role: 'Lead' } })
+    expect(filled.status).toBe(201)
+    expect(stored(context, 'team/p.json').fields).toEqual({ role: 'Lead', level: 'junior', order: 0 })
   })
 
   it('refuses a template the type does not allow, and copies an entry with its fields', async () => {
@@ -273,8 +284,10 @@ describe('entries of a declared type', () => {
     expect(exists(context, 'blog/first.json')).toBe(false)
     const unknown = await call(context, 'POST', '/save', { page: { type: 'nope', from: 'moved', document: entry } })
     expect(unknown.status).toBe(404)
+    // A single is saved through /save too, but an entry is not its document.
     const single = await call(context, 'POST', '/save', { page: { type: 'about', from: 'about', document: entry } })
-    expect(single.status).toBe(404)
+    expect(single.status).toBe(400)
+    expect(exists(context, 'singles/about.json')).toBe(false)
   })
 
   it('refuses rename and delete where the type locks them', async () => {
@@ -465,5 +478,73 @@ describe('migrations', () => {
     await call(upgraded, 'GET', '/types/blog/listing')
     await call(upgraded, 'GET', '/types/about/document')
     expect(seen).toEqual(['not-found', 'pages', 'home', 'blog', 'listing', 'about'])
+  })
+})
+
+describe('GET /document: what an address shows', () => {
+  const at = async (context: EditorContext, pathname: string) => call(context, 'GET', `/document?path=${encodeURIComponent(pathname)}`)
+
+  it('answers each kind of document with its type', async () => {
+    const context = seed()
+    await post(context, 'first', '2026-01-05')
+    expect(await data(await at(context, '/'))).toMatchObject({ type: 'pages', kind: 'entry', slug: 'index', document: { title: 'Home' } })
+    expect(await data(await at(context, '/404'))).toMatchObject({ type: 'pages', kind: 'entry', slug: '404' })
+    expect(await data(await at(context, '/contact/'))).toMatchObject({ type: 'pages', kind: 'entry', slug: 'contact' })
+    expect(await data(await at(context, '/blog/first'))).toMatchObject({
+      type: 'blog',
+      kind: 'entry',
+      slug: 'first',
+      document: { fields: { date: '2026-01-05' } },
+    })
+    expect(await data(await at(context, '/about'))).toMatchObject({
+      type: 'about',
+      kind: 'single',
+      slug: 'about',
+      document: { title: 'About' },
+    })
+    expect(await data(await at(context, '/blog'))).toEqual({
+      type: 'blog',
+      kind: 'listing',
+      slug: 'blog',
+      page: 1,
+      document: { title: 'Blog', seo: seo('Blog'), sections: [] },
+    })
+    expect(await data(await at(context, '/blog/page/3'))).toMatchObject({ type: 'blog', kind: 'listing', page: 3 })
+  })
+
+  it('answers 404 where nothing lives', async () => {
+    const context = seed()
+    for (const pathname of ['/nope', '/index', '/blog/nope', '/blog/page', '/x/y/z', 'contact', '']) {
+      expect((await at(context, pathname)).status, pathname).toBe(404)
+    }
+  })
+})
+
+describe('POST /save for a single and a listing page', () => {
+  it('saves a declared single and a listing page, together with the site', async () => {
+    const context = seed()
+    const about = await data(await call(context, 'GET', '/types/about/document'))
+    const single = await call(context, 'POST', '/save', { page: { type: 'about', document: { ...about, title: 'About us' } } })
+    expect(single.status).toBe(200)
+    expect(stored(context, 'singles/about.json').title).toBe('About us')
+    expect((await data<{ page: { title: string } }>(single)).page.title).toBe('About us')
+
+    const site = stored(context, 'site.json')
+    const listing = await call(context, 'POST', '/save', {
+      page: { type: 'blog', listing: true, document: { title: 'Journal', seo: seo('Journal'), sections: [cta()] } },
+      site: { ...site, name: 'Renamed' },
+    })
+    expect(listing.status).toBe(200)
+    expect(stored(context, 'blog/_listing.json').title).toBe('Journal')
+    expect(stored(context, 'site.json').name).toBe('Renamed')
+  })
+
+  it('refuses what does not fit: a moved single, a listing where there is none, an entry without from', async () => {
+    const context = seed()
+    const about = await data(await call(context, 'GET', '/types/about/document'))
+    expect((await call(context, 'POST', '/save', { page: { type: 'about', document: { ...about, slug: 'x' } } })).status).toBe(400)
+    expect((await call(context, 'POST', '/save', { page: { type: 'notes', listing: true, document: about } })).status).toBe(404)
+    expect((await call(context, 'POST', '/save', { page: { type: 'blog', document: about } })).status).toBe(400)
+    expect(exists(context, 'singles/about.json')).toBe(false)
   })
 })

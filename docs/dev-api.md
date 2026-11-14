@@ -31,7 +31,7 @@ After a content JSON file changes, the dev server invalidates its module graph, 
 | --- | --- | --- | --- |
 | `GET` | `/schema` | | `{ sectionOptions, siteOptions, siteLimits, theme, contentCounts, sectionForms, … }`. `sectionForms` maps a section type to the form handler it posts to (its `form` option) |
 | `GET` | `/forms` | | `{ enabled, handlers: { contact: { file } } }`. For each handler a section names, the file in `src/forms` (relative to the project) or `null` while it does not exist. Read on every call. `enabled` is `false` when the `forms` option is `false` |
-| `POST` | `/save` | `{ page?: { type?, from, document }, site? }` | `{ page?, site? }` as stored. Validates everything, then writes in one store `apply`. `from` is the stored slug; a different `document.slug` renames the page. No page can be renamed to `index`: the home page is a fixed document (`409` `reserved_slug`). Documents may carry `schemaVersion`; they are upgraded like a read. |
+| `POST` | `/save` | `{ page?: { type?, from?, listing?, document }, site? }` | `{ page?, site? }` as stored. Validates everything, then writes in one store `apply`. `from` is the stored slug; a different `document.slug` renames the page. No page can be renamed to `index`: the home page is a fixed document (`409` `reserved_slug`). Documents may carry `schemaVersion`; they are upgraded like a read. |
 | `GET` | `/site` | | The site document |
 | `PUT` | `/site` | `site.json` | The saved site document |
 | `GET` | `/pages` | | `{ pages: [{ slug, title, file, anchors }] }` |
@@ -41,6 +41,7 @@ After a content JSON file changes, the dev server invalidates its module graph, 
 | `PUT` | `/pages/:slug` | Full page JSON. `slug` must match the URL | The saved page |
 | `DELETE` | `/pages/:slug` | | `{ deleted: true, slug }` |
 | `POST` | `/pages/:slug/rename` | `{ slug }` | The renamed page. Refuses `index`. |
+| `GET` | `/document?path=/blog/first-post` | | `{ type, kind, slug, document }` for the address: `kind` is `entry`, `single` or `listing` (then also `page`, the page number). The home and 404 pages answer as entries of `pages`. `404` when nothing lives there |
 | `GET` | `/types` | | `{ types: [{ id, kind, label, path, builtIn, fields, sections, … }] }`: the home page, the 404 page, `pages`, and every type the site declares. A `multi` type also has `sort`, `listing` (`{ slug, perPage, path }` or `null`), `rename` and `delete`. `fields` describes the type's own fields as JSON Schema, one per key |
 | `GET` | `/types/:id/entries` | | `{ entries: [{ slug, title, file, path, sortValue?, anchors }] }` in the type's sort order. Empty when the type has no entries yet |
 | `POST` | `/types/:id/entries` | `{ slug, title, template?, fields? }` | `201` and the new entry. A required field that is missing is a validation error |
@@ -70,7 +71,7 @@ After a content JSON file changes, the dev server invalidates its module graph, 
 
 With a store that talks to a remote service (`githubStore`), a failure there answers `{ error, message }` with the store's code: `branch_protected`, `branch_moved` and `branch_exhausted` (`409`), `github_rate_limited` (`429`), `github_auth`, `github_forbidden`, `github_not_found`, `github_unreachable` (`502`).
 
-`/pages` is the `pages` type plus the home and 404 pages, as it always was. An entry of a declared type lives in `content/<id>/<slug>.json`, a listing page in `content/<id>/_listing.json`, and a declared single in `content/singles/<id>.json`. `type` in `/save` and `/preview` is the id of the entry's type and defaults to `pages`. A page cannot take a slug that is the address of a type, a listing or a single, and an entry cannot be called `page` when its listing's page numbers live at `/<type>/page/2`: both answer `409` `reserved_slug`. Undo history of entries is at `/history/types/:id/:slug`, of a listing page at `/history/types/:id/_listing`, and of a declared single at `/history/types/:id/_single`.
+`/pages` is the `pages` type plus the home and 404 pages, as it always was. An entry of a declared type lives in `content/<id>/<slug>.json`, a listing page in `content/<id>/_listing.json`, and a declared single in `content/singles/<id>.json`. `type` in `/save` and `/preview` is the id of the entry's type and defaults to `pages`. In `/save`, a single needs only `type` and `document`, and a listing page `type`, `listing: true` and `document`; `from` is for entries. A new entry gets a first value in each required field that has no default (today for a date, the first choice of an enum), so `{ slug, title }` is enough to create one. A page cannot take a slug that is the address of a type, a listing or a single, and an entry cannot be called `page` when its listing's page numbers live at `/<type>/page/2`: both answer `409` `reserved_slug`. Undo history of entries is at `/history/types/:id/:slug`, of a listing page at `/history/types/:id/_listing`, and of a declared single at `/history/types/:id/_single`.
 
 Other status codes: `404` missing document, `409` duplicate slug or a protected `index` page, `413` body too large, `415` unsupported image, `422` a file already on disk does not match the schema.
 

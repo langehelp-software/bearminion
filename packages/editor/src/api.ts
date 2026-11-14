@@ -33,6 +33,7 @@ import {
   type SingleType,
 } from './content-types.js'
 import type { BlockEdit } from './entry-blocks.js'
+import { matchPath } from './routing.js'
 import { ContentReadError, ContentValidationError, type ContentIssue } from './errors.js'
 import { imageBodyLimit, imageTooLarge, kindFromMime, sniffImage } from './image-sniff.js'
 import { sniffVideo, videoBodyLimit, videoKindFromMime } from './video-sniff.js'
@@ -184,6 +185,11 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
   if (parts[0] === 'collections') return collectionRoute(request, context, parts.slice(1), method)
 
   if (parts[0] === 'types') return typeRoute(request, context, parts.slice(1), method)
+
+  if (parts.length === 1 && parts[0] === 'document') {
+    if (method === 'GET') return getDocumentAt(context, url.searchParams.get('path') ?? '')
+    return methodNotAllowed(['GET'])
+  }
 
   if (parts.length === 1 && parts[0] === 'forms') {
     if (method === 'GET') return getForms(context)
@@ -513,8 +519,10 @@ const saveSchema = z
       .object({
         /** The id of the entry's content type. Default `pages`. */
         type: z.string().optional(),
-        /** The slug the page is stored under now. The document's own `slug` is where it goes. */
-        from: z.string(),
+        /** True when `document` is the listing page of `type`, not one of its entries. */
+        listing: z.boolean().optional(),
+        /** The slug the page is stored under now. The document's own `slug` is where it goes. A single and a listing page have one fixed place and need none. */
+        from: z.string().optional(),
         document: z.unknown(),
       })
       .strict()
@@ -538,7 +546,7 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
   const writes: [key: string, value: unknown][] = []
   const removals: string[] = []
   const after: (() => Promise<void>)[] = []
-  const result: { page?: Entry; site?: Site } = {}
+  const result: { page?: unknown; site?: Site } = {}
 
   // Validate both documents before answering, so one failed save reports every problem in the page and the site.
   const failures: FieldIssue[] = []
@@ -566,11 +574,18 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
   }
 
   if (parsed.data.page !== undefined) {
-    const type = parsed.data.page.type === undefined ? typesOf(context).pages : typesOf(context).get(parsed.data.page.type)
-    const planned: PagePlan =
-      type?.kind === 'multi'
-        ? await planPageSave(context, parsed.data.page, type)
-        : { response: problem(404, 'not_found', `No content type "${parsed.data.page.type}" with entries.`) }
+    const { type: typeId, listing, from, document } = parsed.data.page
+    const type = typeId === undefined ? typesOf(context).pages : typesOf(context).get(typeId)
+    let planned: PagePlan
+    if (type === undefined) planned = { response: problem(404, 'not_found', `Unknown content type "${typeId}".`) }
+    else if (type.kind === 'single') planned = await planFixedSave(context, singleDocument(context, type), document, type.slug)
+    else if (listing) {
+      planned = type.listing
+        ? await planFixedSave(context, listingDocument(context, type), document)
+        : { response: problem(404, 'not_found', `${type.label} has no listing page (listing in its type options).`) }
+    } else if (from === undefined)
+      planned = { response: problem(400, 'invalid_slug', 'from is required to save an entry: the slug it is stored under.') }
+    else planned = await planPageSave(context, { from, document }, type)
     if (planned.issues) {
       failures.push(...tagIssues(planned.issues, 'page'))
     } else if (planned.response) {
@@ -598,7 +613,7 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
 }
 
 type PagePlan =
-  | { page: Entry; writes: [string, unknown][]; removals: string[]; after: () => Promise<void>; response?: undefined; issues?: undefined }
+  | { page: unknown; writes: [string, unknown][]; removals: string[]; after: () => Promise<void>; response?: undefined; issues?: undefined }
   | { response: Response; issues?: undefined }
   /** Field errors; the caller decides how to answer, since a save reports the site's alongside them. */
   | { issues: FieldIssue[]; response?: undefined }
@@ -1006,28 +1021,75 @@ async function getDocument(context: EditorContext, target: StoredDocument): Prom
   return read.response ?? json(200, read.document)
 }
 
-/** Save a document that has one fixed place: a single, or a type's listing page. The first save creates the file. */
+/** Plan the save of a document that has one fixed place: a single, or a type's listing page. The first save creates the file. */
+async function planFixedSave(context: EditorContext, target: StoredDocument, input: unknown, slug?: string): Promise<PagePlan> {
+  const upgraded = context.migrator.upgrade(input, 'page', target.migrateAs)
+  if (!upgraded.ok) return { issues: [{ path: SCHEMA_VERSION_KEY, message: upgraded.message }] }
+  const parsed = target.schema.safeParse(upgraded.value)
+  if (!parsed.success) return { issues: fieldIssues(parsed.error) }
+  const document = parsed.data
+  if (slug !== undefined && (document as { slug?: unknown }).slug !== slug) {
+    return { response: problem(400, 'slug_mismatch', `Slug in the body must be "${slug}": this document has a fixed address.`) }
+  }
+  const missing = await missingAssets(context, document)
+  if (missing.length > 0) return { issues: missing }
+  const read = await readDocument(context, target)
+  if (read.response) return { response: read.response }
+  const added = addedOrphans(context, read.stored?.sections ?? [], document.sections)
+  if (added.length > 0) return { issues: added }
+  const stored = read.stored
+  return {
+    page: document,
+    writes: [[target.key, document]],
+    removals: [],
+    after: async () => {
+      if (stored) await history(context).ensureBaseline(...target.history, stored)
+      await history(context).write(...target.history, document)
+    },
+  }
+}
+
 async function putDocument(request: Request, context: EditorContext, target: StoredDocument, slug?: string): Promise<Response> {
   const body = await readJsonBody(request)
   if (body.response) return body.response
-  const upgraded = context.migrator.upgrade(body.value, 'page', target.migrateAs)
-  if (!upgraded.ok) return validation([{ path: SCHEMA_VERSION_KEY, message: upgraded.message }])
-  const parsed = target.schema.safeParse(upgraded.value)
-  if (!parsed.success) return validation(fieldIssues(parsed.error))
-  const document = parsed.data
-  if (slug !== undefined && (document as { slug?: unknown }).slug !== slug) {
-    return problem(400, 'slug_mismatch', `Slug in the body must be "${slug}": this document has a fixed address.`)
+  const planned = await planFixedSave(context, target, body.value, slug)
+  if (planned.issues) return validation(planned.issues)
+  if (planned.response) return planned.response
+  await writeDocuments(context, planned.writes)
+  await planned.after()
+  return json(200, planned.page)
+}
+
+/**
+ * The document the address `path` shows, with what it is: `{ type, kind, slug, document }`. The editor opens with it,
+ * so it need not know how addresses map to types. A listing answers the same document for each of its pages. The home
+ * and 404 pages answer as entries of `pages`, where they are stored and edited.
+ */
+async function getDocumentAt(context: EditorContext, pathname: string): Promise<Response> {
+  const types = typesOf(context)
+  const match = pathname.startsWith('/') ? matchPath(types, pathname) : null
+  if (match === null) return problem(404, 'not_found', `No content at "${pathname}".`)
+  if (match.kind === 'listing') {
+    const { type } = match
+    const read = await readDocument(scoped(context, `${type.id}:${LISTING_HISTORY}`), listingDocument(context, type))
+    if (read.response) return read.response
+    return json(200, { type: type.id, kind: 'listing', slug: type.listing?.slug ?? type.prefix, page: match.page, document: read.document })
   }
-  const missing = await missingAssets(context, document)
-  if (missing.length > 0) return validation(missing)
-  const read = await readDocument(context, target)
-  if (read.response) return read.response
-  const added = addedOrphans(context, read.stored?.sections ?? [], document.sections)
-  if (added.length > 0) return validation(added)
-  if (read.stored) await history(context).ensureBaseline(...target.history, read.stored)
-  await writeDocuments(context, [[target.key, document]])
-  await history(context).write(...target.history, document)
-  return json(200, document)
+  if (match.kind === 'single' && !match.type.builtIn) {
+    const { type } = match
+    const read = await readDocument(scoped(context, type.id), singleDocument(context, type))
+    if (read.response) return read.response
+    return json(200, { type: type.id, kind: 'single', slug: type.slug, document: read.document })
+  }
+  const type = match.kind === 'entry' ? match.type : types.pages
+  const slug = match.kind === 'entry' ? match.slug : match.type.slug
+  // `/index` is not an address: the home page is at `/`.
+  if (match.kind === 'entry' && isPages(type) && slug === HOME_SLUG) return problem(404, 'not_found', `No content at "${pathname}".`)
+  const loaded = await loadStoredPages(scoped(context, entryScope(type, slug)), {}, type)
+  if (loaded.response) return loaded.response
+  const found = loaded.pages.find((entry) => entry.page.slug === slug)
+  if (!found) return problem(404, 'not_found', `No ${noun(type)} with slug "${slug}".`)
+  return json(200, { type: type.id, kind: 'entry', slug, document: found.page })
 }
 
 /**
@@ -1413,8 +1475,9 @@ function draftPage(
   const slug = readSlug(input.slug)
   if (slug === null) return { response: badSlug() }
   const seo = { title: input.title, description: '', noindex: false, nofollow: false }
-  // Fields the body did not send are left for the type's schema: its defaults fill in, and a required one is reported.
-  const fields = type.fields || input.fields ? { fields: input.fields ?? {} } : {}
+  // A new entry starts with something in each required field, so it can be created from a title alone and filled in
+  // afterwards. What the body sends wins; the type's schema still has the last word.
+  const fields = type.fields || input.fields ? { fields: { ...(type.fields ? starterFields(type.fields) : {}), ...input.fields } } : {}
   const allowed = (name: string): boolean => type.sections === null || type.sections.includes(name)
   const drafted = (definition: SectionRegistry[string]) => ({
     ...(pageFromSection(slug, input.title, seo, definition) as object),
@@ -1463,6 +1526,27 @@ function draftPage(
       ...(input.fields === undefined && source.page.fields ? { fields: structuredClone(source.page.fields) } : fields),
     },
   }
+}
+
+/**
+ * A first value for each required field that has no default of its own: today for a date, the first choice of an
+ * enum, and the empty value of anything else simple. A field this cannot fill is left out, and validation names it.
+ */
+function starterFields(schema: z.ZodObject): Record<string, unknown> {
+  const starter: Record<string, unknown> = {}
+  for (const field of fieldDefinitions(schema) ?? []) {
+    const described = field.schema
+    if (!field.required || described === null || 'default' in described) continue
+    const choices = described.enum
+    if (Array.isArray(choices) && choices.length > 0) starter[field.name] = choices[0]
+    else if (described.type === 'string') {
+      const today = new Date().toISOString()
+      starter[field.name] = described.format === 'date' ? today.slice(0, 10) : described.format === 'date-time' ? today : ''
+    } else if (described.type === 'number' || described.type === 'integer') starter[field.name] = 0
+    else if (described.type === 'boolean') starter[field.name] = false
+    else if (described.type === 'array') starter[field.name] = []
+  }
+  return starter
 }
 
 function sectionId(type: string): string {
