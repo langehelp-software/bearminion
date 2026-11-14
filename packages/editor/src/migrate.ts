@@ -4,7 +4,7 @@ export type DocumentKind = 'page' | 'site'
 /**
  * Upgrades one document from version N to N + 1. Return the new document; do not mutate the input. `type` is the id of
  * the content type a `page` document belongs to (`pages`, `home`, `not-found`, or one the site declares); it is
- * undefined for the site, and for a listing page it is the type's id followed by `:listing`.
+ * undefined for the site, and `listing` for a type's listing page.
  */
 export type ContentMigration = (document: Record<string, unknown>, kind: DocumentKind, type?: string) => Record<string, unknown>
 

@@ -464,6 +464,6 @@ describe('migrations', () => {
     await call(upgraded, 'GET', '/types/blog/entries')
     await call(upgraded, 'GET', '/types/blog/listing')
     await call(upgraded, 'GET', '/types/about/document')
-    expect(seen).toEqual(['not-found', 'pages', 'home', 'blog', 'blog:listing', 'about'])
+    expect(seen).toEqual(['not-found', 'pages', 'home', 'blog', 'listing', 'about'])
   })
 })

@@ -79,6 +79,8 @@ export const NOT_FOUND_SLUG = '404'
 export const LISTING_FILE = '_listing.json'
 /** `/blog/page/2`: the segment before the page number. An entry cannot use it as its slug when the listing shares its prefix. */
 export const PAGINATION_SEGMENT = 'page'
+/** What a migration is told a listing page document is, in place of a content type's id. */
+export const LISTING_MIGRATION_TYPE = 'listing'
 export const DEFAULT_PER_PAGE = 10
 export const MAX_PER_PAGE = 100
 
@@ -138,8 +140,21 @@ const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const PATH = /^\/([a-z0-9]+(?:-[a-z0-9]+)*)\/\{slug\}$/
 const SINGLE_PATH = /^\/([a-z0-9]+(?:-[a-z0-9]+)*)$/
 const PAGES_PATH = '/{slug}'
-/** Ids that would be mistaken for a built-in type, a store file or a pull-request scope. */
-const RESERVED_IDS = new Set([HOME_TYPE, NOT_FOUND_TYPE, HOME_SLUG, SINGLES_DIR, 'site', 'page', 'collection', 'edits', 'uploads'])
+/** Ids that would be mistaken for a built-in type, a store file, a pull-request scope or one of the editor's own collections. */
+const RESERVED_IDS = new Set([
+  HOME_TYPE,
+  NOT_FOUND_TYPE,
+  HOME_SLUG,
+  SINGLES_DIR,
+  'site',
+  'page',
+  'collection',
+  'edits',
+  'uploads',
+  'listing',
+  'bm-listings',
+  'bm-singles',
+])
 /** Root addresses a type or a listing cannot take. */
 const RESERVED_SEGMENTS = new Set([HOME_SLUG, NOT_FOUND_SLUG])
 const SINGLE_KEYS = new Set(['kind', 'path', 'label', 'fields', 'sections'])

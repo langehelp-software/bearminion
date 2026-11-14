@@ -13,6 +13,7 @@ import {
 } from './collections.js'
 import {
   HOME_SLUG,
+  LISTING_MIGRATION_TYPE,
   NOT_FOUND_SLUG,
   PAGES_TYPE,
   PAGINATION_SEGMENT,
@@ -964,7 +965,7 @@ function listingDocument(context: EditorContext, type: MultiType): StoredDocumen
   return {
     key: listingKey(type),
     schema: createListingSchema(context.sections, { tolerateOrphans: true }) as StoredDocument['schema'],
-    migrateAs: `${type.id}:listing`,
+    migrateAs: LISTING_MIGRATION_TYPE,
     fallback: { title: type.label, seo: emptySeo(type.label), sections: [] },
     history: ['entry', `${type.id}/${LISTING_HISTORY}`],
   }
