@@ -8,6 +8,7 @@ import { checkForm } from './add/check-form.js'
 import { applyForm, detectHost, GLUE, HANDLER_PATH, HANDLERS, planForm } from './add/forms.js'
 import { applyHosted, BUILD_SCRIPT, checklist, HOSTS, planHosted, writesHosted, type HostedAction } from './add/hosted.js'
 import { readLock, writeLock } from './add/lock.js'
+import { applyTypes, nextSteps, planTypes, writesTypes } from './add/types.js'
 import { dirtyFiles, isPresent, planAdd, writesFile, type FileAction, type Plan } from './add/plan.js'
 import { statusOf, type FileState } from './add/status.js'
 import { REGISTRY_SCHEMA_VERSION, type Registry, type RegistryItem } from './registry/types.js'
@@ -22,6 +23,7 @@ Usage
   npx bearminion add --list
   npx bearminion add form [<service>] [--host <host>]
   npx bearminion add hosted [--host vercel]
+  npx bearminion add types
   npx bearminion status [--json]
   npx bearminion check form [--host <host>] [--json]
   npx bearminion sync [options]
@@ -29,6 +31,7 @@ Usage
 Commands
   add               Copy sections into this site, with the files they need
   add hosted        Set the site up for the hosted editor: the starter files it needs, the editor module, and a build for the editor deployment
+  add types         Bring the site's own files up to the ones that publish content types (a blog, for example). For a site made before 1.21
   status            Show which sections are in this site and whether their files match this release
   check form        Look for what keeps the Contact form from working: missing files, wrong names, unset variables
   sync              Rewrite sections/definitions.gen.ts and components.gen.ts from the section directories
@@ -49,6 +52,9 @@ Options for add form
 Options for add hosted
   --host <host>     Where the editor deployment runs. Only vercel so far (the default)
   --dry-run, -y, --overwrite, --install, --json, --diff work as for sections
+
+Options for add types
+  --dry-run, -y, --overwrite, --json, --diff work as for sections
 
 Options for check form
   --host <host>     Where the site runs (found from the project when omitted)
@@ -190,6 +196,7 @@ function diffAgainstRelease(root: string, registryDir: string, file: string): st
 async function runAdd(root: string, names: string[], values: Values, io: Io): Promise<number> {
   if (names[0] === 'form') return runAddForm(root, names.slice(1), values, io)
   if (names[0] === 'hosted') return runAddHosted(root, names.slice(1), values, io)
+  if (names[0] === 'types') return runAddTypes(root, names.slice(1), values, io)
   const { log } = io
   const json = values.json === true
   const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
@@ -499,6 +506,122 @@ async function runAddHosted(root: string, names: string[], values: Values, io: I
   log('')
   for (const line of checklist(plan.packageManager, plan.base)) log(line)
   return installed === 'failed' ? 1 : 0
+}
+
+async function runAddTypes(root: string, names: string[], values: Values, io: Io): Promise<number> {
+  const { log } = io
+  const json = values.json === true
+  const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
+    log(json ? JSON.stringify({ ok: false, error: message, ...extra }, null, 2) : message)
+    return code
+  }
+  if (names.length > 0)
+    return fail("`add types` takes no names: it updates the site's files, and you declare the types in src/lib/content-model.ts.", 2)
+
+  let loaded: ReturnType<typeof loadRegistry>
+  let plan: ReturnType<typeof planTypes>
+  let lock: ReturnType<typeof readLock>
+  try {
+    loaded = loadRegistry(io.registryDir)
+    lock = readLock(root, loaded.registry.template)
+    plan = planTypes(root, loaded.registry, lock, values.overwrite === true)
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
+  const { registry, dir: registryDir } = loaded
+  plan.dirty = dirtyFiles(
+    root,
+    plan.files.filter((file) => file.action === 'update' || file.action === 'overwrite').map((file) => file.path),
+  )
+  const conflicts = plan.files.filter((file) => file.action === 'conflict')
+  const changes = plan.files.filter((file) => file.action !== 'same')
+  const writes = plan.files.filter((file) => writesTypes(file.action)).length
+  const report = (extra: Record<string, unknown>) =>
+    JSON.stringify(
+      { ok: conflicts.length === 0, version: registry.version, files: plan.files, notes: plan.notes, dirty: plan.dirty, ...extra },
+      null,
+      2,
+    )
+
+  if (!json) {
+    log(`${values['dry-run'] ? 'Would update' : 'Updating'} the site's files for content types (bearminion ${registry.version})`)
+    log('')
+    for (const file of changes) {
+      const note = NOTES[file.action]
+      log(`  ${LABELS[file.action].padEnd(9)} ${file.path}${note ? `  (${note})` : ''}`)
+    }
+    const same = plan.files.length - changes.length
+    if (same > 0) log(`  ${same} file${same === 1 ? '' : 's'} already match.`)
+    log('')
+  }
+
+  if (conflicts.length > 0) {
+    if (values.diff && !json) {
+      for (const file of conflicts) {
+        log(diffAgainstRelease(root, registryDir, file.path))
+        log('')
+      }
+    }
+    if (json) log(report({ error: 'Some files differ from this release and were changed by you.', written: [] }))
+    else {
+      log(
+        `${conflicts.length} file${conflicts.length === 1 ? '' : 's'} differ${conflicts.length === 1 ? 's' : ''} from this release because you changed ${conflicts.length === 1 ? 'it' : 'them'}. Nothing was written.`,
+      )
+      log('Use --diff to see how, then merge the lines by hand, or use --overwrite to replace them. Commit first: git keeps your version.')
+    }
+    return 1
+  }
+
+  if (writes === 0) {
+    if (json) log(report({ written: [] }))
+    else {
+      log('Nothing to write: every file is already in place.')
+      for (const note of plan.notes) log(note)
+    }
+    return 0
+  }
+
+  if (!json && plan.files.some((file) => file.action === 'update')) {
+    log('Files that you did not change are replaced by this release. Read the diff and run your build.')
+  }
+  if (!json && plan.dirty.length > 0) log(`Uncommitted changes in ${plan.dirty.join(', ')} will be overwritten.`)
+
+  if (values['dry-run']) {
+    if (json) log(report({ dryRun: true, written: [] }))
+    else {
+      for (const note of plan.notes) log(note)
+      log('Dry run: nothing was written.')
+    }
+    return 0
+  }
+
+  if (!values.yes) {
+    if (json || io.confirm === undefined) {
+      return fail('Not asking in here: pass --yes to write, or --dry-run to look first.', 1, { files: plan.files })
+    }
+    if (!(await io.confirm(`Write ${writes} file${writes === 1 ? '' : 's'}?`))) {
+      log('Nothing was written.')
+      return 1
+    }
+  }
+
+  let written: string[]
+  try {
+    const applied = applyTypes(root, registryDir, registry, plan, lock)
+    writeLock(root, applied.lock)
+    written = applied.written
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
+  if (json) {
+    log(report({ written }))
+    return 0
+  }
+  log(`Wrote ${written.length} file${written.length === 1 ? '' : 's'} and noted them in bearminion.lock.json.`)
+  for (const note of plan.notes) log(note)
+  log('')
+  for (const line of nextSteps()) log(line)
+  return 0
 }
 
 const LEVEL_TEXT = { ok: 'ok', problem: 'problem', note: 'note' } as const
