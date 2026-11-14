@@ -233,7 +233,7 @@ describe('editor API on a custom store', () => {
     expect(((await schema.json()) as { projectId: string }).projectId).toEqual(expect.any(String))
   })
 
-  it('creates, saves, renames, promotes and deletes pages in the store', async () => {
+  it('creates, saves, renames and deletes pages in the store', async () => {
     const { call, store, missing } = setup()
     expect((await call('POST', '/pages', { slug: 'about', title: 'About' })).status).toBe(201)
     expect(store.documents.has('pages/about.json')).toBe(true)
@@ -246,14 +246,10 @@ describe('editor API on a custom store', () => {
     expect((await call('POST', '/pages/about/rename', { slug: 'company' })).status).toBe(200)
     expect([...store.documents.keys()].sort()).toEqual(['pages/company.json', 'pages/index.json', 'site.json'])
 
-    const promoted = await call('POST', '/pages/company/set-home', { previousSlug: 'old-home' })
-    expect(promoted.status).toBe(200)
-    expect([...store.documents.keys()].sort()).toEqual(['pages/index.json', 'pages/old-home.json', 'site.json'])
-    expect(JSON.parse(store.documents.get('pages/index.json') ?? '{}').slug).toBe('index')
-    expect(JSON.parse(store.documents.get('pages/old-home.json') ?? '{}').slug).toBe('old-home')
-
-    expect((await call('DELETE', '/pages/old-home')).status).toBe(200)
-    expect(store.documents.has('pages/old-home.json')).toBe(false)
+    expect((await call('DELETE', '/pages/company')).status).toBe(200)
+    expect(store.documents.has('pages/company.json')).toBe(false)
+    expect((await call('DELETE', '/pages/index')).status).toBe(409)
+    expect([...store.documents.keys()].sort()).toEqual(['pages/index.json', 'site.json'])
     expect(fs.existsSync(missing)).toBe(false)
   })
 

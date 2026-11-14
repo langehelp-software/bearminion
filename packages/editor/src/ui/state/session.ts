@@ -1,5 +1,5 @@
 import { batch } from '@preact/signals'
-import { applyPendingEdits, pageHref, type PageDraft, slugFromPath, slugifyAnchor } from '../../draft.js'
+import { applyPendingEdits, pageHref, type PageDraft, slugFromPath } from '../../draft.js'
 import { reloadDecision } from '../../draft-store.js'
 import { getCatalog, getGit, getImages, getPage, getPages, getSite, saveDraft } from '../api-client.js'
 import { setUploadRules } from '../prepare-image.js'
@@ -34,8 +34,6 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
   /** A content reload arrived during a save. It runs once the save settles. */
   let reloadQueued = false
   let reloadArrived: (() => void) | null = null
-  /** Set while this page is waiting to become the home page. Applied on save. */
-  let homeSwap: { previousSlug: string } | null = null
   /** The browser's own `location.reload`. The reload guard replaces the global one and hands the original here. */
   let nativeReload: () => void = () => location.reload()
 
@@ -99,78 +97,27 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
     return Promise.race([loaded.then(() => true), delay(READY_TIMEOUT_MS).then(() => false)])
   }
 
-  /** Slug the current home page moves to: its title as a slug, never `index`, unique among pages. */
-  function previousHomeSlug(): string {
-    const pages = doc.pages.peek()
-    const home = pages.find((item) => item.slug === 'index')
-    const taken = new Set(pages.map((item) => item.slug))
-    let base = slugifyAnchor(home?.title ?? '') || 'home'
-    if (base === 'index') base = 'home'
-    let slug = base
-    for (let n = 2; taken.has(slug); n += 1) slug = `${base}-${n}`
-    return slug
-  }
-
-  function becomeHome(previousSlug: string | null) {
-    const current = doc.page.peek()
-    if (!current) return
-    homeSwap = previousSlug ? { previousSlug } : null
-    edits.updatePage({ ...current, slug: 'index' })
-  }
-
-  /** The page form's "home page" switch. Replacing an existing home page asks first. */
-  function setHome(next: boolean) {
-    const current = doc.page.peek()
-    if (!current) return
-    const savedSlug = doc.savedSlug.peek()
-    if (next) {
-      const home = doc.pages.peek().find((item) => item.slug === 'index')
-      if (home && savedSlug !== 'index') {
-        ui.dialog.value = { kind: 'home', title: home.title, previousSlug: previousHomeSlug() }
-        return
-      }
-      becomeHome(null)
-      return
-    }
-    if (savedSlug !== 'index') {
-      homeSwap = null
-      edits.updatePage({ ...current, slug: savedSlug })
-    }
-  }
-
   async function writeDraft(currentPage: PageDraft | null, currentSite: SiteDraft | null): Promise<SaveOutcome> {
     const from = doc.savedSlug.peek()
     if (currentPage && currentPage.slug !== from && from === 'index') {
-      ui.fail('Could not rename the home page.', [
-        { path: 'slug', message: 'The home page slug stays index. Set another page as home to move it.' },
-      ])
+      ui.fail('Could not rename the home page.', [{ path: 'slug', message: 'The home page is served at / and keeps the slug index.' }])
       return 'failed'
     }
-    const promoting = currentPage !== null && currentPage.slug === 'index' && from !== 'index'
-    const previousSlug =
-      promoting && doc.pages.peek().some((item) => item.slug === 'index') ? (homeSwap?.previousSlug ?? previousHomeSlug()) : undefined
     if (currentPage) drafts.publishSaved('page')
     if (currentSite) drafts.publishSaved('site')
     // One request: the server validates the page and the site, then writes them (and any rename) together.
     const result = await saveDraft({
-      page: currentPage
-        ? {
-            from,
-            document: pruneDraft(currentPage, doc.catalog.peek()?.optionalContent),
-            ...(previousSlug === undefined ? {} : { previousHomeSlug: previousSlug }),
-          }
-        : undefined,
+      page: currentPage ? { from, document: pruneDraft(currentPage, doc.catalog.peek()?.optionalContent) } : undefined,
       site: currentSite ?? undefined,
     })
     if (!result.ok) {
       if (currentPage) drafts.retractSaved('page')
       if (currentSite) drafts.retractSaved('site')
-      ui.fail(promoting ? 'Could not set the home page.' : 'Save failed validation.', result.issues)
+      ui.fail('Save failed validation.', result.issues)
       return 'failed'
     }
     const saved = result.value
     if (saved.page && saved.page.slug !== from) {
-      homeSwap = null
       doc.savedSlug.value = saved.page.slug
       drafts.publishSaved('page')
     }
@@ -307,8 +254,6 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
     requestLeave,
     onContentReload,
     discardAndGo,
-    becomeHome,
-    setHome,
     loadGit,
     /** Autosave and the leave prompt apply only while the editor owns the page. */
     isActive: () => ready && !leaving,

@@ -2,7 +2,6 @@ import { useState } from 'preact/hooks'
 import type { PageDraft } from '../../draft.js'
 import { isSystemPage } from '../../page.js'
 import { Icon } from '../icons.js'
-import { Info } from '../info.js'
 import { Field } from './fields.js'
 import { SeoCard } from './seo-card.js'
 
@@ -14,9 +13,7 @@ export function PageForm({
   siteOgImage,
   selectedId,
   onChange,
-  savedSlug,
   canRename,
-  onHomeChange,
   onEditSeo,
   onSelectSection,
   onMoveSection,
@@ -32,11 +29,8 @@ export function PageForm({
   siteOgImage: string
   selectedId: string | null
   onChange: (page: PageDraft) => void
-  /** Slug on disk. It differs from `page.slug` while a rename or a new home page is waiting for save. */
-  savedSlug: string
-  /** False when the site turned renaming off (`pages.rename`): the slug is fixed and no other page can become home. */
+  /** False when the site turned renaming off (`pages.rename`): the slug is fixed. */
   canRename: boolean
-  onHomeChange: (home: boolean) => void
   onEditSeo: () => void
   onSelectSection: (id: string) => void
   onMoveSection: (id: string, direction: -1 | 1) => void
@@ -48,7 +42,6 @@ export function PageForm({
   const [sectionDrag, setSectionDrag] = useState<{ from: number; over: number; mode: 'before' | 'after' } | null>(null)
   const isHome = page.slug === 'index'
   const isSystem = isSystemPage(page.slug)
-  const savedHome = savedSlug === 'index'
   return (
     <>
       <div class="bm-stack">
@@ -71,34 +64,6 @@ export function PageForm({
                   : 'Renaming pages is turned off for this site, so this address stays as it is.'
           }
         />
-        {!isSystem && (
-          <label class="bm-switch-row">
-            <span class="bm-switch-text">
-              <span class="bm-switch-title">
-                Home page
-                <Info
-                  label="About Home page"
-                  text={
-                    !canRename
-                      ? 'Renaming pages is turned off for this site, and making a page home moves the old home page to a new address.'
-                      : savedHome
-                        ? 'Set another page as home to move this one.'
-                        : isHome
-                          ? 'Becomes the home page when you save.'
-                          : 'Serve this page at / instead of its own URL.'
-                  }
-                />
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={isHome}
-              disabled={savedHome || !canRename}
-              onChange={(event) => onHomeChange(event.currentTarget.checked)}
-            />
-          </label>
-        )}
       </div>
       <div class="bm-stack">
         <p class="bm-group">SEO</p>

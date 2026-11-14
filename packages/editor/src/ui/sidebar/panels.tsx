@@ -76,7 +76,6 @@ export function PagesPanel({ catalog }: { catalog: Catalog }) {
         pages={doc.pages.value}
         labels={catalog.sectionLabels}
         current={savedSlug}
-        homeSlug={page && page.slug === 'index' ? savedSlug : 'index'}
         canDelete={catalog.pageRules?.delete !== false}
         onCreated={() => void session.load(doc.savedSlug.peek())}
         onNavigate={session.requestLeave}
@@ -90,9 +89,7 @@ export function PagesPanel({ catalog }: { catalog: Catalog }) {
           siteOgImage={text(getAt(site, 'seo.ogImage'))}
           selectedId={ui.selectedId.value}
           onChange={(next) => edits.updatePage(next)}
-          savedSlug={savedSlug}
           canRename={catalog.pageRules?.rename !== false}
-          onHomeChange={session.setHome}
           onEditSeo={() => {
             ui.dialog.value = { kind: 'seo' }
           }}

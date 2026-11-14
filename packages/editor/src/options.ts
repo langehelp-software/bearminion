@@ -40,8 +40,7 @@ export interface BearminionOptions extends ContentModel {
   /**
    * Which page operations the editor allows: `{ rename: false, delete: false }` for a site whose addresses must not
    * change (they carry search ranking or are the target of redirects). Both default to true. A locked operation is
-   * refused by the API as well as hidden in the editor. `rename: false` also blocks making another page the home page,
-   * because that moves the old home page to a new address.
+   * refused by the API as well as hidden in the editor.
    */
   pages?: Partial<PageRules>
   /**

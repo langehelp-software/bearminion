@@ -25,7 +25,6 @@ export type EditorDialog =
   | { kind: 'consent' }
   | { kind: 'siteJsonLd' }
   | { kind: 'leave'; href: string | null }
-  | { kind: 'home'; title: string; previousSlug: string }
 
 export function createUiState() {
   const open = signal(false)

@@ -222,25 +222,5 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
           onCancel={close}
         />
       )
-    case 'home':
-      return (
-        <ConfirmDialog
-          label="Replace home page?"
-          body={
-            <>
-              <strong>{dialog.title}</strong> is already the home page. If you continue, it moves to <strong>/{dialog.previousSlug}</strong>{' '}
-              and this page is served at / once you save.
-            </>
-          }
-          tone="warn"
-          icon="alert"
-          confirmLabel="Replace home page"
-          onConfirm={() => {
-            session.becomeHome(dialog.previousSlug)
-            close()
-          }}
-          onCancel={close}
-        />
-      )
   }
 }

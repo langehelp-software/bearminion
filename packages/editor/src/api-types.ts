@@ -55,11 +55,9 @@ export interface HistoryEntry {
 /** `POST /save`. At least one of `page` and `site`. */
 export interface SaveRequest<TPage = unknown, TSite = unknown> {
   page?: {
-    /** Slug the page is stored under now. When `document.slug` differs, the page is renamed (or made home). */
+    /** Slug the page is stored under now. When `document.slug` differs, the page is renamed. */
     from: string
     document: TPage
-    /** Where the current home page moves when this page becomes `index`. Required when a home page exists. */
-    previousHomeSlug?: string
   }
   site?: TSite
 }

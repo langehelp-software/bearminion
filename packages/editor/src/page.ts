@@ -65,7 +65,7 @@ export const SYSTEM_PAGES = ['404'] as const
  * asks (the editor, a script, an assistant), and its controls are hidden in the editor.
  */
 export interface PageRules {
-  /** Change a page's slug, including making another page the home page (that moves two pages to new addresses). */
+  /** Change a page's slug, which changes its address. */
   rename: boolean
   delete: boolean
 }

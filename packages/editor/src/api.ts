@@ -197,13 +197,6 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
     return methodNotAllowed(['POST'])
   }
 
-  if (parts.length === 3 && parts[0] === 'pages' && parts[2] === 'set-home') {
-    const slug = readSlug(parts[1] ?? '')
-    if (slug === null) return badSlug()
-    if (method === 'POST') return setHome(request, scoped(context, `page:${slug}`), slug)
-    return methodNotAllowed(['POST'])
-  }
-
   return problem(404, 'not_found', 'Unknown editor API route.')
 }
 
@@ -443,8 +436,6 @@ const saveSchema = z
         /** The slug the page is stored under now. The document's own `slug` is where it goes. */
         from: z.string(),
         document: z.unknown(),
-        /** Where the current home page moves when this page becomes `index`. */
-        previousHomeSlug: z.string().optional(),
       })
       .strict()
       .optional(),
@@ -454,8 +445,7 @@ const saveSchema = z
   .refine((value) => value.page !== undefined || value.site !== undefined, { message: 'Nothing to save.' })
 
 /**
- * Save the editor draft in one request: a page (with its rename or promotion to home, when the slug
- * changed) and the site. Every document is validated before anything is written, and all writes and
+ * Save the editor draft in one request: a page (with its rename, when the slug changed) and the site. Every document is validated before anything is written, and all writes and
  * removals go to the store as one `apply`, so a failure never leaves a page renamed with stale content
  * or the page saved without the site.
  */
@@ -529,10 +519,7 @@ type PagePlan =
   /** Field errors; the caller decides how to answer, since a save reports the site's alongside them. */
   | { issues: FieldIssue[]; response?: undefined }
 
-async function planPageSave(
-  context: EditorContext,
-  input: { from: string; document: unknown; previousHomeSlug?: string },
-): Promise<PagePlan> {
+async function planPageSave(context: EditorContext, input: { from: string; document: unknown }): Promise<PagePlan> {
   const from = readSlug(input.from)
   if (from === null) return { response: badSlug() }
   const upgraded = context.migrator.upgrade(input.document, 'page')
@@ -572,54 +559,21 @@ async function planPageSave(
   if (!context.pageRules.rename) return { response: locked('rename') }
 
   if (from === 'index') {
-    return { response: problem(409, 'conflict', 'The home page slug stays index. Set another page as home to move it.') }
+    return { response: problem(409, 'conflict', 'The home page is served at / and keeps the slug index.') }
   }
   if (isSystemPage(from) || isSystemPage(target)) {
     return { response: problem(409, 'reserved_slug', 'System pages cannot be renamed, and no page can take their slug.') }
   }
 
-  if (target !== 'index') {
-    if (loaded.pages.some((entry) => entry.page.slug === target)) {
-      return { response: problem(409, 'conflict', `A page with slug "${target}" already exists.`) }
-    }
-    const nextKey = pageKey(target)
-    if (await context.store.exists(nextKey)) {
-      return { response: problem(409, 'conflict', `A file named ${target}.json already exists.`) }
-    }
-    return { page, writes: [[nextKey, page]], removals: [found.key], after }
+  if (target === 'index') return { response: homeIsFixed() }
+  if (loaded.pages.some((entry) => entry.page.slug === target)) {
+    return { response: problem(409, 'conflict', `A page with slug "${target}" already exists.`) }
   }
-
-  // Promote to home. The current home page, if any, moves to `previousHomeSlug`.
-  const indexKey = pageKey('index')
-  const home = loaded.pages.find((entry) => entry.page.slug === 'index')
-  if (!home) {
-    if (await context.store.exists(indexKey)) {
-      return { response: problem(409, 'conflict', 'A file named index.json already exists.') }
-    }
-    return { page, writes: [[indexKey, page]], removals: [found.key], after }
+  const nextKey = pageKey(target)
+  if (await context.store.exists(nextKey)) {
+    return { response: problem(409, 'conflict', `A file named ${target}.json already exists.`) }
   }
-  const previousSlug = input.previousHomeSlug === undefined ? null : readSlug(input.previousHomeSlug)
-  if (previousSlug === null || previousSlug === 'index' || isSystemPage(previousSlug)) {
-    return { response: problem(400, 'invalid_slug', 'previousHomeSlug is required to move the current home page.') }
-  }
-  if (loaded.pages.some((entry) => entry.page.slug === previousSlug)) {
-    return { response: problem(409, 'conflict', `A page with slug "${previousSlug}" already exists.`) }
-  }
-  const previousKey = pageKey(previousSlug)
-  if (await context.store.exists(previousKey)) {
-    return { response: problem(409, 'conflict', `A file named ${previousSlug}.json already exists.`) }
-  }
-  const moved = validateEditorPage({ ...home.page, slug: previousSlug }, context.sections)
-  if (!moved.success) return { issues: fieldIssues(moved.error) }
-  return {
-    page,
-    writes: [
-      [previousKey, moved.data],
-      [indexKey, page],
-    ],
-    removals: [...(home.key === indexKey ? [] : [home.key]), found.key],
-    after,
-  }
+  return { page, writes: [[nextKey, page]], removals: [found.key], after }
 }
 
 const commitSchema = z
@@ -745,6 +699,11 @@ async function createPage(request: Request, baseContext: EditorContext): Promise
   return json(201, validated.data)
 }
 
+/** The home page is its own fixed document: no other page can be moved onto its slug. A site without one creates it. */
+function homeIsFixed(): Response {
+  return problem(409, 'reserved_slug', 'The home page is fixed at /. Edit its content instead of moving another page there.')
+}
+
 function locked(operation: 'rename' | 'delete'): Response {
   const what = operation === 'rename' ? 'Renaming pages' : 'Deleting pages'
   return problem(409, 'operation_locked', `${what} is turned off for this site (pages.${operation} in the bearminion() options).`)
@@ -766,62 +725,6 @@ async function deletePage(context: EditorContext, slug: string): Promise<Respons
   return json(200, { deleted: true, slug })
 }
 
-/**
- * Make `slug` the home page. The current home page moves to `previousSlug`, so the
- * site never has two pages at "/" and never loses its home page halfway.
- */
-async function setHome(request: Request, context: EditorContext, slug: string): Promise<Response> {
-  const body = await readJsonBody(request)
-  if (body.response) return body.response
-  const parsed = setHomeSchema.safeParse(body.value)
-  if (!parsed.success) return validation(fieldIssues(parsed.error))
-  if (!context.pageRules.rename) return locked('rename')
-  if (slug === 'index') return problem(409, 'conflict', 'That page is already the home page.')
-  if (isSystemPage(slug)) return problem(409, 'reserved_slug', `"${slug}" is a system page and cannot be the home page.`)
-
-  const loaded = await loadStoredPages(context)
-  if (loaded.response) return loaded.response
-  const target = loaded.pages.find((entry) => entry.page.slug === slug)
-  if (!target) return problem(404, 'not_found', `No page with slug "${slug}".`)
-  const previous = loaded.pages.find((entry) => entry.page.slug === 'index')
-
-  const indexKey = pageKey('index')
-  if (previous) {
-    const previousSlug = parsed.data.previousSlug
-    if (previousSlug === undefined || previousSlug === 'index') {
-      return problem(400, 'invalid_slug', 'previousSlug is required to move the current home page.')
-    }
-    if (loaded.pages.some((entry) => entry.page.slug === previousSlug)) {
-      return problem(409, 'conflict', `A page with slug "${previousSlug}" already exists.`)
-    }
-    const previousKey = pageKey(previousSlug)
-    if (await context.store.exists(previousKey)) {
-      return problem(409, 'conflict', `A file named ${previousSlug}.json already exists.`)
-    }
-    const moved = validateEditorPage({ ...previous.page, slug: previousSlug }, context.sections)
-    if (!moved.success) return validation(fieldIssues(moved.error))
-    const promoted = validateEditorPage({ ...target.page, slug: 'index' }, context.sections)
-    if (!promoted.success) return validation(fieldIssues(promoted.error))
-    await writeDocuments(
-      context,
-      [
-        [previousKey, moved.data],
-        [indexKey, promoted.data],
-      ],
-      [...(previous.key === indexKey ? [] : [previous.key]), target.key],
-    )
-    return json(200, promoted.data)
-  }
-
-  if (await context.store.exists(indexKey)) {
-    return problem(409, 'conflict', 'A file named index.json already exists.')
-  }
-  const promoted = validateEditorPage({ ...target.page, slug: 'index' }, context.sections)
-  if (!promoted.success) return validation(fieldIssues(promoted.error))
-  await writeDocuments(context, [[indexKey, promoted.data]], [target.key])
-  return json(200, promoted.data)
-}
-
 async function renamePage(request: Request, context: EditorContext, slug: string): Promise<Response> {
   const body = await readJsonBody(request)
   if (body.response) return body.response
@@ -838,6 +741,7 @@ async function renamePage(request: Request, context: EditorContext, slug: string
   if (isSystemPage(slug) || isSystemPage(nextSlug)) {
     return problem(409, 'reserved_slug', 'System pages cannot be renamed, and no page can take their slug.')
   }
+  if (nextSlug === 'index') return homeIsFixed()
 
   const loaded = await loadStoredPages(context)
   if (loaded.response) return loaded.response
@@ -1110,18 +1014,6 @@ const createPageSchema = z
     }
     if (value.title.trim() === '') {
       ctx.addIssue({ code: 'custom', message: 'Title is required', path: ['title'] })
-    }
-  })
-
-const setHomeSchema = z
-  .object({
-    /** Slug the current home page moves to. Required when a home page exists. */
-    previousSlug: z.string().optional(),
-  })
-  .strict()
-  .superRefine((value, ctx) => {
-    if (value.previousSlug !== undefined && readSlug(value.previousSlug) === null) {
-      ctx.addIssue({ code: 'custom', message: 'Slug must be lowercase kebab-case', path: ['previousSlug'] })
     }
   })
 

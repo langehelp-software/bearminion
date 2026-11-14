@@ -9,7 +9,6 @@ export function PagesForm({
   pages,
   labels,
   current,
-  homeSlug,
   canDelete,
   onCreated,
   onNavigate,
@@ -17,8 +16,6 @@ export function PagesForm({
   pages: PageSummary[]
   labels: Record<string, string>
   current: string
-  /** Slug of the page that is (or, once saved, will be) the home page. */
-  homeSlug: string
   /** False when the site turned page deletion off (`pages.delete`). */
   canDelete: boolean
   onCreated: () => void
@@ -59,7 +56,7 @@ export function PagesForm({
                 pages/{item.file}
               </span>
             </a>
-            {item.slug === homeSlug && (
+            {item.slug === 'index' && (
               <span class="bm-badge bm-badge-home" title="Served at /">
                 <Icon name="home" size={11} />
                 home
