@@ -5,6 +5,8 @@ description: "Where BearMinion content lives, the shape of site.json and page fi
 
 Where content lives, the shape of `site.json` and page files, and how schema changes are migrated. Read this to edit JSON by hand or to understand what the editor writes.
 
+A site that declares [content types](content-types.md) has more folders beside `pages/`: one per type (`content/blog/`), and `content/singles/`. Their files have the shape of a page file, with a `fields` object added.
+
 ## Content directory
 
 ```text

@@ -3,7 +3,7 @@
 'create-bearminion': minor
 ---
 
-Content types. This entry grows as the work lands; the release notes list everything.
+Content types: declare a blog, a news list or a fixed page in the content model, and get entries with their own fields, a sort order, a paginated listing page and lists in the editor. Guide: [Content types](https://docs.bearminion.com/content-types/). A site that declares no types builds the same HTML as before with the files it has.
 
 - **The home page is a fixed page.** "Home page" is gone from the page form, and so are `POST /pages/:slug/set-home` and `previousHomeSlug` in `POST /save`. No page can be renamed to `index`. Nothing in your content changes: `content/pages/index.json` is still the home page. To change what visitors see first, edit the home page's sections. If you really want another page's content there, swap the two files in git and set each file's `slug`.
 - **Content types in the editor API.** `types: defineTypes({ blog: multi({ path: '/blog/{slug}', fields, sort, listing }), about: single({ path: '/about' }) })` in the content model declares the site's own types next to the built-in home page, 404 page and `pages`. New routes: `GET /types`, `/types/:id/entries` (list, create, read, save, rename, delete), `/types/:id/listing` and `/types/:id/document`. `/pages` works as before. Deleting an image or video now also checks entries, listing pages and singles, and a page cannot take a slug that is the address of a type.
