@@ -23,6 +23,12 @@ describe('parseCliArgs', () => {
     })
   })
 
+  it('leaves the blog undecided unless asked, so the person can be asked', () => {
+    expect(parseCliArgs([])).not.toHaveProperty('blog')
+    expect(parseCliArgs(['--blog']).blog).toBe(true)
+    expect(parseCliArgs(['--no-blog']).blog).toBe(false)
+  })
+
   it('refuses an unknown package manager, an unknown option and two directories', () => {
     expect(() => parseCliArgs(['--pm', 'deno'])).toThrow(UsageError)
     expect(() => parseCliArgs(['--template', 'x'])).toThrow(UsageError)

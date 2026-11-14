@@ -44,6 +44,7 @@ Pass options after `--` with npm (`npm create bearminion@latest my-site -- --yes
 | --- | --- |
 | `--name <name>` | The site's name. Default: from the folder (`my-coffee-shop` becomes "My Coffee Shop") |
 | `--url <address>` | Its public address, such as `https://example.com`. Used for search engines, the sitemap and link previews |
+| `--blog` | Add a blog: posts at `/blog/<slug>`, listed at `/blog`. Off by default; `npx bearminion add blog` adds it later |
 | `--storybook` | Also add [Storybook](https://storybook.js.org), a workshop for the theme's components |
 | `--pm <manager>` | Install with `npm`, `pnpm`, `yarn` or `bun`. Default: the one you ran |
 | `--no-install` | Skip installing |

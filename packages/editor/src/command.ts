@@ -8,6 +8,7 @@ import { checkForm } from './add/check-form.js'
 import { applyForm, detectHost, GLUE, HANDLER_PATH, HANDLERS, planForm } from './add/forms.js'
 import { applyHosted, BUILD_SCRIPT, checklist, HOSTS, planHosted, writesHosted, type HostedAction } from './add/hosted.js'
 import { readLock, writeLock } from './add/lock.js'
+import { blogSteps, CONTENT_MODEL_PATH, declareBlog, type BlogModel } from './add/blog.js'
 import { applyTypes, nextSteps, planTypes, writesTypes } from './add/types.js'
 import { dirtyFiles, isPresent, planAdd, writesFile, type FileAction, type Plan } from './add/plan.js'
 import { statusOf, type FileState } from './add/status.js'
@@ -24,6 +25,7 @@ Usage
   npx bearminion add form [<service>] [--host <host>]
   npx bearminion add hosted [--host vercel]
   npx bearminion add types
+  npx bearminion add blog
   npx bearminion status [--json]
   npx bearminion check form [--host <host>] [--json]
   npx bearminion sync [options]
@@ -32,6 +34,7 @@ Commands
   add               Copy sections into this site, with the files they need
   add hosted        Set the site up for the hosted editor: the starter files it needs, the editor module, and a build for the editor deployment
   add types         Bring the site's own files up to the ones that publish content types (a blog, for example). For a site made before 1.21
+  add blog          Add a blog: the same files as add types, and the blog type declared in the content model
   status            Show which sections are in this site and whether their files match this release
   check form        Look for what keeps the Contact form from working: missing files, wrong names, unset variables
   sync              Rewrite sections/definitions.gen.ts and components.gen.ts from the section directories
@@ -53,7 +56,7 @@ Options for add hosted
   --host <host>     Where the editor deployment runs. Only vercel so far (the default)
   --dry-run, -y, --overwrite, --install, --json, --diff work as for sections
 
-Options for add types
+Options for add types and add blog
   --dry-run, -y, --overwrite, --json, --diff work as for sections
 
 Options for check form
@@ -196,7 +199,8 @@ function diffAgainstRelease(root: string, registryDir: string, file: string): st
 async function runAdd(root: string, names: string[], values: Values, io: Io): Promise<number> {
   if (names[0] === 'form') return runAddForm(root, names.slice(1), values, io)
   if (names[0] === 'hosted') return runAddHosted(root, names.slice(1), values, io)
-  if (names[0] === 'types') return runAddTypes(root, names.slice(1), values, io)
+  if (names[0] === 'types') return runAddTypes(root, names.slice(1), values, io, false)
+  if (names[0] === 'blog') return runAddTypes(root, names.slice(1), values, io, true)
   const { log } = io
   const json = values.json === true
   const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
@@ -508,15 +512,29 @@ async function runAddHosted(root: string, names: string[], values: Values, io: I
   return installed === 'failed' ? 1 : 0
 }
 
-async function runAddTypes(root: string, names: string[], values: Values, io: Io): Promise<number> {
+/** `add types`, and `add blog`, which also declares the blog type in the content model when that file is the starter's. */
+async function runAddTypes(root: string, names: string[], values: Values, io: Io, blog: boolean): Promise<number> {
   const { log } = io
   const json = values.json === true
   const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
     log(json ? JSON.stringify({ ok: false, error: message, ...extra }, null, 2) : message)
     return code
   }
-  if (names.length > 0)
-    return fail("`add types` takes no names: it updates the site's files, and you declare the types in src/lib/content-model.ts.", 2)
+  if (names.length > 0) {
+    return fail(
+      blog
+        ? '`add blog` takes no names. For another type, run `add types` and declare it in src/lib/content-model.ts.'
+        : "`add types` takes no names: it updates the site's files, and you declare the types in src/lib/content-model.ts.",
+      2,
+    )
+  }
+  const modelFile = path.join(root, CONTENT_MODEL_PATH)
+  const model: BlogModel | undefined = blog
+    ? fs.existsSync(modelFile)
+      ? declareBlog(fs.readFileSync(modelFile, 'utf8'))
+      : { action: 'manual' }
+    : undefined
+  const declares = model?.action === 'declare'
 
   let loaded: ReturnType<typeof loadRegistry>
   let plan: ReturnType<typeof planTypes>
@@ -535,21 +553,31 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
   )
   const conflicts = plan.files.filter((file) => file.action === 'conflict')
   const changes = plan.files.filter((file) => file.action !== 'same')
-  const writes = plan.files.filter((file) => writesTypes(file.action)).length
+  const writes = plan.files.filter((file) => writesTypes(file.action)).length + (declares ? 1 : 0)
   const report = (extra: Record<string, unknown>) =>
     JSON.stringify(
-      { ok: conflicts.length === 0, version: registry.version, files: plan.files, notes: plan.notes, dirty: plan.dirty, ...extra },
+      {
+        ok: conflicts.length === 0,
+        version: registry.version,
+        files: plan.files,
+        ...(model ? { contentModel: model.action } : {}),
+        notes: plan.notes,
+        dirty: plan.dirty,
+        ...extra,
+      },
       null,
       2,
     )
 
   if (!json) {
-    log(`${values['dry-run'] ? 'Would update' : 'Updating'} the site's files for content types (bearminion ${registry.version})`)
+    const what = blog ? 'a blog' : 'content types'
+    log(`${values['dry-run'] ? 'Would update' : 'Updating'} the site's files for ${what} (bearminion ${registry.version})`)
     log('')
     for (const file of changes) {
       const note = NOTES[file.action]
       log(`  ${LABELS[file.action].padEnd(9)} ${file.path}${note ? `  (${note})` : ''}`)
     }
+    if (declares) log(`  ${'declare'.padEnd(9)} ${CONTENT_MODEL_PATH}  (adds the blog type; the rest of the file stays as it is)`)
     const same = plan.files.length - changes.length
     if (same > 0) log(`  ${same} file${same === 1 ? '' : 's'} already match.`)
     log('')
@@ -577,6 +605,10 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
     else {
       log('Nothing to write: every file is already in place.')
       for (const note of plan.notes) log(note)
+      if (model) {
+        log('')
+        for (const line of blogSteps(model.action)) log(line)
+      }
     }
     return 0
   }
@@ -610,6 +642,11 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
     const applied = applyTypes(root, registryDir, registry, plan, lock)
     writeLock(root, applied.lock)
     written = applied.written
+    // Last, so a failure above leaves the content model declaring nothing the site's files cannot yet publish.
+    if (model?.action === 'declare') {
+      fs.writeFileSync(modelFile, model.source)
+      written.push(CONTENT_MODEL_PATH)
+    }
   } catch (error) {
     return fail(error instanceof Error ? error.message : String(error))
   }
@@ -617,10 +654,10 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
     log(report({ written }))
     return 0
   }
-  log(`Wrote ${written.length} file${written.length === 1 ? '' : 's'} and noted them in bearminion.lock.json.`)
+  log(`Wrote ${written.length} file${written.length === 1 ? '' : 's'}. The starter's files are noted in bearminion.lock.json.`)
   for (const note of plan.notes) log(note)
   log('')
-  for (const line of nextSteps()) log(line)
+  for (const line of model ? blogSteps(model.action) : nextSteps()) log(line)
   return 0
 }
 

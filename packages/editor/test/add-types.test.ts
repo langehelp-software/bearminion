@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import { CONTENT_MODEL_PATH, declareBlog } from '../src/add/blog.js'
 import { run } from '../src/command.js'
 import { readRegistry, writeRegistry } from '../src/registry/build.js'
 import { TYPES_GROUP } from '../src/registry/groups.js'
@@ -134,6 +135,76 @@ describe('bearminion add types', () => {
     expect((await exec(['add', 'types', '--cwd', root], registry)).code).toBe(1)
     expect((await exec(['add', 'types', 'blog', '--cwd', root, '--yes'], registry)).code).toBe(2)
     expect(read(root, ROUTE)).toBe(OLD[ROUTE])
+  })
+})
+
+const MODEL = [
+  "import { defineTheme } from 'bearminion'",
+  "import { siteDefinition } from '../components/organisms/site-definition'",
+  '',
+  'export const contentModel = {',
+  '  sections: sectionDefinitions,',
+  '  site: siteDefinition,',
+  '  theme: defineTheme({}),',
+  '}',
+  '',
+].join('\n')
+
+describe('bearminion add blog', () => {
+  it('updates the files and declares the blog in a content model shaped like the starter’s', async () => {
+    const root = site({ ...OLD, [CONTENT_MODEL_PATH]: MODEL })
+    const { code, text } = await exec(['add', 'blog', '--cwd', root, '--yes'], registryDir())
+    expect(code, text).toBe(0)
+    expect(text).toContain(`declare   ${CONTENT_MODEL_PATH}`)
+    expect(text).toContain('Wrote 7 files')
+    expect(read(root, ROUTE)).toBe(NEW[ROUTE])
+    const model = read(root, CONTENT_MODEL_PATH)
+    expect(model).toContain("import { defineTheme, defineTypes, imageSchema, multi } from 'bearminion'")
+    expect(model).toContain("import { z } from 'zod'")
+    expect(model).toContain("  site: siteDefinition,\n  types: defineTypes({\n    blog: multi({\n      path: '/blog/{slug}',")
+    expect(model).toContain('  theme: defineTheme({}),')
+    // The content model is the site's own file, so it is not tracked in the lock.
+    expect(Object.keys(JSON.parse(read(root, LOCK_FILE)).files)).not.toContain(CONTENT_MODEL_PATH)
+
+    const again = await exec(['add', 'blog', '--cwd', root, '--yes'], registryDir())
+    expect(again.code).toBe(0)
+    expect(again.text).toContain('already declares content types')
+    expect(read(root, CONTENT_MODEL_PATH)).toBe(model)
+  })
+
+  it('leaves a content model of another shape alone and prints the lines to add', async () => {
+    const own = 'export const contentModel = makeModel()\n'
+    const root = site({ ...NEW, [CONTENT_MODEL_PATH]: own })
+    const { code, text } = await exec(['add', 'blog', '--cwd', root, '--yes'], registryDir())
+    expect(code).toBe(0)
+    expect(read(root, CONTENT_MODEL_PATH)).toBe(own)
+    expect(text).toContain('was left as it is')
+    expect(text).toContain('blog: multi({')
+  })
+
+  it('declares nothing when a changed file stops the update, and nothing on a dry run', async () => {
+    const registry = registryDir()
+    const stopped = site({ ...OLD, [ROUTE]: '---\n// mine\n---\n', [CONTENT_MODEL_PATH]: MODEL })
+    expect((await exec(['add', 'blog', '--cwd', stopped, '--yes'], registry)).code).toBe(1)
+    expect(read(stopped, CONTENT_MODEL_PATH)).toBe(MODEL)
+    const dry = site({ ...OLD, [CONTENT_MODEL_PATH]: MODEL })
+    const { text } = await exec(['add', 'blog', '--cwd', dry, '--dry-run', '--json'], registry)
+    expect(JSON.parse(text)).toMatchObject({ ok: true, dryRun: true, contentModel: 'declare' })
+    expect(read(dry, CONTENT_MODEL_PATH)).toBe(MODEL)
+  })
+})
+
+describe('declareBlog', () => {
+  it('keeps the imports the file has, and adds zod once', () => {
+    const withZod = MODEL.replace('import { siteDefinition }', "import { z } from 'zod'\nimport { siteDefinition }")
+    const result = declareBlog(withZod)
+    expect(result.action).toBe('declare')
+    expect(result.action === 'declare' && result.source.match(/from 'zod'/g)).toHaveLength(1)
+    expect(declareBlog(MODEL.replace('  site: siteDefinition,', '  site: siteDefinition,\n  types: defineTypes({}),')).action).toBe(
+      'present',
+    )
+    expect(declareBlog(MODEL.replace("import { defineTheme } from 'bearminion'", '')).action).toBe('manual')
+    expect(declareBlog(MODEL.replace('  site: siteDefinition,', '  site: mySite,')).action).toBe('manual')
   })
 })
 

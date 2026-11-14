@@ -164,4 +164,38 @@ describe('scaffold', () => {
     expect(pkg.scripts.storybook).toBeDefined()
     expect(readFileSync(path.join(target, 'README.md'), 'utf8')).toMatch(/## Storybook/)
   })
+
+  it('declares a blog in the content model with --blog, and leaves the model alone without it', async () => {
+    const plain = path.join(work, 'plain')
+    await scaffold({ templateDir: template, targetDir: plain, packageName: 'plain', siteName: 'Plain', storybook: false })
+    const original = readFileSync(path.join(plain, 'src/lib/content-model.ts'), 'utf8')
+    expect(original).toBe(readFileSync(path.join(source, 'src/lib/content-model.ts'), 'utf8'))
+    expect(original).not.toContain('defineTypes')
+
+    const target = path.join(work, 'with-blog')
+    await scaffold({
+      templateDir: template,
+      targetDir: target,
+      packageName: 'with-blog',
+      siteName: 'With blog',
+      storybook: false,
+      blog: true,
+    })
+    const model = readFileSync(path.join(target, 'src/lib/content-model.ts'), 'utf8')
+    expect(model).toContain("import { defineTheme, defineTypes, imageSchema, multi } from 'bearminion'")
+    expect(model).toContain("import { z } from 'zod'")
+    expect(model).toMatch(/site: siteDefinition,\n {2}types: defineTypes\(\{\n {4}blog: multi\(\{/)
+    // Only the blog was added: its thirteen lines and the zod import. Every other line is the template's.
+    expect(model.split('\n').length - original.split('\n').length).toBe(14)
+    const kept = original.split('\n').filter((line) => !line.startsWith('import { defineTheme }'))
+    for (const line of kept) expect(model).toContain(line)
+  })
+})
+
+describe('the blog recipe', () => {
+  it('is the same file as the one `npx bearminion add blog` uses', () => {
+    const own = readFileSync(path.resolve(import.meta.dirname, '../src/blog.ts'), 'utf8')
+    const editor = readFileSync(path.resolve(import.meta.dirname, '../../editor/src/add/blog.ts'), 'utf8')
+    expect(own).toBe(editor)
+  })
 })

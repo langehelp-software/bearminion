@@ -7,6 +7,14 @@ A content type is a kind of document your site has. Three are built in and need 
 
 If all you have is pages, skip this page. Nothing here is on until you declare a type.
 
+## The short way: a blog
+
+```sh
+npx bearminion add blog
+```
+
+It brings the site's files up to date and declares a blog in your content model: posts at `/blog/<slug>` with a date, an excerpt, a cover and a draft switch, newest first, listed at `/blog`, ten to a page. Then open the editor and write the first post under Pages, Blog, New entry. A new site gets the same with `npm create bearminion@latest -- --blog`. Everything below is what that set up, and how to change it or declare other types.
+
 ## Declare a type
 
 Types go in the content model (`src/lib/content-model.ts` in the starter), next to `sections` and `site`:
@@ -129,4 +137,5 @@ If you declare a type without doing this, `astro build` stops and lists the addr
 
 - An entry's address is one segment after the type's (`/blog/first-post`). Nested addresses are not supported, for types or for pages.
 - There is no tag, author or archive page, and no RSS feed yet.
+- While a type has no entries, Astro prints `The collection "blog" does not exist or is empty` during a build. It is a notice, not an error: the listing is built with its empty state.
 - The live preview of a listing page redraws its sections; the list of entries updates on save.

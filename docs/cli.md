@@ -111,11 +111,14 @@ A site made before 1.21 has a route file that knows only pages. Content types (a
 ```sh
 npx bearminion add types --dry-run     # look first
 npx bearminion add types               # write
+npx bearminion add blog                # the same, plus a blog declared in the content model
 ```
 
 It writes the starter's own files, from this release, like a section's files: the page route (`src/pages/[...slug].astro`), `src/content.config.ts`, `src/lib/content.ts`, `src/lib/sitemap.ts`, and the two components a listing page uses (`EntryList.astro`, `Pagination.astro`). A file of an earlier release that you did not change is replaced; one you changed stops the command (`--diff` shows how, `--overwrite` replaces it).
 
 Your `astro.config.ts` and your content model are never edited. The command ends with the lines to add to `src/lib/content-model.ts` to declare a type, and tells you when your config still builds the sitemap from pages only.
+
+`npx bearminion add blog` does the same and then declares a blog for you: it adds the blog type to `src/lib/content-model.ts` (posts at `/blog/<slug>` with a date, an excerpt, a cover and a draft switch, newest first, listed at `/blog`). It edits that file only when it is shaped like the starter's and declares no types yet; otherwise it leaves the file alone and prints the lines to add. On a new site, `npm create bearminion@latest -- --blog` starts with the same blog.
 
 You only need this when you declare a type. A site with no `types` in its content model builds exactly as before with its old files, and `astro build` stops with the list of missing addresses if you declare a type without running it. `--dry-run`, `-y`, `--overwrite`, `--diff`, `--json` and `--cwd` work as for sections.
 

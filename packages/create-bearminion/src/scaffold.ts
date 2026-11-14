@@ -1,6 +1,7 @@
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
+import { CONTENT_MODEL_PATH, declareBlog } from './blog.js'
 import { DOTFILE_RENAMES } from './template.js'
 
 export interface ScaffoldOptions {
@@ -12,6 +13,8 @@ export interface ScaffoldOptions {
   /** Normalized public address; the template's placeholder stays when undefined. */
   url?: string
   storybook: boolean
+  /** Declare a blog type in the content model. */
+  blog?: boolean
 }
 
 /** Storybook's files in the template. Left out unless the site is created with `--storybook`. */
@@ -111,6 +114,15 @@ export async function scaffold(options: ScaffoldOptions): Promise<void> {
   const site = JSON.parse(await readFile(sitePath, 'utf8')) as SiteJson
   const siteOptions = options.url ? { name: options.siteName, url: options.url } : { name: options.siteName }
   await writeFile(sitePath, `${stableStringify(transformSiteJson(site, siteOptions))}\n`)
+
+  if (options.blog) {
+    const modelPath = path.join(targetDir, CONTENT_MODEL_PATH)
+    const model = declareBlog(await readFile(modelPath, 'utf8'))
+    // The template's own content model always takes the blog. If it ever stops, say so instead of making a site without one.
+    if (model.action !== 'declare')
+      throw new Error(`Could not add the blog to ${CONTENT_MODEL_PATH}. Create the site without it and run: npx bearminion add blog`)
+    await writeFile(modelPath, model.source)
+  }
 
   if (!options.storybook) {
     const readmePath = path.join(targetDir, 'README.md')
