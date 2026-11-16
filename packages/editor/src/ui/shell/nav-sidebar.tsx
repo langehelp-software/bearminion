@@ -39,7 +39,7 @@ export function NavSidebar({ groups }: { groups: NavGroup[] }) {
                   {open && <span class="bm-nav-label-text">{item.label}</span>}
                   {open && item.count !== undefined && <span class="bm-nav-count">{item.count}</span>}
                   {!open && (
-                    <span class="bm-tip" role="tooltip">
+                    <span class="bm-nav-tip" role="tooltip">
                       {item.label}
                     </span>
                   )}
@@ -65,7 +65,7 @@ export function NavSidebar({ groups }: { groups: NavGroup[] }) {
               <kbd class="bm-kbd">⌘\</kbd>
             </>
           ) : (
-            <span class="bm-tip" role="tooltip">
+            <span class="bm-nav-tip" role="tooltip">
               Expand sidebar · ⌘\
             </span>
           )}

@@ -3560,7 +3560,7 @@ details[open] > summary .bm-chevron {
   font-weight: 400;
   color: var(--muted);
 }
-.bm-tip {
+.bm-nav-tip {
   position: absolute;
   z-index: 10;
   top: 50%;
@@ -3577,8 +3577,8 @@ details[open] > summary .bm-chevron {
   pointer-events: none;
   transition: opacity 0.12s ease;
 }
-.bm-nav-item:hover .bm-tip,
-.bm-nav-item:focus-visible .bm-tip {
+.bm-nav-item:hover .bm-nav-tip,
+.bm-nav-item:focus-visible .bm-nav-tip {
   opacity: 1;
 }
 .bm-nav-foot {
