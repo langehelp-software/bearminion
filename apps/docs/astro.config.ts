@@ -4,6 +4,7 @@ import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 import { checkLinks } from './src/check-links'
 import { remarkRepoLinks } from './src/remark-repo-links'
+import { remarkSectionPreviews } from './src/remark-section-previews'
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url))
 const github = 'https://github.com/langehelp-software/bearminion'
@@ -14,7 +15,18 @@ export default defineConfig({
   markdown: {
     // The pages are the repository's docs/ folder; their GitHub-style links become site and GitHub URLs.
     processor: unified({
-      remarkPlugins: [[remarkRepoLinks, { repoRoot, docsDir: `${repoRoot}docs`, github, problems: linkProblems }]],
+      remarkPlugins: [
+        [remarkRepoLinks, { repoRoot, docsDir: `${repoRoot}docs`, github, problems: linkProblems }],
+        // Each layout's screenshot on a section page becomes the layout itself, live (scripts/build-previews.mjs).
+        [
+          remarkSectionPreviews,
+          {
+            sectionsDir: `${repoRoot}docs/sections`,
+            previewsDir: fileURLToPath(new URL('./public/previews', import.meta.url)),
+            problems: linkProblems,
+          },
+        ],
+      ],
     }),
   },
   integrations: [
@@ -24,6 +36,7 @@ export default defineConfig({
       favicon: '/favicon.png',
       head: [
         { tag: 'meta', attrs: { property: 'og:image', content: 'https://docs.bearminion.com/og.png' } },
+        { tag: 'script', attrs: { type: 'module', src: '/section-preview.js' } },
         {
           tag: 'meta',
           attrs: { property: 'og:image:alt', content: 'BearMinion: a git-based CMS for Astro. Click to edit. Commit to publish.' },
