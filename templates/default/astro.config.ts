@@ -79,9 +79,8 @@ export default defineConfig({
       // Test isolation only: the folder with the forms to serve in dev. Your forms live in `src/forms`.
       ...(process.env.BEARMINION_FORMS_DIR ? { forms: { dir: path.resolve(process.env.BEARMINION_FORMS_DIR) } } : {}),
     }),
-    sitemap({
-      filter: createSitemapFilter(routes),
-    }),
+    // SEO › Indexing in the editor: "Generate sitemap.xml" off (site.seo.sitemap false) leaves it out of the build.
+    ...(content.site.seo.sitemap === false ? [] : [sitemap({ filter: createSitemapFilter(routes) })]),
     devPages,
     formCheck,
   ],

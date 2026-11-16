@@ -140,6 +140,10 @@ export const siteSeoSchema = z
     ogImage: z.string().min(1).optional(),
     /** Structured data emitted on every page, such as `Organization` and `WebSite`. A page's own blocks add to it. */
     jsonLd: jsonLdSchema.optional(),
+    /** `false` asks search engines to stay away: every page gets `noindex` and robots.txt disallows the site. Absent means true. */
+    robots: z.boolean().optional(),
+    /** `false` leaves `sitemap.xml` out of the build. Absent means true. */
+    sitemap: z.boolean().optional(),
   })
   .strict()
 

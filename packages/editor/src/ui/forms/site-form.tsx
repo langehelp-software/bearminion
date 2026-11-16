@@ -113,6 +113,23 @@ export function SiteForm({
             onDeleted={onDeleted}
           />
         </div>
+        <div class="bm-stack">
+          <p class="bm-group">Indexing</p>
+          <IndexingSwitch
+            title="Allow search engines"
+            hint="Off adds noindex to every page."
+            path="seo.robots"
+            on={getAt(site, 'seo.robots') !== false}
+            onField={onField}
+          />
+          <IndexingSwitch
+            title="Generate sitemap.xml"
+            hint="Uses the site URL. Skips pages marked noindex."
+            path="seo.sitemap"
+            on={getAt(site, 'seo.sitemap') !== false}
+            onField={onField}
+          />
+        </div>
         <JsonLdEditor blocks={siteJsonLdOf(site)} source={siteJsonLdSourceOf(site)} onChange={onJsonLd} />
       </div>
     )
@@ -251,5 +268,36 @@ function ConsentGroup({
         Edit banner
       </button>
     </div>
+  )
+}
+
+/** A site-wide search switch. On is the default, so only `false` is stored. */
+function IndexingSwitch({
+  title,
+  hint,
+  path,
+  on,
+  onField,
+}: {
+  title: string
+  hint: string
+  path: string
+  on: boolean
+  onField: (path: string, value: unknown) => void
+}) {
+  return (
+    <label class="bm-switch-row">
+      <span class="bm-switch-text">
+        <span class="bm-switch-title">{title}</span>
+        <span class="bm-hint">{hint}</span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        data-editor-field={path}
+        checked={on}
+        onChange={(event) => onField(path, event.currentTarget.checked ? undefined : false)}
+      />
+    </label>
   )
 }

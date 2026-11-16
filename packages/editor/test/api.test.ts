@@ -130,6 +130,17 @@ describe('editor API', () => {
     expect(wrong.status).toBe(400)
   })
 
+  it('keeps the site-wide indexing switches, which store only false', async () => {
+    const context = withRegistry(seed())
+    const site = JSON.parse(fs.readFileSync(path.join(context.contentDir, 'site.json'), 'utf8')) as { seo: Record<string, unknown> }
+    const saved = await call(context, 'POST', `${API_PREFIX}/save`, {
+      json: { site: { ...site, seo: { ...site.seo, robots: false, sitemap: false } } },
+    })
+    expect(saved.status).toBe(200)
+    const wrong = await call(context, 'POST', `${API_PREFIX}/save`, { json: { site: { ...site, seo: { ...site.seo, robots: 'no' } } } })
+    expect(wrong.status).toBe(400)
+  })
+
   it('lists each page with what the listings show beside it: noindex and when its file last changed', async () => {
     const context = withRegistry(seed())
     const file = path.join(context.contentDir, 'pages', 'index.json')
