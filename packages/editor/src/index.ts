@@ -64,6 +64,22 @@ export type { SitePreviewHtml, ThemePreview } from './preview.js'
 
 export { collection } from './collections.js'
 export type { CollectionOptions } from './collections.js'
+export { LISTINGS_COLLECTION, SINGLES_COLLECTION, defineTypes, multi, resolveTypes, single } from './content-types.js'
+export type {
+  ContentType,
+  ContentTypes,
+  Entry,
+  MultiType,
+  ResolvedTypes,
+  SingleType,
+  ListingDocument,
+  ListingOptions,
+  SingleOptions,
+  SortRule,
+  TypeOptions,
+} from './content-types.js'
+export { findRoute, isDraft, matchPath, siteRoutes } from './routing.js'
+export type { ListedEntry, ListingRoute, PageRoute, Pagination, PathMatch, Route, RouteOptions, SiteContent } from './routing.js'
 export { API_PREFIX } from './model.js'
 export type { ContentModel, SectionRegistry } from './model.js'
 

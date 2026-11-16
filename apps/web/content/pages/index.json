@@ -7,7 +7,7 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.20",
+          "tag": "BearMinion 1.21",
           "text": "Available now"
         },
         "button": false,
@@ -306,7 +306,7 @@
         "heading": "Everything you need, out of the box.",
         "items": [
           {
-            "label": "section types to build pages from",
+            "label": "section types, nine in every new site",
             "value": "14"
           },
           {

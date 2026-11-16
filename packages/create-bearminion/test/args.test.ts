@@ -23,6 +23,10 @@ describe('parseCliArgs', () => {
     })
   })
 
+  it('has no blog option: types are added after the site exists', () => {
+    expect(() => parseCliArgs(['--blog'])).toThrow()
+  })
+
   it('refuses an unknown package manager, an unknown option and two directories', () => {
     expect(() => parseCliArgs(['--pm', 'deno'])).toThrow(UsageError)
     expect(() => parseCliArgs(['--template', 'x'])).toThrow(UsageError)

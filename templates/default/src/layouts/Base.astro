@@ -13,9 +13,11 @@ import '../styles/global.css'
 interface Props {
   site: Site
   page: Page
+  /** False for a page that is only its sections, such as a section preview: no header, footer or consent banner. */
+  chrome?: boolean
 }
 
-const { site, page } = Astro.props
+const { site, page, chrome = true } = Astro.props
 const icon = site.favicon ? resolveLocalAsset(site.favicon.src) : undefined
 const ICON_TYPES: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', avif: 'image/avif' }
 const iconType = icon ? ICON_TYPES[icon.format] : undefined
@@ -23,11 +25,12 @@ const paletteCss = themeCss(site.theme.colors)
 const themeColor = site.theme.mode === 'dark' ? '#1c1e24' : '#f7f8f8'
 // Snippets ship in the live site's build only: not in `astro dev`, not in host previews. See lib/analytics.ts.
 const analyticsOn = analyticsEnabled(process.env, import.meta.env.PROD)
-const analytics = analyticsOn ? site.analytics : undefined
+// A page without chrome (a section preview) never loads them.
+const analytics = analyticsOn && chrome ? site.analytics : undefined
 // With a banner, the snippets wait inside <template> until the visitor accepts. The banner itself shows in dev
 // and previews too, so the owner sees it; only the live build has snippets to hold back. See lib/consent.ts.
 const asks = consentRequired(site)
-const gated = asks && analyticsOn
+const gated = asks && analyticsOn && chrome
 ---
 
 <!doctype html>
@@ -62,20 +65,24 @@ const gated = asks && analyticsOn
     {icon && <link rel="icon" type={iconType} href={icon.src} />}
   </head>
   <body class="min-h-screen font-sans antialiased">
-    <a
-      href="#content"
-      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-fg focus:px-4 focus:py-2 focus:text-bg"
-    >
-      Skip to content
-    </a>
-    <Header site={site} pathname={Astro.url.pathname} />
+    {
+      chrome && (
+        <a
+          href="#content"
+          class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-full focus:bg-fg focus:px-4 focus:py-2 focus:text-bg"
+        >
+          Skip to content
+        </a>
+      )
+    }
+    {chrome && <Header site={site} pathname={Astro.url.pathname} />}
     <main id="content">
       <slot />
     </main>
-    <Footer site={site} consentLabel={asks && site.consent?.reopen !== 'icon' ? consentCopy(site.consent).settings : undefined} />
+    {chrome && <Footer site={site} consentLabel={asks && site.consent?.reopen !== 'icon' ? consentCopy(site.consent).settings : undefined} />}
     {analytics?.bodyEnd && !asks && <Fragment set:html={analytics.bodyEnd} />}
     {gated && analytics?.bodyEnd && <template data-consent-snippet="body" set:html={analytics.bodyEnd} />}
-    {asks && <ConsentBanner consent={site.consent} />}
+    {chrome && asks && <ConsentBanner consent={site.consent} />}
     <script>
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const observer =

@@ -1,0 +1,56 @@
+---
+import type { Pagination } from 'bearminion'
+
+/** The page numbers under a listing. Nothing is drawn while the listing fits on one page. */
+interface Props {
+  pagination: Pagination
+}
+
+const { pagination } = Astro.props
+const step = 'inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 font-mono text-sm ring-line transition-colors'
+const link = `${step} bg-surface hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`
+---
+
+{
+  pagination.pages > 1 && (
+    <nav aria-label="Pages" data-pagination class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] pb-16">
+      <ul class="flex flex-wrap items-center justify-center gap-2">
+        <li>
+          {pagination.previous ? (
+            <a href={pagination.previous} rel="prev" class={link}>
+              Previous
+            </a>
+          ) : (
+            <span aria-disabled="true" class={`${step} text-muted opacity-50`}>
+              Previous
+            </span>
+          )}
+        </li>
+        {pagination.links.map((item) => (
+          <li>
+            {item.current ? (
+              <span aria-current="page" class={`${step} bg-fg text-bg`}>
+                {item.page}
+              </span>
+            ) : (
+              <a href={item.path} aria-label={`Page ${item.page}`} class={link}>
+                {item.page}
+              </a>
+            )}
+          </li>
+        ))}
+        <li>
+          {pagination.next ? (
+            <a href={pagination.next} rel="next" class={link}>
+              Next
+            </a>
+          ) : (
+            <span aria-disabled="true" class={`${step} text-muted opacity-50`}>
+              Next
+            </span>
+          )}
+        </li>
+      </ul>
+    </nav>
+  )
+}

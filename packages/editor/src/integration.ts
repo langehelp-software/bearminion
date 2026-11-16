@@ -5,9 +5,12 @@ import type { AstroIntegration } from 'astro'
 import { editorClientPlugin } from './editor-client.js'
 import { createFormsMiddleware, formsAreLive, resolveFormsConfig } from './forms-dev.js'
 import { createEditorMiddleware } from './middleware.js'
+import { DEFAULT_CONTENT_DIR } from './model.js'
 import { API_PREFIX, resolveEditorContext, type BearminionOptions } from './options.js'
 import { PreviewUnavailableError, loadThemePreview, type SitePreviewHtml } from './preview.js'
 import { contentReloadPlugin, dropEarlyReloadAfterSave } from './reload.js'
+import { missingRoutes, missingRoutesMessage, staleRouteFile } from './route-check.js'
+import { resolveDir } from './security.js'
 import { staleSectionsMessage, syncSections } from './sections-manifest.js'
 
 export interface BearminionIntegration extends AstroIntegration {
@@ -17,9 +20,12 @@ export interface BearminionIntegration extends AstroIntegration {
 /**
  * Dev-only Astro integration. `astro build`, `astro preview`, and `astro sync`
  * return before any plugin, route, or script is registered. `astro:server:setup`
- * runs only while `astro dev` is serving.
+ * runs only while `astro dev` is serving. A build adds nothing to the site either; it only checks, once the pages
+ * are written, that every declared content type got its pages.
  */
 export function bearminion(options: BearminionOptions): BearminionIntegration {
+  /** Set once the config is final: the project root, and whether every page is written at build time. */
+  let project: { root: string; static: boolean } | undefined
   return {
     name: 'bearminion',
     hooks: {
@@ -33,6 +39,8 @@ export function bearminion(options: BearminionOptions): BearminionIntegration {
           }
         }
         if (command !== 'dev') return
+        const stale = staleRouteFile(options, rootPath(config.root))
+        if (stale) logger.warn(stale)
         const context = resolveEditorContext(options, rootInput(config.root))
         updateConfig({
           vite: {
@@ -51,6 +59,20 @@ export function bearminion(options: BearminionOptions): BearminionIntegration {
           },
         })
         injectScript('page', 'import "virtual:bearminion-editor"')
+      },
+      'astro:config:done'({ config }) {
+        project = { root: rootPath(config.root), static: config.output === 'static' }
+      },
+      'astro:build:done'({ pages }) {
+        // A server build draws pages on request, so there is no list of written pages to hold the types against.
+        if (!project?.static) return
+        const contentDir = resolveDir(project.root, options.contentDir, DEFAULT_CONTENT_DIR)
+        const missing = missingRoutes(
+          options,
+          contentDir,
+          pages.map((page) => page.pathname),
+        )
+        if (missing.length > 0) throw new Error(missingRoutesMessage(missing))
       },
       'astro:server:setup'({ server, logger }) {
         const context = resolveEditorContext(options, server.config.root)

@@ -12,7 +12,7 @@ import { NavForm } from '../nav.js'
 import { text } from '../shared.js'
 import { headerActions, navLinks, themeColorsOf } from '../site-draft.js'
 import { useEditor } from '../state/editor.js'
-import type { Catalog, SiteDraft } from '../types.js'
+import type { Catalog, PageSummary, SiteDraft } from '../types.js'
 
 /** The sidebar adds a section from its outline: the picker opens beside the sidebar, at the button's height. */
 const PICKER_HEIGHT = 440
@@ -70,17 +70,43 @@ export function PagesPanel({ catalog }: { catalog: Catalog }) {
   const page = doc.page.value
   const site = doc.site.value
   const savedSlug = doc.savedSlug.value
+  const ref = doc.ref.value
+  const all = doc.pages.value
+  /** The row of the document that is open, in whichever list it is. */
+  const isCurrent = (item: PageSummary) =>
+    (item.type ?? 'pages') === ref.type &&
+    (ref.kind === 'entry' ? item.fixed === undefined && item.slug === savedSlug : item.fixed === ref.kind)
+  const declared = doc.types.value.filter((type) => type.kind === 'multi' && !type.builtIn)
+  const templatesFor = (allowed: readonly string[] | null | undefined) =>
+    allowed ? Object.fromEntries(Object.entries(catalog.sectionLabels).filter(([type]) => allowed.includes(type))) : catalog.sectionLabels
+  const pagesType = doc.types.value.find((type) => type.id === 'pages')
+  const kind = ref.kind === 'entry' ? (ref.type === 'pages' ? 'page' : 'entry') : ref.kind
   return (
     <>
       <PagesForm
-        pages={doc.pages.value}
-        labels={catalog.sectionLabels}
-        current={savedSlug}
-        homeSlug={page && page.slug === 'index' ? savedSlug : 'index'}
+        // Pages, the home and 404 pages, and the singles the site declares: everything that is one page at one address.
+        pages={all.filter((item) => item.type === undefined || item.fixed === 'single')}
+        labels={templatesFor(pagesType?.sections)}
+        isCurrent={isCurrent}
         canDelete={catalog.pageRules?.delete !== false}
-        onCreated={() => void session.load(doc.savedSlug.peek())}
+        onCreated={() => void session.load()}
         onNavigate={session.requestLeave}
       />
+      {declared.map((type) => (
+        <PagesForm
+          key={type.id}
+          type={type.id}
+          path={type.path}
+          heading={type.label}
+          noun="entry"
+          pages={all.filter((item) => item.type === type.id)}
+          labels={templatesFor(type.sections)}
+          isCurrent={isCurrent}
+          canDelete={type.delete !== false}
+          onCreated={() => void session.load()}
+          onNavigate={session.requestLeave}
+        />
+      ))}
       {page && (
         <PageForm
           page={page}
@@ -90,9 +116,14 @@ export function PagesPanel({ catalog }: { catalog: Catalog }) {
           siteOgImage={text(getAt(site, 'seo.ogImage'))}
           selectedId={ui.selectedId.value}
           onChange={(next) => edits.updatePage(next)}
-          savedSlug={savedSlug}
-          canRename={catalog.pageRules?.rename !== false}
-          onHomeChange={session.setHome}
+          canRename={doc.renameRule.value.allowed}
+          fixedReason={doc.renameRule.value.reason}
+          kind={kind}
+          address={ref.kind === 'listing' ? location.pathname : (doc.href.value ?? undefined)}
+          fields={ref.kind === 'listing' ? null : (doc.typeInfo.value?.fields ?? null)}
+          images={doc.images.value}
+          onUploaded={doc.addImage}
+          onDeleted={doc.dropImage}
           onEditSeo={() => {
             ui.dialog.value = { kind: 'seo' }
           }}
@@ -206,7 +237,7 @@ export function NavigationPanel({ site, catalog }: { site: SiteDraft; catalog: C
       }
       links={navLinks(site)}
       pages={doc.pages.value}
-      currentSlug={doc.currentSlug.value}
+      currentSlug={doc.linkKey.value}
       currentAnchors={doc.anchors.value}
       actions={headerActions(site)}
       onActions={(next) => {
@@ -228,7 +259,7 @@ export function FooterPanel({ site, catalog }: { site: SiteDraft; catalog: Catal
       options={catalog.siteOptions}
       maxColumns={catalog.siteLimits?.maxFooterColumns ?? 3}
       pages={doc.pages.value}
-      currentSlug={doc.currentSlug.value}
+      currentSlug={doc.linkKey.value}
       currentAnchors={doc.anchors.value}
       onField={edits.writeField}
       onOptional={edits.writeOrClear}

@@ -18,10 +18,6 @@
             "label": "Features"
           },
           {
-            "href": "/#pricing",
-            "label": "Pricing"
-          },
-          {
             "href": "/#faq",
             "label": "FAQ"
           }
@@ -35,7 +31,7 @@
             "label": "About"
           },
           {
-            "href": "/#contact",
+            "href": "mailto:hello@example.com",
             "label": "Contact"
           }
         ],
@@ -63,7 +59,7 @@
   "header": {
     "actions": [
       {
-        "href": "/#contact",
+        "href": "/#cta",
         "label": "Get started"
       }
     ],
@@ -77,10 +73,6 @@
         ],
         "href": "/#features",
         "label": "Features"
-      },
-      {
-        "href": "/#pricing",
-        "label": "Pricing"
       },
       {
         "href": "/#faq",

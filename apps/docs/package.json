@@ -5,8 +5,9 @@
   "description": "docs.bearminion.com: Starlight, built from the repository's docs/ folder.",
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "node scripts/build-previews.mjs && astro dev",
+    "previews": "node scripts/build-previews.mjs",
+    "build": "pnpm --filter bearminion build && node scripts/build-previews.mjs && astro build",
     "preview": "astro preview",
     "typecheck": "astro check"
   },
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.11",
+    "bearminion-site": "workspace:*",
     "typescript": "~5.9.3"
   }
 }

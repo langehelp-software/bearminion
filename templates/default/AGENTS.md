@@ -17,7 +17,7 @@ For an AI assistant helping the person who owns this site. The first rule is abo
 Do these in order. Work from the command line, and never say the form works until the person tells you a real message arrived.
 
 1. **Ask first:** where the site runs (Vercel, Netlify or Cloudflare Workers) and which service sends the message. `npx bearminion add form --list` shows what the command writes. Today that is `resend`; other services in the [Forms guide](https://docs.bearminion.com/forms) are untested examples.
-2. **Write the files:** `npx bearminion add form resend --host <host> --dry-run`, then without `--dry-run`. A file the person changed is not replaced unless they agree to `--overwrite`.
+2. **Write the files:** `npx bearminion add form resend --host <host> --dry-run`, then without `--dry-run`. A site without the Contact section gets it from the same command; then the person adds it to a page in the editor (Add section, Contact). A file the person changed is not replaced unless they agree to `--overwrite`.
 3. **Check the files:** `npx bearminion check form --host <host>`. It reads the project and writes nothing. Fix each problem it names and run it again until none is left.
 4. **Ask about everything you cannot see.** The check cannot read the host's settings or the service's account. Ask these one at a time, wait for a yes to each, and do not skip one because it is probably done:
    - The Resend account exists, an API key was created, and the domain behind `CONTACT_FROM` is verified. Until then Resend sends only from `onboarding@resend.dev` and only to the account owner.

@@ -21,7 +21,7 @@ pnpm web:dev          # bearminion.com (apps/web): the template's code with the 
 pnpm docs:dev         # docs.bearminion.com (apps/docs): Starlight, reading the pages in docs/
 ```
 
-bearminion.com runs the template's code, copied in before every `dev`, `build` and `typecheck`, so change components in `templates/default`, never in `apps/web` (see [its README](apps/web/README.md)). The docs are the Markdown files in `docs/`; a page there is a page on docs.bearminion.com, and the docs build fails on a broken link or anchor.
+bearminion.com runs the template's code, copied in before every `dev`, `build` and `typecheck`, so change components in `templates/default`, never in `apps/web` (see [its README](apps/web/README.md)). The docs are the Markdown files in `docs/`; a page there is a page on docs.bearminion.com, and the docs build fails on a broken link or anchor. On the section pages each layout's screenshot becomes the layout itself, live: `docs:dev` and `docs:build` first build those previews from `templates/default` (`apps/docs/scripts/build-previews.mjs`, into the gitignored `apps/docs/public/previews`), so a change to a section shows in the docs as soon as they restart.
 
 ## Repository layout
 

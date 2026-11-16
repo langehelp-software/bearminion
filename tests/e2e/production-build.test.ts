@@ -34,8 +34,8 @@ describe('production build', () => {
       }
     })
     expect(hits).toEqual([])
-    // The theme workshops are dev-only routes.
-    for (const page of ['style-guide', 'variants']) {
+    // The theme workshops are dev-only routes, and so are the section previews the docs build for themselves.
+    for (const page of ['style-guide', 'variants', 'section-preview']) {
       expect(fs.existsSync(path.join(dist, page))).toBe(false)
       expect(fs.existsSync(path.join(dist, `${page}.html`))).toBe(false)
     }

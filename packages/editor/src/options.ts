@@ -1,4 +1,5 @@
 import { type CollectionOptions, resolveCollections } from './collections.js'
+import { resolveTypes } from './content-types.js'
 import { createMigrator } from './migrate.js'
 import { DEFAULT_VIDEO_BYTE_LIMIT } from './videos.js'
 import { DEFAULT_CONTENT_DIR, DEFAULT_UPLOADS_DIR, DEFAULT_VIDEOS_DIR, type ContentModel } from './model.js'
@@ -40,8 +41,7 @@ export interface BearminionOptions extends ContentModel {
   /**
    * Which page operations the editor allows: `{ rename: false, delete: false }` for a site whose addresses must not
    * change (they carry search ranking or are the target of redirects). Both default to true. A locked operation is
-   * refused by the API as well as hidden in the editor. `rename: false` also blocks making another page the home page,
-   * because that moves the old home page to a new address.
+   * refused by the API as well as hidden in the editor.
    */
   pages?: Partial<PageRules>
   /**
@@ -91,6 +91,7 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
   const contentDir = resolveDir(root, options?.contentDir, DEFAULT_CONTENT_DIR)
   const uploadsDir = resolveDir(root, options?.uploadsDir, DEFAULT_UPLOADS_DIR)
   const videosDir = resolveDir(root, options?.videosDir, DEFAULT_VIDEOS_DIR)
+  const pageRules = resolvePageRules(options?.pages)
   const context: EditorContext = {
     root,
     contentDir,
@@ -98,9 +99,10 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
     videosDir,
     maxVideoBytes: options?.maxVideoBytes ?? DEFAULT_VIDEO_BYTE_LIMIT,
     maxImageBytes: resolveMaxImageBytes(options?.maxImageBytes),
-    pageRules: resolvePageRules(options?.pages),
+    pageRules,
     imageConvert: resolveConvert(options?.imageConvert),
     sections: options.sections,
+    types: resolveTypes(options, pageRules),
     site: options.site,
     theme: options.theme ?? defaultTheme,
     store: options.store ?? createFileStore({ root, contentDir, uploadsDir, videosDir }),

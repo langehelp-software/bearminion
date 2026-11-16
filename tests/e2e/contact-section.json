@@ -1,0 +1,37 @@
+{
+  "anchor": "contact",
+  "id": "contact",
+  "props": {
+    "body": "Tell people what they can contact you about and when they will hear back.",
+    "details": [
+      {
+        "label": "Email",
+        "value": "hello@example.com"
+      },
+      {
+        "label": "Phone",
+        "value": "+1 555 010 0100"
+      },
+      {
+        "label": "Hours",
+        "value": "Monday to Friday, 9:00 to 17:00"
+      }
+    ],
+    "eyebrow": "Contact",
+    "heading": "Get in touch.",
+    "marks": [
+      {
+        "end": 13,
+        "font": "serif",
+        "italic": true,
+        "start": 4
+      }
+    ],
+    "note": "We only use your details to reply to you.",
+    "thanks": "Thanks, your message is on its way. We will reply within two working days.",
+    "topics": ["General", "Sales", "Support"]
+  },
+  "tone": "subtle",
+  "type": "contact",
+  "variant": "split"
+}

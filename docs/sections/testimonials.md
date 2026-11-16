@@ -24,7 +24,7 @@ Content: `items` of `{ quote, name, role?, image? }`, three recommended. Optiona
 
 ## Add it to your site
 
-A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+A new site does not have it. One command adds it: it copies the section and the files it needs, and never overwrites a file you changed.
 
 ```sh
 npx bearminion add testimonials

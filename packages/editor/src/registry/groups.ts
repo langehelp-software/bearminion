@@ -23,4 +23,22 @@ export const HOSTED_GROUP: RegistryGroup = {
   ],
 }
 
-export const GROUPS: Record<string, RegistryGroup> = { hosted: HOSTED_GROUP }
+/**
+ * What a site made before content types needs in its own files to publish declared types: the route that draws every
+ * kind of address, the collections, the content readers and the listing's two components. `astro.config.ts` is the
+ * site's own and is never written; the docs show the two lines to change there.
+ */
+export const TYPES_GROUP: RegistryGroup = {
+  label: 'Content types',
+  description: "The starter's files that publish the entries, singles and listing pages of declared content types.",
+  files: [
+    'src/components/organisms/EntryList.astro',
+    'src/components/organisms/Pagination.astro',
+    'src/content.config.ts',
+    'src/lib/content.ts',
+    'src/lib/sitemap.ts',
+    'src/pages/[...slug].astro',
+  ],
+}
+
+export const GROUPS: Record<string, RegistryGroup> = { hosted: HOSTED_GROUP, types: TYPES_GROUP }

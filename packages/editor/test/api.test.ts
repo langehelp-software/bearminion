@@ -242,25 +242,6 @@ describe('editor API', () => {
     expect(listed.pages.map((page) => page.slug).sort()).toEqual(['from-home', 'index'])
   })
 
-  it('moves the home page to another slug when a different page becomes home', async () => {
-    const context = withRegistry(seed())
-    await call(context, 'POST', `${API_PREFIX}/pages`, { json: { slug: 'about', title: 'About', template: 'cta' } })
-    const missing = await call(context, 'POST', `${API_PREFIX}/pages/about/set-home`, { json: {} })
-    expect(missing.status).toBe(400)
-    const clash = await call(context, 'POST', `${API_PREFIX}/pages/about/set-home`, { json: { previousSlug: 'about' } })
-    expect(clash.status).toBe(409)
-
-    const done = await call(context, 'POST', `${API_PREFIX}/pages/about/set-home`, { json: { previousSlug: 'home' } })
-    expect(done.status).toBe(200)
-    const pagesDir = path.join(context.contentDir, 'pages')
-    expect(JSON.parse(fs.readFileSync(path.join(pagesDir, 'index.json'), 'utf8'))).toMatchObject({ slug: 'index', title: 'About' })
-    expect(JSON.parse(fs.readFileSync(path.join(pagesDir, 'home.json'), 'utf8'))).toMatchObject({ slug: 'home' })
-    expect(fs.existsSync(path.join(pagesDir, 'about.json'))).toBe(false)
-
-    const again = await call(context, 'POST', `${API_PREFIX}/pages/index/set-home`, { json: { previousSlug: 'x' } })
-    expect(again.status).toBe(409)
-  })
-
   it('rejects slug mismatches, traversal, and unknown templates without writing', async () => {
     const context = withRegistry(seed())
     const before = fs.readdirSync(path.join(context.contentDir, 'pages'))
@@ -838,21 +819,29 @@ describe('POST /save', () => {
     expect(readJson(context, 'pages/team.json').title).toBe('Team')
   })
 
-  it('makes a page the home page and moves the old one', async () => {
+  it('refuses to move another page onto the home page, which is a fixed document', async () => {
     const context = seed()
     const about = await createAbout(context)
-    const missing = await call(context, 'POST', `${API_PREFIX}/save`, {
-      json: { page: { from: 'about', document: { ...about, slug: 'index' } } },
+    const before = fs.readFileSync(path.join(context.contentDir, 'pages', 'index.json'), 'utf8')
+    const viaSave = await call(context, 'POST', `${API_PREFIX}/save`, {
+      json: { page: { from: 'about', document: { ...about, slug: 'index', title: 'New home' } } },
     })
-    expect(missing.status).toBe(400)
+    expect(viaSave.status).toBe(409)
+    expect(((await viaSave.json()) as { error: string }).error).toBe('reserved_slug')
+    // The option that used to say where the old home page goes is gone, not ignored.
+    const withOldOption = await call(context, 'POST', `${API_PREFIX}/save`, {
+      json: { page: { from: 'about', document: { ...about, slug: 'index' }, previousHomeSlug: 'old-home' } },
+    })
+    expect(withOldOption.status).toBe(400)
+    const viaRename = await call(context, 'POST', `${API_PREFIX}/pages/about/rename`, { json: { slug: 'index' } })
+    expect(viaRename.status).toBe(409)
+    expect(((await viaRename.json()) as { error: string }).error).toBe('reserved_slug')
+    const viaRoute = await call(context, 'POST', `${API_PREFIX}/pages/about/set-home`, { json: { previousSlug: 'old-home' } })
+    expect(viaRoute.status).toBe(404)
 
-    const promoted = await call(context, 'POST', `${API_PREFIX}/save`, {
-      json: { page: { from: 'about', document: { ...about, slug: 'index', title: 'New home' }, previousHomeSlug: 'old-home' } },
-    })
-    expect(promoted.status).toBe(200)
-    expect(homePage(context).title).toBe('New home')
-    expect(readJson(context, 'pages/old-home.json').title).toBe('Home')
-    expect(fs.existsSync(path.join(context.contentDir, 'pages', 'about.json'))).toBe(false)
+    expect(fs.readFileSync(path.join(context.contentDir, 'pages', 'index.json'), 'utf8')).toBe(before)
+    expect(fs.existsSync(path.join(context.contentDir, 'pages', 'about.json'))).toBe(true)
+    expect(fs.existsSync(path.join(context.contentDir, 'pages', 'old-home.json'))).toBe(false)
   })
 
   it('refuses to move the home page or rename onto an existing page', async () => {
@@ -895,14 +884,6 @@ describe('POST /save', () => {
         json: { page: { from: 'about', document: { ...about, slug: 'team' } } },
       })
       expect((await lockedError(viaSave)).code).toBe('operation_locked')
-
-      const viaPromote = await call(locked, 'POST', `${API_PREFIX}/save`, {
-        json: { page: { from: 'about', document: { ...about, slug: 'index' }, previousHomeSlug: 'old-home' } },
-      })
-      expect((await lockedError(viaPromote)).code).toBe('operation_locked')
-
-      const viaSetHome = await call(locked, 'POST', `${API_PREFIX}/pages/about/set-home`, { json: { previousSlug: 'old-home' } })
-      expect((await lockedError(viaSetHome)).code).toBe('operation_locked')
 
       expect(snapshot(locked)).toEqual(before)
     })

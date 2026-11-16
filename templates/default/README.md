@@ -29,7 +29,7 @@ This template is yours to change: it is the theme. `bearminion` is the only runt
 
 Organisms are Header, Navigation, MobileMenu, and Footer. A modal, a dialog, and a cookie banner belong in this folder too. They are the chrome around every page (or a standalone widget), and they are fed by `content/site.json`.
 
-Sections are `hero`, `logoStrip`, `steps`, `gallery`, `features`, `text`, `textImage`, `stats`, `testimonials`, `pricing`, `media`, `faq`, `cta`, and `contact`. Each page entry is `{ id, anchor?, type, variant, tone, motion?, props }`. `anchor` is an optional lowercase slug, unique on the page, and it becomes the section element's `id`. `data-section-id` stays the section id. `[data-section-id]` sets `scroll-margin-top: 7rem` so a sticky or floating header does not cover the target. `html` uses `scroll-behavior: smooth`, and `prefers-reduced-motion: reduce` forces `scroll-behavior: auto`. Section components are built from molecules and atoms. A section may use an organism when it needs one, such as a modal. The section root carries `data-section-id`, `data-section-type`, `data-variant`, `data-tone`, and `data-motion`. Atoms accept a `class` and forward `data-*` attributes, including `data-field`, so the editor can find the text.
+A new site has the sections `hero`, `steps`, `gallery`, `features`, `text`, `textImage`, `media`, `faq` and `cta`. More are one command away: `npx bearminion add --list` shows them (`logo-strip`, `stats`, `testimonials`, `pricing`), `npx bearminion add pricing` adds one, and `npx bearminion add form` adds the Contact section with the handler its form needs. Each page entry is `{ id, anchor?, type, variant, tone, motion?, props }`. `anchor` is an optional lowercase slug, unique on the page, and it becomes the section element's `id`. `data-section-id` stays the section id. `[data-section-id]` sets `scroll-margin-top: 7rem` so a sticky or floating header does not cover the target. `html` uses `scroll-behavior: smooth`, and `prefers-reduced-motion: reduce` forces `scroll-behavior: auto`. Section components are built from molecules and atoms. A section may use an organism when it needs one, such as a modal. The section root carries `data-section-id`, `data-section-type`, `data-variant`, `data-tone`, and `data-motion`. Atoms accept a `class` and forward `data-*` attributes, including `data-field`, so the editor can find the text.
 
 Paragraph fields (`sub`, `intro`, `body`, `description`, `quote`, `note`, `thanks`, FAQ answers and Text + Image `points`) are markdown. The template renders bold, italic, inline `code` (a mono chip), links, and paragraphs through `bearminion/rich-text`, escapes every other character, and adds `rel="noopener noreferrer"` on `http` and `https` links.
 
@@ -40,7 +40,7 @@ src/components/
   organisms/    Header, Navigation, MobileMenu, Footer, plus site-definition.ts (header and footer layouts, limits)
   sections/     one directory per type, plus definitions.ts, shared.ts, SectionList.astro and the generated definitions.gen.ts, components.gen.ts
     hero/         definition.ts (zod schema, defaults, options), wireframe.ts (picker thumbnail), Hero.astro, Hero.stories.ts
-    logo-strip/ steps/ gallery/ features/ text/ text-image/ stats/ testimonials/ pricing/ media/ faq/ cta/ contact/
+    steps/ gallery/ features/ text/ text-image/ media/ faq/ cta/   (and whatever `npx bearminion add` brings)
   seo/          Seo
 ```
 
@@ -48,7 +48,7 @@ src/components/
 
 ## Add a section type
 
-A section type is one directory under `src/components/sections/` and one command, `npx bearminion sync`. This walks through a `quote` section: a pull quote with an attribution.
+A section type is one directory under `src/components/sections/` and one command, `npx bearminion sync`. This walks through a `quote` section: a pull quote with an attribution. For a section with a list of items, step by step, see [Build your own section](https://docs.bearminion.com/custom-section/).
 
 **1. The definition** (`quote/definition.ts`). The Zod schema validates the JSON and drives the editor's Content fields; `defaults` is what a new section starts with and must pass the schema.
 
@@ -194,7 +194,7 @@ The site's own images (`logo.png`, `favicon.png`, `og.png`, `hero.png`) live in 
 
 `astro.config.ts` sets `site` from `site.json` and adds `@astrojs/sitemap`. The filter keeps content pages whose `seo.noindex` is false. `content/pages/preview.json` is the sample noindex page: it is built, it emits `noindex`, and it is absent from the sitemap. `src/pages/robots.txt.ts` points crawlers at `sitemap-index.xml`.
 
-The style guide at `/style-guide` renders every typography size and button variant. `/variants` renders every section, header, and footer variant. They live in `src/dev/` and only `npm run dev` serves them (the `devPages` integration in `astro.config.ts`), so they never reach the built site. Delete that integration and the folder if you do not want them.
+The style guide at `/style-guide` renders every typography size and button variant. `/variants` renders every section, header, and footer variant. `/section-preview/<section>/<variant>` (such as `/section-preview/text-image/right`) renders one section alone with its default content: the docs show these pages live. They live in `src/dev/` and only `npm run dev` serves them (the `devPages` integration in `astro.config.ts`), so they never reach the built site. Delete that integration and the folder if you do not want them.
 
 ## Analytics
 
@@ -223,7 +223,7 @@ A theme with its own layout needs three things: render the `template` elements a
 
 ## Contact form
 
-The Contact section always posts to `/api/contact` and never shows "sent" for a message that went nowhere. Nothing about the form is stored in the content files: the handler is code in `src/forms/contact.ts`, and the public Turnstile site key is `PUBLIC_TURNSTILE_SITE_KEY` in the environment. `src/lib/contact-form.ts` holds the rules (what is sent, how an answer is read, the `_gotcha` trap and the 1.5 s minimum time) and `src/components/sections/contact/form.ts` wires them to the page: sending, sent, a failure shown in a message at the bottom of the screen that stays until the visitor closes it, field errors under their fields, the Cloudflare Turnstile widget when `PUBLIC_TURNSTILE_SITE_KEY` is set at build time, and a success `message` from the handler in place of the thank-you text. The page sends JSON. While `src/forms/contact.ts` does not exist, `astro dev` and `astro build` print a warning (`src/lib/form-check.ts`, wired in `astro.config.ts`) and the section's settings in the editor say so; it never fails the build.
+The Contact section (`npx bearminion add form` adds it, with its handler and the glue for your host) always posts to `/api/contact` and never shows "sent" for a message that went nowhere. Nothing about the form is stored in the content files: the handler is code in `src/forms/contact.ts`, and the public Turnstile site key is `PUBLIC_TURNSTILE_SITE_KEY` in the environment. `src/lib/contact-form.ts` holds the rules (what is sent, how an answer is read, the `_gotcha` trap and the 1.5 s minimum time) and `src/components/sections/contact/form.ts` wires them to the page: sending, sent, a failure shown in a message at the bottom of the screen that stays until the visitor closes it, field errors under their fields, the Cloudflare Turnstile widget when `PUBLIC_TURNSTILE_SITE_KEY` is set at build time, and a success `message` from the handler in place of the thank-you text. The page sends JSON. While `src/forms/contact.ts` does not exist, `astro dev` and `astro build` print a warning (`src/lib/form-check.ts`, wired in `astro.config.ts`) and the section's settings in the editor say so; it never fails the build.
 
 The handler holds the keys that must stay private. Put `defineForm(...)` from `bearminion/forms` in `src/forms/contact.ts`; `astro dev` answers it at `/api/contact` (a dry run until `BEARMINION_FORMS_LIVE=on` is in `.env.local`), and a few lines of glue for Vercel, Netlify, Cloudflare or an Astro endpoint serve it once published. The template ships no `src/forms` folder and no server code, so the build stays static and warns until you add one. `.env.example` lists the environment variables the form uses (the Turnstile keys, `BEARMINION_FORMS_LIVE`); copy it to `.env`. `BEARMINION_VIDEOS_DIR` and `BEARMINION_FORMS_DIR` move the editor's video uploads and the dev forms folder for tests, like the content and uploads variables. See the [Forms guide](https://docs.bearminion.com/forms).
 

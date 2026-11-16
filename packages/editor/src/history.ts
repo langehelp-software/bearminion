@@ -21,7 +21,9 @@ function idToIso(id: string): string {
 }
 
 function directory(context: EditorContext, scope: HistoryScope, slug: string): string {
-  return scope === 'site' ? path.join(context.root, HISTORY_DIR, 'site') : path.join(context.root, HISTORY_DIR, 'pages', slug)
+  if (scope === 'site') return path.join(context.root, HISTORY_DIR, 'site')
+  if (scope === 'entry') return path.join(context.root, HISTORY_DIR, 'types', ...slug.split('/'))
+  return path.join(context.root, HISTORY_DIR, 'pages', slug)
 }
 
 async function ids(dir: string): Promise<string[]> {

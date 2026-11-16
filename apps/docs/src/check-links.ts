@@ -45,9 +45,11 @@ export function checkLinks(options: { problems: readonly string[] }): AstroInteg
         }
 
         const problems = [...options.problems]
-        for (const page of htmlFiles(dist)) {
-          const html = readFileSync(page, 'utf8')
+        // The section previews are sample content, whose links point at sections of a sample page: not checked.
+        const pages = htmlFiles(dist).filter((page) => !path.relative(dist, page).startsWith(`previews${path.sep}`))
+        for (const page of pages) {
           const from = `/${path.relative(dist, page).split(path.sep).join('/')}`
+          const html = readFileSync(page, 'utf8')
           for (const [, href = ''] of html.matchAll(HREF)) {
             if (href.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(href)) continue
             const url = new URL(href.replaceAll('&amp;', '&'), `https://site${from}`)
@@ -66,7 +68,7 @@ export function checkLinks(options: { problems: readonly string[] }): AstroInteg
         if (problems.length > 0) {
           throw new Error(`Broken links in the docs:\n${[...new Set(problems)].map((line) => `  ${line}`).join('\n')}`)
         }
-        logger.info(`Checked the links on ${htmlFiles(dist).length} pages.`)
+        logger.info(`Checked the links on ${pages.length} pages.`)
       },
     },
   }

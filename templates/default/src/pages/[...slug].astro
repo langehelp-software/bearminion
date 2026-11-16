@@ -1,45 +1,59 @@
 ---
+import type { Route } from 'bearminion'
+import EntryList from '../components/organisms/EntryList.astro'
+import Pagination from '../components/organisms/Pagination.astro'
 import type { Site } from '../components/organisms/site-definition'
-import type { Page } from '../components/sections/definitions'
+import type { Section } from '../components/sections/definitions'
 import SectionList from '../components/sections/SectionList.astro'
 import Base from '../layouts/Base.astro'
-import { getPage, getPages, getSite } from '../lib/content'
+import { getRoute, getRoutes, getSite } from '../lib/content'
 
 export async function getStaticPaths() {
   const site = await getSite()
+  // Pages, and the entries, singles and listing pages of the content types declared in content-model.ts.
   // 404.json is rendered by src/pages/404.astro, so Astro emits /404.html instead of /404/index.html.
-  const pages = await getPages(['404'])
+  const routes = (await getRoutes()).filter((route) => route.path !== '/404')
 
-  return pages.map((page) => ({
+  return routes.map((route) => ({
     params: {
-      // The home page is stored as slug "index" and published at `/`.
-      slug: page.slug === 'index' ? undefined : page.slug,
+      // The home page is published at `/`. An entry's address has two segments, such as `blog/first-post`.
+      slug: route.path === '/' ? undefined : route.path.slice(1),
     },
-    props: { site, page },
+    props: { site, route },
   }))
 }
 
 interface Props {
   site: Site
-  page: Page
+  route: Route
 }
 
+const pathname = `/${Astro.params.slug ?? ''}`
 // The hosted editor draws the repository's current content (`Astro.locals.bearminion`); a static build uses the props.
 const live = Astro.locals.bearminion
-let { site, page } = Astro.props as Partial<Props>
+let { site, route } = Astro.props as Partial<Props>
 if (live) {
   site = (await live.content.getSite()) as Site
-  page = (await live.content.getPage(Astro.params.slug ?? 'index')) as Page | undefined
-  if (!page) return Astro.rewrite('/404')
-} else if (!page) {
+  route = await live.content.getRoute(pathname)
+  if (!route || route.path === '/404') return Astro.rewrite('/404')
+} else if (!route) {
   // A server build has no props: a visitor to a hosted editor with `signIn: 'optional'` gets the build's content.
   site = await getSite()
-  page = await getPage(Astro.params.slug ?? 'index')
-  if (!page || page.slug === '404') return Astro.rewrite('/404')
+  route = await getRoute(pathname)
+  if (!route || route.path === '/404') return Astro.rewrite('/404')
 }
-if (!site || !page) throw new Error(`No content for ${Astro.url.pathname}.`)
+if (!site || !route) throw new Error(`No content for ${Astro.url.pathname}.`)
+const page = route.page
 ---
 
 <Base site={site} page={page}>
-  <SectionList sections={page.sections} motion={site.theme.motion} />
+  <SectionList sections={page.sections as Section[]} motion={site.theme.motion} />
+  {
+    route.kind === 'listing' && (
+      <>
+        <EntryList entries={route.entries} heading={page.sections.length === 0 ? page.title : undefined} lang={site.lang ?? 'en'} />
+        <Pagination pagination={route.pagination} />
+      </>
+    )
+  }
 </Base>

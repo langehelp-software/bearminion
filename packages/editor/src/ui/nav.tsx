@@ -5,11 +5,13 @@ import {
   MAX_NAV_DEPTH,
   addNavChild,
   indentNav,
+  currentDocumentPath,
+  documentPath,
+  isCurrentDocument,
   linkWarning,
   moveNav,
   navHeight,
   outdentNav,
-  pageHref,
   removeNavAt,
   type AnchorPage,
   type NavDrop,
@@ -20,6 +22,8 @@ export interface LinkPage {
   slug: string
   title: string
   anchors?: string[]
+  /** The document's address when it is not `/<slug>`. */
+  path?: string
 }
 
 export function LinkControl({
@@ -35,23 +39,30 @@ export function LinkControl({
   currentSlug: string
   currentAnchors: readonly string[]
 }) {
+  const isCurrent = (page: LinkPage) => isCurrentDocument(page, currentSlug)
+  const currentPath = currentDocumentPath(currentSlug)
   const catalog: AnchorPage[] = pages.map((page) => ({
     slug: page.slug,
-    anchors: page.slug === currentSlug ? currentAnchors : (page.anchors ?? []),
+    anchors: isCurrent(page) ? currentAnchors : (page.anchors ?? []),
+    ...(page.path === undefined ? {} : { path: page.path }),
   }))
-  if (!catalog.some((page) => page.slug === currentSlug)) {
-    catalog.push({ slug: currentSlug, anchors: currentAnchors })
+  if (!catalog.some((page) => isCurrentDocument(page, currentSlug))) {
+    catalog.push(
+      currentSlug.startsWith('/')
+        ? { slug: '', path: currentSlug, anchors: currentAnchors }
+        : { slug: currentSlug, anchors: currentAnchors },
+    )
   }
   const inputId = useRef(`bm-url-${Math.random().toString(36).slice(2, 8)}`).current
   const warning = linkWarning(href, catalog, currentSlug)
-  const pagesOptions = pages.map((page) => ({ value: pageHref(page.slug), label: page.title }))
+  const pagesOptions = pages.map((page) => ({ value: documentPath(page), label: page.title }))
   // A bare `#anchor` resolves against whatever page the visitor is on, so header and footer links would break elsewhere.
-  const here = currentAnchors.map((anchor) => ({ value: `${pageHref(currentSlug)}#${anchor}`, label: `#${anchor}` }))
+  const here = currentAnchors.map((anchor) => ({ value: `${currentPath}#${anchor}`, label: `#${anchor}` }))
   const elsewhere = pages.flatMap((page) =>
-    page.slug === currentSlug
+    isCurrent(page)
       ? []
       : (page.anchors ?? []).map((anchor) => ({
-          value: `${pageHref(page.slug)}#${anchor}`,
+          value: `${documentPath(page)}#${anchor}`,
           label: `${page.title} #${anchor}`,
         })),
   )
@@ -63,7 +74,7 @@ export function LinkControl({
   const all = groups.flatMap((group) => group.options)
   const current =
     all.find((option) => option.value === href) ??
-    (href.startsWith('#') ? all.find((option) => option.value === `${pageHref(currentSlug)}${href}`) : undefined)
+    (href.startsWith('#') ? all.find((option) => option.value === `${currentPath}${href}`) : undefined)
   return (
     <div class="bm-stack bm-stack-tight">
       <div class="bm-label">

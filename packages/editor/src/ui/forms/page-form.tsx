@@ -1,10 +1,12 @@
 import { useState } from 'preact/hooks'
 import type { PageDraft } from '../../draft.js'
+import type { ContentTypeInfo } from '../../api-types.js'
 import { isSystemPage } from '../../page.js'
+import type { LibraryImage } from '../image-field.js'
 import { Icon } from '../icons.js'
-import { Info } from '../info.js'
 import { Field } from './fields.js'
 import { SeoCard } from './seo-card.js'
+import { TypeFieldsForm } from './type-fields-form.js'
 
 export function PageForm({
   page,
@@ -14,9 +16,14 @@ export function PageForm({
   siteOgImage,
   selectedId,
   onChange,
-  savedSlug,
   canRename,
-  onHomeChange,
+  kind = 'page',
+  fixedReason,
+  address,
+  fields,
+  images = [],
+  onUploaded,
+  onDeleted,
   onEditSeo,
   onSelectSection,
   onMoveSection,
@@ -32,11 +39,19 @@ export function PageForm({
   siteOgImage: string
   selectedId: string | null
   onChange: (page: PageDraft) => void
-  /** Slug on disk. It differs from `page.slug` while a rename or a new home page is waiting for save. */
-  savedSlug: string
-  /** False when the site turned renaming off (`pages.rename`): the slug is fixed and no other page can become home. */
+  /** False when the slug cannot change: renaming is turned off, or the document has a fixed address. */
   canRename: boolean
-  onHomeChange: (home: boolean) => void
+  /** What is open: a page (the home and 404 pages included), an entry of a declared type, a single, or a listing page. */
+  kind?: 'page' | 'entry' | 'single' | 'listing'
+  /** Why the slug cannot change, when `canRename` is false. */
+  fixedReason?: string
+  /** The document's address when it is not `/<slug>`. */
+  address?: string
+  /** The fields the document's content type declares, or none. */
+  fields?: ContentTypeInfo['fields']
+  images?: LibraryImage[]
+  onUploaded?: (image: LibraryImage) => void
+  onDeleted?: (image: LibraryImage) => void
   onEditSeo: () => void
   onSelectSection: (id: string) => void
   onMoveSection: (id: string, direction: -1 | 1) => void
@@ -46,13 +61,16 @@ export function PageForm({
   onAddSection: (anchor: DOMRect) => void
 }) {
   const [sectionDrag, setSectionDrag] = useState<{ from: number; over: number; mode: 'before' | 'after' } | null>(null)
-  const isHome = page.slug === 'index'
-  const isSystem = isSystemPage(page.slug)
-  const savedHome = savedSlug === 'index'
+  // Only a page can be the home page or a system page: an entry called `index` is just an entry.
+  const isHome = kind === 'page' && page.slug === 'index'
+  const isSystem = kind === 'page' && isSystemPage(page.slug)
+  const heading = { page: 'Page', entry: 'Entry', single: 'Page', listing: 'Listing page' }[kind]
   return (
     <>
       <div class="bm-stack">
-        <p class="bm-group">Page · {page.title}</p>
+        <p class="bm-group">
+          {heading} · {page.title}
+        </p>
         <Field label="Title" path="title" value={page.title} onChange={(value) => onChange({ ...page, title: value })} />
         <Field
           label="Slug"
@@ -68,41 +86,31 @@ export function PageForm({
                 ? 'A system page: the site serves it for unknown addresses, so its slug is fixed and it stays out of search results.'
                 : canRename
                   ? undefined
-                  : 'Renaming pages is turned off for this site, so this address stays as it is.'
+                  : (fixedReason ?? 'Renaming pages is turned off for this site, so this address stays as it is.')
           }
         />
-        {!isSystem && (
-          <label class="bm-switch-row">
-            <span class="bm-switch-text">
-              <span class="bm-switch-title">
-                Home page
-                <Info
-                  label="About Home page"
-                  text={
-                    !canRename
-                      ? 'Renaming pages is turned off for this site, and making a page home moves the old home page to a new address.'
-                      : savedHome
-                        ? 'Set another page as home to move this one.'
-                        : isHome
-                          ? 'Becomes the home page when you save.'
-                          : 'Serve this page at / instead of its own URL.'
-                  }
-                />
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={isHome}
-              disabled={savedHome || !canRename}
-              onChange={(event) => onHomeChange(event.currentTarget.checked)}
-            />
-          </label>
-        )}
       </div>
+      {fields && fields.length > 0 && (
+        <TypeFieldsForm
+          fields={fields}
+          values={page.fields ?? {}}
+          images={images}
+          onChange={(next) => onChange({ ...page, fields: next })}
+          onUploaded={onUploaded ?? (() => {})}
+          onDeleted={onDeleted ?? (() => {})}
+        />
+      )}
       <div class="bm-stack">
         <p class="bm-group">SEO</p>
-        <SeoCard page={page} siteName={siteName} siteUrl={siteUrl} siteOgImage={siteOgImage} system={isSystem} onEdit={onEditSeo} />
+        <SeoCard
+          page={page}
+          siteName={siteName}
+          siteUrl={siteUrl}
+          siteOgImage={siteOgImage}
+          system={isSystem}
+          address={address}
+          onEdit={onEditSeo}
+        />
       </div>
       <div class="bm-stack bm-stack-tight">
         <p class="bm-group">Sections · {page.sections.length}</p>

@@ -60,6 +60,16 @@ interface PageSection {
   props: { details: Array<{ value: string; hideFromCrawlers?: boolean }> }
 }
 
+/** The home page's Contact section as the sample content had it. A new site has none: `add form` brings the section. */
+const CONTACT = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'contact-section.json'), 'utf8')) as PageSection
+
+/** Puts the Contact section at the end of the home page. */
+function addContact(pages: string): void {
+  editPages(pages, (sections, slug) => {
+    if (slug === 'index') sections.push(structuredClone(CONTACT))
+  })
+}
+
 function editPages(pages: string, change: (sections: PageSection[], slug: string) => void): void {
   for (const file of fs.readdirSync(pages)) {
     const full = path.join(pages, file)
@@ -71,32 +81,27 @@ function editPages(pages: string, change: (sections: PageSection[], slug: string
 
 describe('BEARMINION_FORMS=required', () => {
   it('stops the build while a Contact section has no handler, and names the file', () => {
-    const built = build({ env: { BEARMINION_FORMS: 'required' } })
+    const built = build({ env: { BEARMINION_FORMS: 'required' }, content: addContact })
     expect(built.status).not.toBe(0)
     expect(built.output).toContain('src/forms/contact.ts does not exist')
     expect(built.output).toContain('BEARMINION_FORMS=required stops the build')
   }, 240_000)
 
   it('builds once the handler exists', () => {
-    const built = build({ env: { BEARMINION_FORMS: 'required' }, handler: true })
+    const built = build({ env: { BEARMINION_FORMS: 'required' }, handler: true, content: addContact })
     expect(built.output).not.toContain('does not exist')
     expect(built.status).toBe(0)
     expect(fs.existsSync(path.join(built.dist, 'index.html'))).toBe(true)
   }, 240_000)
 
-  it('builds without a handler when no page has a Contact section', () => {
-    const built = build({
-      env: { BEARMINION_FORMS: 'required' },
-      content: (pages) =>
-        editPages(pages, (sections) => {
-          for (let index = sections.length - 1; index >= 0; index -= 1) if (sections[index]?.type === 'contact') sections.splice(index, 1)
-        }),
-    })
+  it('builds without a handler when no page has a Contact section, as a new site has none', () => {
+    const built = build({ env: { BEARMINION_FORMS: 'required' } })
     expect(built.status).toBe(0)
+    expect(built.output).not.toContain('does not exist')
   }, 240_000)
 
   it('only warns when the variable is not set', () => {
-    const built = build({})
+    const built = build({ content: addContact })
     expect(built.status).toBe(0)
     expect(built.output).toContain('src/forms/contact.ts does not exist')
   }, 240_000)
@@ -104,16 +109,22 @@ describe('BEARMINION_FORMS=required', () => {
 
 describe('Hide from crawlers', () => {
   it('keeps a detail out of the built HTML and puts it back in the browser', async () => {
-    const hidden = 'hello@example.com'
+    // Not the sample address: the sample pages link to mailto:hello@example.com, which is meant to be in the HTML.
+    const hidden = 'private@example.com'
     const built = build({
       handler: true,
-      content: (pages) =>
+      content: (pages) => {
+        addContact(pages)
         editPages(pages, (sections) => {
           for (const section of sections) {
             if (section.type !== 'contact') continue
-            for (const detail of section.props.details) detail.hideFromCrawlers = detail.value === hidden
+            for (const detail of section.props.details) {
+              if (detail.value === 'hello@example.com') detail.value = hidden
+              detail.hideFromCrawlers = detail.value === hidden
+            }
           }
-        }),
+        })
+      },
     })
     expect(built.status).toBe(0)
     const html = built.read('index.html')

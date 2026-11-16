@@ -1,9 +1,10 @@
 import { batch } from '@preact/signals'
-import { applyPendingEdits, pageHref, type PageDraft, slugFromPath, slugifyAnchor } from '../../draft.js'
+import { applyPendingEdits, type PageDraft, slugFromPath } from '../../draft.js'
 import { reloadDecision } from '../../draft-store.js'
-import { getCatalog, getGit, getImages, getPage, getPages, getSite, saveDraft } from '../api-client.js'
+import type { ContentTypeInfo, EntryListItem } from '../../api-types.js'
+import { getCatalog, getDocumentAt, getEntries, getGit, getImages, getPages, getSite, getTypes, saveDraft } from '../api-client.js'
 import { setUploadRules } from '../prepare-image.js'
-import type { SiteDraft } from '../types.js'
+import type { PageSummary, SiteDraft } from '../types.js'
 import { type DocumentStore, pruneDraft } from './document.js'
 import type { Edits } from './edits.js'
 import type { LocalDrafts } from './local-drafts.js'
@@ -20,6 +21,66 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
+/** `/blog/` and `/blog` are one address. */
+function normalizePathname(pathname: string): string {
+  return (pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname) || '/'
+}
+
+/** How the list shows what a type is sorted by: a date, a number or a word as it is. */
+function sortText(value: unknown): string | undefined {
+  if (typeof value === 'string' && value !== '') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return undefined
+}
+
+/**
+ * The documents of the declared content types, as the editor lists and links them: each single, each type's listing
+ * page, and each entry in the type's own order.
+ */
+export function typeDocuments(
+  types: readonly ContentTypeInfo[],
+  entries: Readonly<Record<string, readonly EntryListItem[]>>,
+): PageSummary[] {
+  const documents: PageSummary[] = []
+  for (const type of types) {
+    if (type.builtIn) continue
+    if (type.kind === 'single') {
+      documents.push({
+        slug: type.path.slice(1),
+        title: type.label,
+        file: `${type.id}.json`,
+        type: type.id,
+        path: type.path,
+        fixed: 'single',
+      })
+      continue
+    }
+    if (type.listing) {
+      documents.push({
+        slug: type.listing.slug,
+        title: `${type.label}: listing page`,
+        file: '_listing.json',
+        type: type.id,
+        path: type.listing.path,
+        fixed: 'listing',
+      })
+    }
+    for (const entry of entries[type.id] ?? []) {
+      const sortValue = sortText(entry.sortValue)
+      documents.push({
+        slug: entry.slug,
+        title: entry.title,
+        file: entry.file,
+        anchors: entry.anchors,
+        type: type.id,
+        path: entry.path,
+        ...(sortValue === undefined ? {} : { sortValue }),
+      })
+    }
+  }
+  return documents
+}
+
 /** Loading, saving, and leaving the page: the editor's conversation with the dev server and the browser. */
 export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, drafts: LocalDrafts) {
   let ready = false
@@ -34,21 +95,32 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
   /** A content reload arrived during a save. It runs once the save settles. */
   let reloadQueued = false
   let reloadArrived: (() => void) | null = null
-  /** Set while this page is waiting to become the home page. Applied on save. */
-  let homeSwap: { previousSlug: string } | null = null
   /** The browser's own `location.reload`. The reload guard replaces the global one and hands the original here. */
   let nativeReload: () => void = () => location.reload()
 
-  async function load(slug: string) {
+  /** Load the document at the current address, with everything the editor shows beside it. */
+  async function load() {
     const seq = ++loadSeq
-    const [schemaRes, siteRes, listRes, imageRes, pageRes] = await Promise.all([
+    const [schemaRes, siteRes, listRes, imageRes, openedRes, typesRes] = await Promise.all([
       getCatalog(),
       getSite(),
       getPages(),
       getImages(),
-      getPage(slug),
+      getDocumentAt(location.pathname),
+      getTypes(),
     ])
     if (seq !== loadSeq) return
+    const types = typesRes.ok ? typesRes.value.types : []
+    const declared = types.filter((type) => type.kind === 'multi' && !type.builtIn)
+    const lists = await Promise.all(declared.map((type) => getEntries(type.id)))
+    if (seq !== loadSeq) return
+    const entries = Object.fromEntries(declared.map((type, index) => [type.id, lists[index]?.ok ? lists[index].value.entries : []]))
+    const opened = openedRes.ok ? openedRes.value : null
+    const slug = opened?.slug ?? slugFromPath(location.pathname)
+    // A listing page's document has no slug of its own. The draft carries the listing's, so it reads like any page.
+    const pageRes: { ok: true; value: PageDraft } | { ok: false } = opened
+      ? { ok: true, value: opened.kind === 'listing' ? { ...opened.document, slug } : opened.document }
+      : { ok: false }
     const queued = edits.takePending()
     const flushed = applyPendingEdits(pageRes.ok ? pageRes.value : null, siteRes.ok ? siteRes.value : null, queued)
     edits.returnPending(flushed.pending)
@@ -62,7 +134,10 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
         const { projectId } = schemaRes.value
         if (typeof projectId === 'string' && projectId !== '') doc.projectId.value = projectId
       }
-      if (listRes.ok) doc.pages.value = listRes.value.pages
+      doc.ref.value = opened ? { type: opened.type, kind: opened.kind } : { type: 'pages', kind: 'entry' }
+      doc.savedSlug.value = slug
+      doc.types.value = types
+      if (listRes.ok) doc.pages.value = [...listRes.value.pages, ...typeDocuments(types, entries)]
       if (imageRes.ok) {
         doc.images.value = imageRes.value.images
         if (imageRes.value.limits) setUploadRules(imageRes.value.limits)
@@ -79,8 +154,8 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
       } else {
         ui.status.value = 'This route is not a content page. Site settings are still editable.'
       }
-      ui.draftOffer.value = queued.length > 0 ? null : drafts.readOffer(slug, nextPage ? savedPageJson : '', savedSiteJson)
-      if (drafts.foreignSave(slug)) ui.tabNotice.value = 'Another tab saved this page.'
+      ui.draftOffer.value = queued.length > 0 ? null : drafts.readOffer(doc.draftId.peek(), nextPage ? savedPageJson : '', savedSiteJson)
+      if (drafts.foreignSave(doc.draftId.peek())) ui.tabNotice.value = 'Another tab saved this page.'
     })
     ready = true
     markReady()
@@ -89,9 +164,8 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
 
   /** Load the page at the current URL. */
   function start() {
-    const slug = slugFromPath(location.pathname)
-    doc.savedSlug.value = slug
-    void load(slug)
+    doc.savedSlug.value = slugFromPath(location.pathname)
+    void load()
   }
 
   async function untilReady(): Promise<boolean> {
@@ -99,88 +173,55 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
     return Promise.race([loaded.then(() => true), delay(READY_TIMEOUT_MS).then(() => false)])
   }
 
-  /** Slug the current home page moves to: its title as a slug, never `index`, unique among pages. */
-  function previousHomeSlug(): string {
-    const pages = doc.pages.peek()
-    const home = pages.find((item) => item.slug === 'index')
-    const taken = new Set(pages.map((item) => item.slug))
-    let base = slugifyAnchor(home?.title ?? '') || 'home'
-    if (base === 'index') base = 'home'
-    let slug = base
-    for (let n = 2; taken.has(slug); n += 1) slug = `${base}-${n}`
-    return slug
-  }
-
-  function becomeHome(previousSlug: string | null) {
-    const current = doc.page.peek()
-    if (!current) return
-    homeSwap = previousSlug ? { previousSlug } : null
-    edits.updatePage({ ...current, slug: 'index' })
-  }
-
-  /** The page form's "home page" switch. Replacing an existing home page asks first. */
-  function setHome(next: boolean) {
-    const current = doc.page.peek()
-    if (!current) return
-    const savedSlug = doc.savedSlug.peek()
-    if (next) {
-      const home = doc.pages.peek().find((item) => item.slug === 'index')
-      if (home && savedSlug !== 'index') {
-        ui.dialog.value = { kind: 'home', title: home.title, previousSlug: previousHomeSlug() }
-        return
-      }
-      becomeHome(null)
-      return
-    }
-    if (savedSlug !== 'index') {
-      homeSwap = null
-      edits.updatePage({ ...current, slug: savedSlug })
-    }
-  }
-
   async function writeDraft(currentPage: PageDraft | null, currentSite: SiteDraft | null): Promise<SaveOutcome> {
     const from = doc.savedSlug.peek()
-    if (currentPage && currentPage.slug !== from && from === 'index') {
-      ui.fail('Could not rename the home page.', [
-        { path: 'slug', message: 'The home page slug stays index. Set another page as home to move it.' },
-      ])
+    const { type, kind } = doc.ref.peek()
+    if (currentPage && kind !== 'entry' && currentPage.slug !== from) {
+      ui.fail('Could not change the address.', [{ path: 'slug', message: 'This document has a fixed address, set in the content model.' }])
       return 'failed'
     }
-    const promoting = currentPage !== null && currentPage.slug === 'index' && from !== 'index'
-    const previousSlug =
-      promoting && doc.pages.peek().some((item) => item.slug === 'index') ? (homeSwap?.previousSlug ?? previousHomeSlug()) : undefined
+    if (currentPage && type === 'pages' && currentPage.slug !== from && from === 'index') {
+      ui.fail('Could not rename the home page.', [{ path: 'slug', message: 'The home page is served at / and keeps the slug index.' }])
+      return 'failed'
+    }
     if (currentPage) drafts.publishSaved('page')
     if (currentSite) drafts.publishSaved('site')
     // One request: the server validates the page and the site, then writes them (and any rename) together.
     const result = await saveDraft({
-      page: currentPage
-        ? {
-            from,
-            document: pruneDraft(currentPage, doc.catalog.peek()?.optionalContent),
-            ...(previousSlug === undefined ? {} : { previousHomeSlug: previousSlug }),
-          }
-        : undefined,
+      page: currentPage ? pagePayload(pruneDraft(currentPage, doc.catalog.peek()?.optionalContent), from) : undefined,
       site: currentSite ?? undefined,
     })
     if (!result.ok) {
       if (currentPage) drafts.retractSaved('page')
       if (currentSite) drafts.retractSaved('site')
-      ui.fail(promoting ? 'Could not set the home page.' : 'Save failed validation.', result.issues)
+      ui.fail('Save failed validation.', result.issues)
       return 'failed'
     }
     const saved = result.value
-    if (saved.page && saved.page.slug !== from) {
-      homeSwap = null
-      doc.savedSlug.value = saved.page.slug
+    // The server answers a listing page as it is stored, without the slug the draft carries.
+    const savedPage = saved.page ? (kind === 'listing' ? { ...saved.page, slug: from } : saved.page) : null
+    if (savedPage && savedPage.slug !== from) {
+      doc.savedSlug.value = savedPage.slug
       drafts.publishSaved('page')
     }
     batch(() => {
-      doc.markSaved(saved.page ?? null, saved.site ?? null)
+      doc.markSaved(savedPage, saved.site ?? null)
       ui.draftOffer.value = null
       if (ui.dialog.peek()?.kind === 'changes') ui.dialog.value = null
       ui.status.value = 'Saved. The page reloads from disk.'
     })
     return 'saved'
+  }
+
+  /** The open document as `/save` takes it: an entry with the slug it is stored under, a single, or a listing page. */
+  function pagePayload(document: PageDraft, from: string) {
+    const { type, kind } = doc.ref.peek()
+    if (kind === 'single') return { type, document }
+    if (kind === 'listing') {
+      const { slug: _address, ...listing } = document
+      return { type, listing: true, document: listing as PageDraft }
+    }
+    return type === 'pages' ? { from, document } : { type, from, document }
   }
 
   async function save(): Promise<SaveOutcome> {
@@ -241,11 +282,11 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
       location.assign(href)
       return
     }
-    const savedSlug = doc.savedSlug.peek()
-    if (slugFromPath(location.pathname) !== savedSlug) {
-      // The page moved (rename or new home), so its old URL no longer exists.
+    const address = doc.href.peek()
+    if (address !== null && normalizePathname(location.pathname) !== address) {
+      // The document moved (a rename), so its old URL no longer exists.
       reloadQueued = false
-      location.assign(pageHref(savedSlug))
+      location.assign(address)
       return
     }
     if (!reloadQueued) await waitForContentReload()
@@ -307,8 +348,6 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
     requestLeave,
     onContentReload,
     discardAndGo,
-    becomeHome,
-    setHome,
     loadGit,
     /** Autosave and the leave prompt apply only while the editor owns the page. */
     isActive: () => ready && !leaving,

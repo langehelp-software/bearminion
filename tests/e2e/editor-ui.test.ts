@@ -178,7 +178,7 @@ describe('editor overlay', () => {
     await page.getByRole('tab', { name: 'Navigation' }).click()
     await page.getByRole('combobox', { name: 'Link target' }).first().click()
     await page.getByRole('option', { name: '#features' }).first().waitFor()
-    await page.getByRole('option', { name: '#pricing' }).first().waitFor()
+    await page.getByRole('option', { name: '#faq' }).first().waitFor()
     await shot(page, 'link_picker_anchors.png')
     await page.close()
   }, 90_000)
@@ -652,7 +652,7 @@ describe('editor overlay', () => {
     expect(await name.innerText()).toMatch(/^Hero · #/)
     expect(await name.getAttribute('title')).toBe(await name.innerText())
     expect(await toolbar.getByRole('button', { name: 'Move up', exact: true }).isDisabled()).toBe(true)
-    await page.locator('[data-section-id="contact"]').click({ position: { x: 24, y: 140 } })
+    await page.locator('[data-section-id="cta"]').click({ position: { x: 24, y: 40 } })
     await toolbar.getByRole('button', { name: 'Move down', exact: true }).waitFor()
     expect(await toolbar.getByRole('button', { name: 'Move down', exact: true }).isDisabled()).toBe(true)
 
@@ -998,11 +998,6 @@ describe('editor overlay', () => {
     }
     expect(light(inverseLabel)).toBe(true)
     expect(light(inverseValue)).toBe(true)
-    await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'load' })
-    const home = page.locator('[data-section-id="stats"]')
-    await home.scrollIntoViewIfNeeded()
-    const homeLabel = await tone(home, 'dt')
-    expect(light(homeLabel)).toBe(true)
     await page.close()
   }, 90_000)
 

@@ -66,11 +66,18 @@ export function readRegistry(options: BuildOptions): Registry {
 
   const groups: Record<string, RegistryGroup> = {}
   for (const [name, group] of Object.entries(options.groups ?? {})) {
+    const present: string[] = []
     for (const file of group.files) {
-      if (!fs.existsSync(path.join(templateDir, file))) throw new Error(`The "${name}" group lists ${file}, which is not in the template.`)
+      if (!fs.existsSync(path.join(templateDir, file))) {
+        // A section's file goes with its section: a template without that section (the starter's copy) leaves it out.
+        const section = file.startsWith(`${SECTIONS_DIR}/`) ? file.slice(SECTIONS_DIR.length + 1).split('/')[0] : undefined
+        if (section !== undefined && !fs.existsSync(path.join(templateDir, SECTIONS_DIR, section))) continue
+        throw new Error(`The "${name}" group lists ${file}, which is not in the template.`)
+      }
+      present.push(file)
       tracked.add(file)
     }
-    groups[name] = { ...group, files: [...group.files].sort() }
+    groups[name] = { ...group, files: present.sort() }
   }
 
   const files: Registry['files'] = {}

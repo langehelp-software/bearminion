@@ -552,6 +552,36 @@ describe('bearminion add form', () => {
     expect(again.text).toContain('every file matches the recipe')
   })
 
+  it('brings the Contact section along when the site has none, and leaves it alone when it has one', async () => {
+    const template = makeTemplate()
+    const contact = `${SECTIONS}/contact`
+    write(
+      template,
+      `${contact}/definition.ts`,
+      "export const contact = defineSection({\n  type: 'contact',\n  label: 'Contact',\n  description: 'A form.',\n})\n",
+    )
+    write(template, `${contact}/wireframe.ts`, 'export const wireframe = []\n')
+    write(template, `${contact}/Contact.astro`, "---\nimport Atom from '../../atoms/Atom.astro'\n---\n<form><Atom /></form>\n")
+    const { registryDir } = build(template)
+
+    const starter = siteWith()
+    const { code, text } = await exec(['add', 'form', 'resend', '--host', 'vercel', '--yes', '--cwd', starter], registryDir)
+    expect(code, text).toBe(0)
+    expect(text).toContain('The Contact section, which this site does not have yet:')
+    expect(text).toContain(`create    ${contact}/Contact.astro`)
+    expect(fs.existsSync(path.join(starter, contact, 'definition.ts'))).toBe(true)
+    expect(fs.readFileSync(path.join(starter, `${SECTIONS}/definitions.gen.ts`), 'utf8')).toContain("from './contact/definition'")
+    expect(Object.keys(readLock(starter, 'default').files)).toEqual(
+      expect.arrayContaining([`${contact}/Contact.astro`, 'src/forms/contact.ts', 'api/contact.ts']),
+    )
+
+    const own = siteWith({ [`${contact}/definition.ts`]: '// mine\n' })
+    const kept = await exec(['add', 'form', 'resend', '--host', 'vercel', '--yes', '--cwd', own], registryDir)
+    expect(kept.code, kept.text).toBe(0)
+    expect(kept.text).not.toContain('Contact section')
+    expect(fs.readFileSync(path.join(own, contact, 'definition.ts'), 'utf8')).toBe('// mine\n')
+  })
+
   it('asks for the host in a terminal when the project does not name one, and only then', async () => {
     const { registryDir } = build(makeTemplate())
     const asked: string[] = []

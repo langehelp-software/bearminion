@@ -1,8 +1,12 @@
 /** Which kind of document a migration is upgrading. */
 export type DocumentKind = 'page' | 'site'
 
-/** Upgrades one document from version N to N + 1. Return the new document; do not mutate the input. */
-export type ContentMigration = (document: Record<string, unknown>, kind: DocumentKind) => Record<string, unknown>
+/**
+ * Upgrades one document from version N to N + 1. Return the new document; do not mutate the input. `type` is the id of
+ * the content type a `page` document belongs to (`pages`, `home`, `not-found`, or one the site declares); it is
+ * undefined for the site, and `listing` for a type's listing page.
+ */
+export type ContentMigration = (document: Record<string, unknown>, kind: DocumentKind, type?: string) => Record<string, unknown>
 
 /** How a site versions its content files. */
 export interface ContentVersioning {
@@ -24,7 +28,7 @@ export interface ContentMigrator {
   /** The version this site writes. */
   readonly version: number
   /** Upgrade a parsed file to the current version and remove its version key. Non-objects pass through for the schema to reject. */
-  upgrade(raw: unknown, kind: DocumentKind): UpgradeResult
+  upgrade(raw: unknown, kind: DocumentKind, type?: string): UpgradeResult
   /** The document as written to disk: its version key plus the content. */
   stamp<T extends object>(document: T): T & { schemaVersion: number }
 }
@@ -49,7 +53,7 @@ export function createMigrator(versioning: ContentVersioning = {}): ContentMigra
 
   return {
     version,
-    upgrade(raw, kind) {
+    upgrade(raw, kind, type) {
       if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return { ok: true, value: raw }
       let document = raw as Record<string, unknown>
       const stored = document[SCHEMA_VERSION_KEY]
@@ -65,7 +69,7 @@ export function createMigrator(versioning: ContentVersioning = {}): ContentMigra
       }
       for (let step = from; step < version; step++) {
         try {
-          document = (migrations[step] as ContentMigration)(document, kind)
+          document = (migrations[step] as ContentMigration)(document, kind, type)
         } catch (error) {
           const reason = error instanceof Error ? error.message : String(error)
           return { ok: false, message: `Migration from version ${step} to ${step + 1} failed: ${reason}` }

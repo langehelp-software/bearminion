@@ -1,0 +1,53 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { sectionDefinitions, sectionOptions, sectionSchema, sectionTypes, type Page, type SectionType } from '../components/sections/definitions'
+import SectionList from '../components/sections/SectionList.astro'
+import Base from '../layouts/Base.astro'
+import { getSite } from '../lib/content'
+
+/*
+ * One section in one layout, with its default content and nothing around it: the live previews in the docs load this
+ * page in a frame. `astro dev` serves it at /section-preview/<section>/<variant>, like the variants gallery. The docs build adds
+ * the route to a build of this template (apps/docs/scripts/build-previews.mjs); a site's own build leaves it out.
+ *
+ * The frame's page changes the tone (`data-tone` on the section) and the light or dark theme (`data-theme` on <html>)
+ * in place, so one page per layout serves every combination.
+ */
+
+// Astro runs getStaticPaths on its own, before the rest of this script: everything it uses is inside it or imported.
+export const getStaticPaths = (() =>
+  sectionTypes.flatMap((type) => {
+    const option = sectionOptions[type].find((candidate) => candidate.name === 'variant')
+    const variants = option?.type === 'enum' ? option.choices : []
+    // The address uses the section's directory name (`text-image`), as `npx bearminion add` and the docs do.
+    const section = type.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
+    return variants.map((variant) => ({ params: { section, variant }, props: { type } }))
+  })) satisfies GetStaticPaths
+
+const { variant } = Astro.params as { section: string; variant: string }
+const { type } = Astro.props as { type: SectionType }
+const definition = sectionDefinitions[type]
+const parsed = sectionSchema.safeParse({ id: type, type, variant, tone: 'base', motion: false, props: definition.defaults })
+if (!parsed.success) throw new Error(`The preview of ${type}/${variant} has content its schema rejects: ${parsed.error.message}`)
+const section = parsed.data
+const site = await getSite()
+const page = {
+  slug: `preview-${type}-${variant}`,
+  title: `${definition.label} · ${variant}`,
+  seo: { title: `${definition.label} · ${variant}`, description: `${definition.label}, ${variant} layout, with its default content.`, noindex: true, nofollow: true },
+  sections: [section],
+} satisfies Page
+---
+
+<Base site={site} page={page} chrome={false}>
+  {/* In the docs, take the docs' light or dark theme before the first paint; the docs keep it in step from then on. */}
+  <script is:inline>
+    try {
+      const theme = window.parent !== window ? window.parent.document.documentElement.dataset.theme : undefined
+      if (theme) document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark'
+    } catch {}
+  </script>
+  <SectionList sections={[section]} motion={false} />
+  {/* What the docs show in the Content tab: the section as it sits in a page file. */}
+  <script type="application/json" data-section-json set:html={JSON.stringify(section, null, 2)} />
+</Base>

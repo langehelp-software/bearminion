@@ -63,7 +63,27 @@ export const TABS: readonly Tab[] = ['pages', 'section', 'navigation', 'footer',
 
 export type SiteDraft = Record<string, unknown>
 
-export type PageSummary = { slug: string; title: string; file: string; system?: boolean; anchors?: string[] }
+export interface PageSummary {
+  slug: string
+  title: string
+  file: string
+  system?: boolean
+  anchors?: string[]
+  /** Id of the content type. Absent for what `/pages` lists: pages, the home page and the 404 page. */
+  type?: string
+  /** The document's address, when it is not `/<slug>`: an entry of a declared type, a single, a listing page. */
+  path?: string
+  /** A single or a listing page: one document at a fixed address, which cannot be renamed or deleted. */
+  fixed?: 'single' | 'listing'
+  /** What the list of a sorted type is ordered by, as text. */
+  sortValue?: string
+}
+
+/** Which document the editor has open. The home and 404 pages are entries of `pages`. */
+export interface DocumentRef {
+  type: string
+  kind: 'entry' | 'single' | 'listing'
+}
 
 export type LinkRecord = { label: string; href: string; newTab?: boolean; id?: string; trackingId?: string; style?: string }
 
