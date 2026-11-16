@@ -5,7 +5,9 @@ import { Icon } from '../icons.js'
 import { type LibraryImage, ImageField } from '../image-field.js'
 import { Info } from '../info.js'
 import { text, isImageRecord } from '../shared.js'
-import { consentEnabled, hasAnalyticsSnippet, siteJsonLdOf } from '../site-draft.js'
+import type { JsonLdBlock } from '../../json-ld.js'
+import { consentEnabled, hasAnalyticsSnippet, siteJsonLdOf, siteJsonLdSourceOf } from '../site-draft.js'
+import { JsonLdEditor } from './json-ld-editor.js'
 import type { SiteDraft, Option } from '../types.js'
 import { OptionControl, Field } from './fields.js'
 import { Segmented } from './segmented.js'
@@ -47,11 +49,14 @@ export function SiteForm({
   onOptional,
   onConsentEnabled,
   onEditConsent,
-  onEditJsonLd,
+  onJsonLd,
   onMarks,
   onUploaded,
   onDeleted,
+  part = 'site',
 }: {
+  /** The Site screen (identity, scripts, consent, theme) or the SEO screen (search defaults, structured data). */
+  part?: 'site' | 'seo'
   site: SiteDraft
   options: readonly Option[]
   images: LibraryImage[]
@@ -62,8 +67,8 @@ export function SiteForm({
   onConsentEnabled: (enabled: boolean) => void
   /** Opens the dialog with the banner's text. */
   onEditConsent: () => void
-  /** Opens the dialog with the JSON-LD every page carries. */
-  onEditJsonLd: () => void
+  /** The JSON-LD every page carries, as the SEO screen's editor last had it valid. */
+  onJsonLd: (blocks: JsonLdBlock[]) => void
   onMarks: (path: string, patch: MarkPatch, start: number, end: number) => void
   onUploaded: (image: LibraryImage) => void
   onDeleted: (image: LibraryImage) => void
@@ -75,6 +80,60 @@ export function SiteForm({
   )
   const ungrouped = shown.filter((option) => !groupOf(option))
   const control = (option: Option) => siteOptionControl(site, option, onField)
+  if (part === 'seo') {
+    return (
+      <div class="bm-stack">
+        <div class="bm-stack">
+          <p class="bm-group">Search defaults</p>
+          <Field
+            label="Title template"
+            path="seo.titleTemplate"
+            value={text(getAt(site, 'seo.titleTemplate'))}
+            onChange={(value) => onOptional('seo.titleTemplate', value)}
+            hint="%s becomes the page SEO title."
+            mono
+          />
+          <Field
+            label="Description"
+            path="seo.description"
+            value={text(getAt(site, 'seo.description'))}
+            onChange={(value) => onOptional('seo.description', value)}
+            hint="Used by pages that don't set their own."
+            multiline
+            meta={`${text(getAt(site, 'seo.description')).length} / 160`}
+          />
+          <ImageField
+            label="OG image"
+            path="seo.ogImage"
+            withAlt={false}
+            value={{ src: text(getAt(site, 'seo.ogImage')) }}
+            images={images}
+            onChange={(next) => onOptional('seo.ogImage', next.src)}
+            onUploaded={onUploaded}
+            onDeleted={onDeleted}
+          />
+        </div>
+        <div class="bm-stack">
+          <p class="bm-group">Indexing</p>
+          <IndexingSwitch
+            title="Allow search engines"
+            hint="Off adds noindex to every page."
+            path="seo.robots"
+            on={getAt(site, 'seo.robots') !== false}
+            onField={onField}
+          />
+          <IndexingSwitch
+            title="Generate sitemap.xml"
+            hint="Uses the site URL. Skips pages marked noindex."
+            path="seo.sitemap"
+            on={getAt(site, 'seo.sitemap') !== false}
+            onField={onField}
+          />
+        </div>
+        <JsonLdEditor blocks={siteJsonLdOf(site)} source={siteJsonLdSourceOf(site)} onChange={onJsonLd} />
+      </div>
+    )
+  }
   return (
     <div class="bm-stack">
       <div class="bm-stack">
@@ -101,37 +160,7 @@ export function SiteForm({
           onDeleted={onDeleted}
         />
       </div>
-      <div class="bm-stack">
-        <p class="bm-group">Search defaults</p>
-        <Field
-          label="Title template"
-          path="seo.titleTemplate"
-          value={text(getAt(site, 'seo.titleTemplate'))}
-          onChange={(value) => onOptional('seo.titleTemplate', value)}
-          hint="%s becomes the page SEO title."
-          mono
-        />
-        <Field
-          label="Description"
-          path="seo.description"
-          value={text(getAt(site, 'seo.description'))}
-          onChange={(value) => onOptional('seo.description', value)}
-          hint="Used by pages that don't set their own."
-          multiline
-          meta={`${text(getAt(site, 'seo.description')).length} / 160`}
-        />
-        <ImageField
-          label="OG image"
-          path="seo.ogImage"
-          withAlt={false}
-          value={{ src: text(getAt(site, 'seo.ogImage')) }}
-          images={images}
-          onChange={(next) => onOptional('seo.ogImage', next.src)}
-          onUploaded={onUploaded}
-          onDeleted={onDeleted}
-        />
-      </div>
-      <JsonLdGroup site={site} onEdit={onEditJsonLd} />
+
       <div class="bm-stack">
         <p class="bm-group">Analytics &amp; scripts</p>
         <Field
@@ -242,22 +271,33 @@ function ConsentGroup({
   )
 }
 
-/** Structured data on every page: a summary here, the blocks in a dialog. */
-function JsonLdGroup({ site, onEdit }: { site: SiteDraft; onEdit: () => void }) {
-  const blocks = siteJsonLdOf(site)
-  const types = blocks.map((block) => (typeof block['@type'] === 'string' ? block['@type'] : 'block'))
+/** A site-wide search switch. On is the default, so only `false` is stored. */
+function IndexingSwitch({
+  title,
+  hint,
+  path,
+  on,
+  onField,
+}: {
+  title: string
+  hint: string
+  path: string
+  on: boolean
+  onField: (path: string, value: unknown) => void
+}) {
   return (
-    <div class="bm-stack">
-      <p class="bm-group">Structured data</p>
-      <p class="bm-hint">
-        {blocks.length === 0
-          ? 'None. Add an Organization and a WebSite so search engines know who runs the site.'
-          : `On every page: ${types.join(', ')}.`}
-      </p>
-      <button type="button" class="bm-tertiary bm-consent-edit" onClick={onEdit}>
-        <Icon name="settings" size={14} />
-        Edit JSON-LD
-      </button>
-    </div>
+    <label class="bm-switch-row">
+      <span class="bm-switch-text">
+        <span class="bm-switch-title">{title}</span>
+        <span class="bm-hint">{hint}</span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        data-editor-field={path}
+        checked={on}
+        onChange={(event) => onField(path, event.currentTarget.checked ? undefined : false)}
+      />
+    </label>
   )
 }

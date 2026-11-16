@@ -43,7 +43,7 @@ export function createSectionActions(doc: DocumentStore, ui: UiState, edits: Edi
       ui.picker.value = null
       ui.status.value = `Added ${catalog.sectionLabels[type] ?? type}. The preview updates without saving.`
       ui.open.value = true
-      ui.tab.value = 'section'
+      ui.inspectorTab.value = 'section'
     })
   }
 
@@ -84,9 +84,7 @@ export function createSectionActions(doc: DocumentStore, ui: UiState, edits: Edi
 
   function openSettings(id: string) {
     batch(() => {
-      ui.selectedId.value = id
-      ui.tab.value = 'section'
-      ui.open.value = true
+      ui.showSection(id)
       ui.focusField.value = `section:${id}`
       ui.addMenu.value = null
       ui.picker.value = null
@@ -95,8 +93,7 @@ export function createSectionActions(doc: DocumentStore, ui: UiState, edits: Edi
 
   function openFooterSettings() {
     batch(() => {
-      ui.tab.value = 'footer'
-      ui.open.value = true
+      ui.openView('footer')
       ui.addMenu.value = null
       ui.picker.value = null
     })

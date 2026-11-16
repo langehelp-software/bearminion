@@ -1,7 +1,15 @@
 import { batch } from '@preact/signals'
-import { clampSidebarWidth, SIDEBAR_DEFAULT, SIDEBAR_OPEN_KEY, SIDEBAR_WIDTH_KEY } from '../../sidebar.js'
+import {
+  clampInspectorWidth,
+  INSPECTOR_CLOSE_BELOW,
+  INSPECTOR_DEFAULT,
+  INSPECTOR_OPEN_KEY,
+  INSPECTOR_WIDTH_KEY,
+  NAV_OPEN_KEY,
+  parseView,
+  VIEW_KEY,
+} from '../../shell.js'
 import { destroyRichEditors } from '../rich-editor.js'
-import { TABS } from '../types.js'
 import type { UiState } from './ui.js'
 
 const PREVIEW_KEY = 'bearminion:preview'
@@ -27,17 +35,19 @@ function writeStorage(storage: () => Storage, key: string, value: string | null)
 const local = () => localStorage
 const session = () => sessionStorage
 
-/** The editor's own frame: sidebar width and visibility, and preview mode. Each survives a reload. */
+/**
+ * The editor's own frame: the navigation, the inspector, the full-screen view and preview mode. Each survives a
+ * reload: opening another document or saving reloads the page, and the shell comes back as it was.
+ */
 export function createChrome(ui: UiState) {
-  let reopenAfterPreview = false
-
-  /** Hide every editor panel, outline and bar so the page looks as visitors see it. Esc or the bubble returns. */
+  /** Hide the navigation, the inspector and every outline and bar, so the page looks as visitors see it. Esc returns. */
   function enterPreview() {
-    reopenAfterPreview = ui.open.peek()
-    writeStorage(session, PREVIEW_KEY, reopenAfterPreview ? '1' : '0')
+    writeStorage(session, PREVIEW_KEY, '1')
     batch(() => {
       ui.previewing.value = true
-      ui.open.value = false
+      ui.view.value = 'canvas'
+      ui.viewport.value = 'desktop'
+      ui.dialog.value = null
       ui.closePopovers()
       ui.rich.value = null
       ui.pagePick.value = null
@@ -52,46 +62,50 @@ export function createChrome(ui: UiState) {
   function exitPreview() {
     document.documentElement.removeAttribute('data-bearminion-preview')
     writeStorage(session, PREVIEW_KEY, null)
-    batch(() => {
-      ui.previewing.value = false
-      ui.open.value = reopenAfterPreview
-    })
+    ui.previewing.value = false
   }
 
-  function resizeSidebar(next: number): number {
-    const width = clampSidebarWidth(next, window.innerWidth)
-    ui.sidebarWidth.value = width
-    writeStorage(local, SIDEBAR_WIDTH_KEY, String(width))
+  function resizeInspector(next: number): number {
+    const width = clampInspectorWidth(next)
+    ui.inspectorWidth.value = width
+    writeStorage(local, INSPECTOR_WIDTH_KEY, String(width))
     return width
   }
 
-  /** Width, the open sidebar and its tab, and preview mode, as the last page view left them. */
+  function toggleNav() {
+    const next = !ui.navOpen.peek()
+    ui.navOpen.value = next
+    writeStorage(local, NAV_OPEN_KEY, next ? '1' : '0')
+  }
+
+  /** Close the inspector once when the window gets narrower than it can share. Opening it again keeps it open. */
+  let wasWide = typeof window === 'undefined' ? true : window.innerWidth >= INSPECTOR_CLOSE_BELOW
+  function onWindowResize(width: number) {
+    const wide = width >= INSPECTOR_CLOSE_BELOW
+    if (wasWide && !wide) ui.open.value = false
+    wasWide = wide
+  }
+
+  /** The navigation, the inspector and its width, the view, and preview mode, as the last page view left them. */
   function restore() {
-    const width = readStorage(local, SIDEBAR_WIDTH_KEY)
-    ui.sidebarWidth.value = clampSidebarWidth(width ? Number(width) : SIDEBAR_DEFAULT, window.innerWidth)
-    const openTab = readStorage(local, SIDEBAR_OPEN_KEY)
-    if (openTab !== null) {
-      const restored = TABS.find((id) => id === openTab)
-      batch(() => {
-        if (restored) ui.tab.value = restored
-        ui.open.value = true
-      })
-    }
+    ui.navOpen.value = readStorage(local, NAV_OPEN_KEY) !== '0'
+    const width = readStorage(local, INSPECTOR_WIDTH_KEY)
+    ui.inspectorWidth.value = clampInspectorWidth(width ? Number(width) : INSPECTOR_DEFAULT)
+    const open = readStorage(session, INSPECTOR_OPEN_KEY)
+    ui.open.value = open === null ? window.innerWidth >= INSPECTOR_CLOSE_BELOW : open === '1'
+    ui.view.value = parseView(readStorage(session, VIEW_KEY))
+    wasWide = window.innerWidth >= INSPECTOR_CLOSE_BELOW
     // Preview mode survives a reload for the rest of the browser session, until it is turned off.
-    const previewed = readStorage(session, PREVIEW_KEY)
-    if (previewed !== null) {
-      enterPreview()
-      reopenAfterPreview = previewed === '1'
-      writeStorage(session, PREVIEW_KEY, previewed)
-    }
+    if (readStorage(session, PREVIEW_KEY) !== null) enterPreview()
   }
 
-  /** Reopen after a reload on the tab that was showing. A closed sidebar forgets the tab, so the next open starts on Pages. */
-  function rememberOpen(open: boolean, tab: string) {
-    writeStorage(local, SIDEBAR_OPEN_KEY, open ? tab : null)
+  /** Keep the view and whether the inspector is open for the next page view of this browser session. */
+  function remember(view: string, open: boolean) {
+    writeStorage(session, VIEW_KEY, view === 'canvas' ? null : view)
+    writeStorage(session, INSPECTOR_OPEN_KEY, open ? '1' : '0')
   }
 
-  return { enterPreview, exitPreview, resizeSidebar, restore, rememberOpen }
+  return { enterPreview, exitPreview, resizeInspector, toggleNav, onWindowResize, restore, remember }
 }
 
 export type Chrome = ReturnType<typeof createChrome>

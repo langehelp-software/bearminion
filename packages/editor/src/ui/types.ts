@@ -1,3 +1,4 @@
+import type { ListMeta } from '../api-types.js'
 import type { ThemeDefinition } from '../theme.js'
 import type { CountRule } from '../draft.js'
 import type { OptionalContent } from '../section-optional.js'
@@ -57,13 +58,12 @@ export interface Issue {
   file?: 'page' | 'site'
 }
 
-export type Tab = 'pages' | 'section' | 'navigation' | 'footer' | 'design' | 'site'
-
-export const TABS: readonly Tab[] = ['pages', 'section', 'navigation', 'footer', 'design', 'site']
+/** The inspector's tabs: the open document, and the selected section. */
+export type InspectorTab = 'page' | 'section'
 
 export type SiteDraft = Record<string, unknown>
 
-export interface PageSummary {
+export interface PageSummary extends ListMeta {
   slug: string
   title: string
   file: string

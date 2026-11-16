@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ContentTypeInfo } from '../src/api-types.js'
 import type { PageDraft } from '../src/draft.js'
 import { SectionPicker } from '../src/ui/overlay/section-picker.js'
-import { PagesPanel } from '../src/ui/sidebar/panels.js'
+import { ListingView } from '../src/ui/shell/listing.js'
+import { PagePanel } from '../src/ui/shell/panels.js'
 import { EditorContext, createEditor, type Editor } from '../src/ui/state/editor.js'
 import type { Catalog, SiteDraft } from '../src/ui/types.js'
 
@@ -127,7 +128,14 @@ describe('the Pages tab on a site with content types', () => {
     window.history.replaceState(null, '', pathname)
     editor = createEditor()
     await editor.session.load()
-    render(h(EditorContext.Provider, { value: editor }, h(PagesPanel, { catalog })), container)
+    render(
+      h(
+        EditorContext.Provider,
+        { value: editor },
+        h('div', null, ...['pages', 'blog', 'notes'].map((type) => h(ListingView, { catalog, type })), h(PagePanel, { catalog })),
+      ),
+      container,
+    )
   }
 
   beforeEach(() => {
@@ -143,12 +151,11 @@ describe('the Pages tab on a site with content types', () => {
 
   const headings = () => [...container.querySelectorAll('.bm-group')].map((node) => node.textContent?.replace(/\s+/g, ' ').trim())
   const rows = (index: number) =>
-    [...(container.querySelectorAll('.bm-list')[index]?.querySelectorAll('.bm-list-row') ?? [])].map((row) => ({
-      title: row.querySelector('.bm-list-title')?.textContent,
-      href: row.querySelector('a')?.getAttribute('href'),
-      path: row.querySelector('.bm-list-path')?.textContent?.replace(/\s+/g, ' ').trim(),
-      badges: [...row.querySelectorAll('.bm-badge')].map((badge) => badge.textContent?.trim()),
-      deletable: row.querySelector('.bm-danger') !== null,
+    [...(container.querySelectorAll('.bm-listing')[index]?.querySelectorAll('.bm-tr:not(.bm-thead)') ?? [])].map((row) => ({
+      title: row.querySelector('.bm-row-title')?.textContent,
+      href: row.querySelector('.bm-row-actions a')?.getAttribute('href'),
+      badges: [...row.querySelectorAll('.bm-chip')].map((badge) => badge.textContent?.trim()),
+      deletable: row.querySelector('.bm-row-delete') !== null,
     }))
   const labelled = (text: string) =>
     [...container.querySelectorAll('label')].find((label) => label.textContent?.trim().startsWith(text)) as HTMLLabelElement | undefined
@@ -157,21 +164,21 @@ describe('the Pages tab on a site with content types', () => {
 
   it('lists pages with the singles, then each declared type in its own list', async () => {
     await open('/blog/first', { type: 'blog', kind: 'entry', slug: 'first', document: entry })
-    expect(headings().slice(0, 3)).toEqual(['PagesNew page', 'BlogNew entry', 'NotesNew entry'])
+    expect([...container.querySelectorAll('.bm-listing h1')].map((node) => node.textContent)).toEqual(['Pages', 'Blog', 'Notes'])
     expect(rows(0)).toEqual([
-      { title: 'Home', href: '/', path: 'pages/index.json', badges: ['home'], deletable: false },
-      { title: 'Contact', href: '/contact', path: 'pages/contact.json', badges: [], deletable: true },
-      { title: 'Not found', href: '/404', path: 'pages/404.json', badges: ['system'], deletable: false },
-      { title: 'About', href: '/about', path: 'singles/about.json', badges: ['fixed'], deletable: false },
+      { title: 'Home', href: '/', badges: ['home'], deletable: false },
+      { title: 'Not found', href: '/404', badges: ['system'], deletable: false },
+      { title: 'Contact', href: '/contact', badges: [], deletable: true },
+      { title: 'About', href: '/about', badges: ['single'], deletable: false },
     ])
-    // Blog turns deleting off, shows what it is sorted by, and pins its listing page under the entries.
+    // Blog turns deleting off; its listing page is a row of its own, which is never deleted.
     expect(rows(1)).toEqual([
-      { title: 'Second', href: '/blog/second', path: '2026-02-01 · blog/second.json', badges: [], deletable: false },
-      { title: 'First', href: '/blog/first', path: '2026-01-05 · blog/first.json', badges: ['editing'], deletable: false },
-      { title: 'Blog: listing page', href: '/blog', path: 'blog/_listing.json', badges: ['listing'], deletable: false },
+      { title: 'Blog: listing page', href: '/blog', badges: ['listing'], deletable: false },
+      { title: 'Second', href: '/blog/second', badges: [], deletable: false },
+      { title: 'First', href: '/blog/first', badges: ['editing'], deletable: false },
     ])
     expect(rows(2)).toEqual([])
-    expect(container.querySelectorAll('.bm-list')[2]?.textContent).toContain('No entries yet.')
+    expect(container.querySelectorAll('.bm-listing')[2]?.textContent).toContain('No entries here yet.')
   })
 
   it('edits the fields of the open entry with a control per field', async () => {
@@ -214,12 +221,12 @@ describe('the Pages tab on a site with content types', () => {
     expect(container.textContent).toContain('fixed address')
     // A listing page has no fields of its own, whatever its entries have.
     expect(headings()).not.toContain('Fields')
-    expect(rows(1).at(-1)?.badges).toEqual(['listing', 'editing'])
+    expect(rows(1)[0]?.badges).toEqual(['listing', 'editing'])
     render(null, container)
 
     await open('/about', { type: 'about', kind: 'single', slug: 'about', document: { slug: 'about', title: 'About', seo, sections: [] } })
     expect((input('Slug') as HTMLInputElement).disabled).toBe(true)
-    expect(rows(0).at(-1)?.badges).toEqual(['fixed', 'editing'])
+    expect(rows(0).at(-1)?.badges).toEqual(['single', 'editing'])
   })
 
   it('shows a page as it always did: no Fields group, and the home page keeps its slug', async () => {
@@ -240,7 +247,7 @@ describe('the Pages tab on a site with content types', () => {
     const buttons = [...container.querySelectorAll('button')]
     buttons.find((button) => button.textContent?.trim() === 'New entry')?.click()
     await Promise.resolve()
-    const card = container.querySelector('.bm-card') as HTMLElement
+    const card = container.querySelector('.bm-new-document') as HTMLElement
     expect([...card.querySelectorAll('option')].map((option) => option.value)).toEqual(['hero', 'cta'])
     const title = card.querySelector('input') as HTMLInputElement
     title.value = 'Third post'

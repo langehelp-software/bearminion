@@ -28,7 +28,7 @@ describe('production build', () => {
         text.includes('createHostedEditor') ||
         text.includes('createHostedMiddleware') ||
         text.includes('mountEditor') ||
-        text.includes('bm-sidebar')
+        text.includes('bm-inspector')
       ) {
         hits.push(path.relative(dist, file))
       }

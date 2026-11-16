@@ -3,7 +3,6 @@ import { DesignForm } from '../design-form.js'
 import { BrandLogoForm } from '../forms/brand-logo-form.js'
 import { FooterForm } from '../forms/footer-form.js'
 import { PageForm } from '../forms/page-form.js'
-import { PagesForm } from '../forms/pages-form.js'
 import { SectionForm } from '../forms/section-form.js'
 import { Segmented } from '../forms/segmented.js'
 import { SiteForm, SiteGroup, siteOptionControl } from '../forms/site-form.js'
@@ -12,9 +11,9 @@ import { NavForm } from '../nav.js'
 import { text } from '../shared.js'
 import { headerActions, navLinks, themeColorsOf } from '../site-draft.js'
 import { useEditor } from '../state/editor.js'
-import type { Catalog, PageSummary, SiteDraft } from '../types.js'
+import type { Catalog, SiteDraft } from '../types.js'
 
-/** The sidebar adds a section from its outline: the picker opens beside the sidebar, at the button's height. */
+/** The inspector adds a section from its outline: the picker opens beside the inspector, at the button's height. */
 const PICKER_HEIGHT = 440
 const PICKER_OFFSET = 536
 
@@ -65,89 +64,54 @@ export function SectionPanel({ catalog }: { catalog: Catalog }) {
   )
 }
 
-export function PagesPanel({ catalog }: { catalog: Catalog }) {
-  const { doc, ui, edits, sections, session } = useEditor()
+/** What the open document can be called in the inspector: a page (home and 404 included), an entry, a single, a listing page. */
+function documentKind(ref: { type: string; kind: 'entry' | 'single' | 'listing' }) {
+  return ref.kind === 'entry' ? (ref.type === 'pages' ? 'page' : 'entry') : ref.kind
+}
+
+/** The inspector's Page tab: the open document's own fields, its search result and its sections. */
+export function PagePanel({ catalog }: { catalog: Catalog }) {
+  const { doc, ui, edits, sections } = useEditor()
   const page = doc.page.value
   const site = doc.site.value
-  const savedSlug = doc.savedSlug.value
   const ref = doc.ref.value
-  const all = doc.pages.value
-  /** The row of the document that is open, in whichever list it is. */
-  const isCurrent = (item: PageSummary) =>
-    (item.type ?? 'pages') === ref.type &&
-    (ref.kind === 'entry' ? item.fixed === undefined && item.slug === savedSlug : item.fixed === ref.kind)
-  const declared = doc.types.value.filter((type) => type.kind === 'multi' && !type.builtIn)
-  const templatesFor = (allowed: readonly string[] | null | undefined) =>
-    allowed ? Object.fromEntries(Object.entries(catalog.sectionLabels).filter(([type]) => allowed.includes(type))) : catalog.sectionLabels
-  const pagesType = doc.types.value.find((type) => type.id === 'pages')
-  const kind = ref.kind === 'entry' ? (ref.type === 'pages' ? 'page' : 'entry') : ref.kind
+  if (!page) return <p class="bm-note">This address is not a content document. Site settings are still editable.</p>
   return (
-    <>
-      <PagesForm
-        // Pages, the home and 404 pages, and the singles the site declares: everything that is one page at one address.
-        pages={all.filter((item) => item.type === undefined || item.fixed === 'single')}
-        labels={templatesFor(pagesType?.sections)}
-        isCurrent={isCurrent}
-        canDelete={catalog.pageRules?.delete !== false}
-        onCreated={() => void session.load()}
-        onNavigate={session.requestLeave}
-      />
-      {declared.map((type) => (
-        <PagesForm
-          key={type.id}
-          type={type.id}
-          path={type.path}
-          heading={type.label}
-          noun="entry"
-          pages={all.filter((item) => item.type === type.id)}
-          labels={templatesFor(type.sections)}
-          isCurrent={isCurrent}
-          canDelete={type.delete !== false}
-          onCreated={() => void session.load()}
-          onNavigate={session.requestLeave}
-        />
-      ))}
-      {page && (
-        <PageForm
-          page={page}
-          labels={catalog.sectionLabels}
-          siteName={text(site?.name)}
-          siteUrl={text(site?.url)}
-          siteOgImage={text(getAt(site, 'seo.ogImage'))}
-          selectedId={ui.selectedId.value}
-          onChange={(next) => edits.updatePage(next)}
-          canRename={doc.renameRule.value.allowed}
-          fixedReason={doc.renameRule.value.reason}
-          kind={kind}
-          address={ref.kind === 'listing' ? location.pathname : (doc.href.value ?? undefined)}
-          fields={ref.kind === 'listing' ? null : (doc.typeInfo.value?.fields ?? null)}
-          images={doc.images.value}
-          onUploaded={doc.addImage}
-          onDeleted={doc.dropImage}
-          onEditSeo={() => {
-            ui.dialog.value = { kind: 'seo' }
-          }}
-          onAddSection={(anchor) => {
-            ui.picker.value = {
-              id: page.sections[page.sections.length - 1]?.id ?? '',
-              where: 'below',
-              at: {
-                top: Math.max(8, Math.min(anchor.top - 300, window.innerHeight - PICKER_HEIGHT)),
-                left: Math.max(8, window.innerWidth - ui.sidebarWidth.peek() - PICKER_OFFSET),
-              },
-            }
-          }}
-          onSelectSection={(id) => {
-            ui.selectSection(id)
-            ui.tab.value = 'section'
-          }}
-          onMoveSection={sections.move}
-          onReorderSections={sections.reorder}
-          onDuplicateSection={sections.askDuplicate}
-          onRemoveSection={sections.askDelete}
-        />
-      )}
-    </>
+    <PageForm
+      page={page}
+      labels={catalog.sectionLabels}
+      siteName={text(site?.name)}
+      siteUrl={text(site?.url)}
+      siteOgImage={text(getAt(site, 'seo.ogImage'))}
+      selectedId={ui.selectedId.value}
+      onChange={(next) => edits.updatePage(next)}
+      canRename={doc.renameRule.value.allowed}
+      fixedReason={doc.renameRule.value.reason}
+      kind={documentKind(ref)}
+      address={ref.kind === 'listing' ? location.pathname : (doc.href.value ?? undefined)}
+      fields={ref.kind === 'listing' ? null : (doc.typeInfo.value?.fields ?? null)}
+      images={doc.images.value}
+      onUploaded={doc.addImage}
+      onDeleted={doc.dropImage}
+      onEditSeo={() => {
+        ui.dialog.value = { kind: 'seo' }
+      }}
+      onAddSection={(anchor) => {
+        ui.picker.value = {
+          id: page.sections[page.sections.length - 1]?.id ?? '',
+          where: 'below',
+          at: {
+            top: Math.max(8, Math.min(anchor.top - 300, window.innerHeight - PICKER_HEIGHT)),
+            left: Math.max(8, window.innerWidth - ui.inspectorWidth.peek() - PICKER_OFFSET),
+          },
+        }
+      }}
+      onSelectSection={ui.showSection}
+      onMoveSection={sections.move}
+      onReorderSections={sections.reorder}
+      onDuplicateSection={sections.askDuplicate}
+      onRemoveSection={sections.askDelete}
+    />
   )
 }
 
@@ -180,10 +144,11 @@ export function DesignPanel({ site }: { site: SiteDraft }) {
   )
 }
 
-export function SitePanel({ site, catalog }: { site: SiteDraft; catalog: Catalog }) {
+export function SitePanel({ site, catalog, part = 'site' }: { site: SiteDraft; catalog: Catalog; part?: 'site' | 'seo' }) {
   const { doc, edits, ui } = useEditor()
   return (
     <SiteForm
+      part={part}
       site={site}
       options={catalog.siteOptions}
       images={doc.images.value}
@@ -204,9 +169,7 @@ export function SitePanel({ site, catalog }: { site: SiteDraft; catalog: Catalog
       onEditConsent={() => {
         ui.dialog.value = { kind: 'consent' }
       }}
-      onEditJsonLd={() => {
-        ui.dialog.value = { kind: 'siteJsonLd' }
-      }}
+      onJsonLd={(blocks) => edits.writeField('seo.jsonLd', blocks.length > 0 ? blocks : undefined)}
       onMarks={edits.applyMarksAt}
       onUploaded={doc.addImage}
       onDeleted={doc.dropImage}

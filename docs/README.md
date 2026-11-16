@@ -17,7 +17,7 @@ BearMinion is three things: the [`bearminion`](https://www.npmjs.com/package/bea
 | [Building a theme](themes.md) | Define section types, the header and footer, fonts, the live preview and content collections |
 | [Content types](content-types.md) | Declare a blog, a news list or a fixed page: entries with their own fields, a sort order and a paginated listing page, and how to update a site made before 1.21 |
 | [Markdown collections](collections.md) | Edit an existing Astro content collection (Markdown and frontmatter) through the editor API, with the site's own schema and no reformatting of what you did not touch (experimental) |
-| [The editor](editor.md) | Learn every editing feature: inline text, sections, the sidebar tabs, images, drafts, saving, history and git |
+| [The editor](editor.md) | Learn every editing feature: inline text, sections, the editor shell, listings, media, settings, images, drafts, saving, history and git |
 | [Astro integration and package](integration.md) | Configure `bearminion()` in `astro.config.ts`, use the entry points, plug in a custom content store |
 | [Dev API](dev-api.md) | Call the localhost API the editor uses, with curl examples |
 

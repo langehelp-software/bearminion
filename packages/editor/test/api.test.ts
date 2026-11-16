@@ -117,6 +117,45 @@ async function call(
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
 
 describe('editor API', () => {
+  it('creates a page as a draft when asked, and lists it as one', async () => {
+    const context = withRegistry(seed())
+    const created = await call(context, 'POST', `${API_PREFIX}/pages`, { json: { slug: 'later', title: 'Later', status: 'draft' } })
+    expect(created.status).toBe(201)
+    const stored = JSON.parse(fs.readFileSync(path.join(context.contentDir, 'pages', 'later.json'), 'utf8')) as { status?: string }
+    expect(stored.status).toBe('draft')
+    const listed = (await (await call(context, 'GET', `${API_PREFIX}/pages`)).json()) as { pages: { slug: string; draft?: boolean }[] }
+    expect(listed.pages.find((item) => item.slug === 'later')?.draft).toBe(true)
+    expect(listed.pages.find((item) => item.slug === 'index')).not.toHaveProperty('draft')
+    const wrong = await call(context, 'POST', `${API_PREFIX}/pages`, { json: { slug: 'nope', title: 'Nope', status: 'hidden' } })
+    expect(wrong.status).toBe(400)
+  })
+
+  it('keeps the site-wide indexing switches, which store only false', async () => {
+    const context = withRegistry(seed())
+    const site = JSON.parse(fs.readFileSync(path.join(context.contentDir, 'site.json'), 'utf8')) as { seo: Record<string, unknown> }
+    const saved = await call(context, 'POST', `${API_PREFIX}/save`, {
+      json: { site: { ...site, seo: { ...site.seo, robots: false, sitemap: false } } },
+    })
+    expect(saved.status).toBe(200)
+    const wrong = await call(context, 'POST', `${API_PREFIX}/save`, { json: { site: { ...site, seo: { ...site.seo, robots: 'no' } } } })
+    expect(wrong.status).toBe(400)
+  })
+
+  it('lists each page with what the listings show beside it: noindex and when its file last changed', async () => {
+    const context = withRegistry(seed())
+    const file = path.join(context.contentDir, 'pages', 'index.json')
+    const page = JSON.parse(fs.readFileSync(file, 'utf8')) as { seo: Record<string, unknown> }
+    page.seo.noindex = true
+    fs.writeFileSync(file, JSON.stringify(page))
+    const when = new Date('2026-11-10T08:00:00Z')
+    fs.utimesSync(file, when, when)
+    const response = await call(context, 'GET', `${API_PREFIX}/pages`)
+    const body = (await response.json()) as { pages: { slug: string; noindex?: boolean; draft?: boolean; updatedAt?: string }[] }
+    const home = body.pages.find((item) => item.slug === 'index')
+    expect(home).toMatchObject({ noindex: true, updatedAt: when.toISOString() })
+    expect(home).not.toHaveProperty('draft')
+  })
+
   it('ignores URLs outside the editor prefix', async () => {
     const context = withRegistry(seed())
     const response = await handleEditorRequest(
@@ -972,6 +1011,14 @@ describe('missing images', () => {
     expect(body.usages).toEqual(['Home page › Hero', 'Home page › social preview image'])
     expect(body.message).toContain(logo.filename)
     expect(fs.existsSync(path.join(context.root, logo.path))).toBe(true)
+
+    // The Media screen asks for every image with its uses in one request. The plain list stays as it was.
+    const listed = (await (await call(context, 'GET', `${API_PREFIX}/images?usage=1`)).json()) as {
+      images: { filename: string; usages?: string[] }[]
+    }
+    expect(listed.images.find((image) => image.filename === logo.filename)?.usages).toEqual(body.usages)
+    const plain = (await (await call(context, 'GET', `${API_PREFIX}/images`)).json()) as { images: Record<string, unknown>[] }
+    expect(plain.images[0]).not.toHaveProperty('usages')
 
     page.sections[0]!.props.image = undefined
     page.seo = { ...(page.seo as object), ogImage: undefined }

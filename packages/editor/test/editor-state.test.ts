@@ -108,7 +108,7 @@ describe('editor state', () => {
     expect(added?.id).not.toBe('hero')
     expect(added?.anchor).not.toBe('hero')
     expect(getAt(added, 'props.heading')).toBe('New section')
-    expect([ui.selectedId.value, ui.tab.value, ui.open.value]).toEqual([added?.id, 'section', true])
+    expect([ui.selectedId.value, ui.inspectorTab.value, ui.open.value]).toEqual([added?.id, 'section', true])
 
     sections.askDelete(added?.id ?? '')
     sections.confirm()

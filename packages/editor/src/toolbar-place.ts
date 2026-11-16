@@ -88,10 +88,10 @@ export function fitPopover(input: {
   }
 }
 
-/** Pin offset for a sticky or fixed header that is currently at the viewport top. */
-export function stickyHeaderPin(header: { position: string; top: number; bottom: number } | null): number {
+/** Pin offset for a sticky or fixed header that is currently at the top of the page area (`edge`, 0 for the viewport). */
+export function stickyHeaderPin(header: { position: string; top: number; bottom: number } | null, edge = 0): number {
   if (!header) return 0
   if (header.position !== 'sticky' && header.position !== 'fixed') return 0
-  if (header.top > 1 || header.bottom <= 0) return 0
+  if (header.top > edge + 1 || header.bottom <= edge) return 0
   return header.bottom
 }

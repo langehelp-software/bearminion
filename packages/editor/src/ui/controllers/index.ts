@@ -3,6 +3,7 @@ import { attachPageEditing } from './page-editing.js'
 import { attachPointerTracking } from './pointer-tracking.js'
 import { attachReactions, type Dispose } from './reactions.js'
 import { attachReloadGuard } from './reload-guard.js'
+import { attachShell } from './shell.js'
 import { attachShortcuts } from './shortcuts.js'
 
 /**
@@ -12,6 +13,7 @@ import { attachShortcuts } from './shortcuts.js'
 export function attachEditor(editor: Editor): Dispose {
   editor.chrome.restore()
   const detach = [
+    attachShell(editor),
     attachReactions(editor),
     attachReloadGuard(editor),
     attachShortcuts(editor),

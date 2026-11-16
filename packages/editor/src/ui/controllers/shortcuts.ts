@@ -6,7 +6,10 @@ function inModal(event: KeyboardEvent): boolean {
   return event.composedPath().some((node) => node instanceof HTMLElement && node.classList.contains('bm-modal'))
 }
 
-/** ⌘S save, ⌘Z / ⇧⌘Z undo and redo, ⌘E the sidebar, Enter to confirm, and Esc to back out one layer at a time. */
+/**
+ * ⌘S save, ⌘Z / ⇧⌘Z undo and redo, ⌘E the inspector, ⌘\ the navigation, Enter to confirm, and Esc to back out one
+ * layer at a time.
+ */
 export function attachShortcuts(editor: Editor): Dispose {
   const { ui, session, sections, chrome } = editor
 
@@ -24,7 +27,11 @@ export function attachShortcuts(editor: Editor): Dispose {
       event.preventDefault()
       return
     }
-    if (ui.open.peek() && !isTyping(event.target)) ui.open.value = false
+    // Last, a full-screen view goes back to the page. The inspector stays as it is: ⌘E opens and closes it.
+    if (ui.view.peek() !== 'canvas' && !isTyping(event.target)) {
+      event.preventDefault()
+      ui.openView('canvas')
+    }
   }
 
   const onKey = (event: KeyboardEvent) => {
@@ -54,6 +61,11 @@ export function attachShortcuts(editor: Editor): Dispose {
     if (mod && key === 'e' && !isTyping(event.target)) {
       event.preventDefault()
       ui.open.value = !ui.open.peek()
+      return
+    }
+    if (mod && event.key === '\\') {
+      event.preventDefault()
+      chrome.toggleNav()
       return
     }
     if (event.key === 'Enter' && ui.confirm.peek() && !isTyping(event.target)) {

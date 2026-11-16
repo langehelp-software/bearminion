@@ -1,11 +1,17 @@
 import { render } from 'preact'
 import { EditorApp } from './app.js'
+import { inDeviceFrame, mountDeviceMirror } from './device-mirror.js'
 import { EDITOR_HOST_ID } from './dom.js'
 import { editorCss } from './styles.js'
 
 /** Mount the overlay once. The host does not take clicks; controls inside the shadow root do. */
 export function mountEditor(): void {
   if (document.getElementById(EDITOR_HOST_ID)) return
+  // Inside the editor's own tablet or phone frame there is no editor: the page only mirrors the draft.
+  if (inDeviceFrame()) {
+    mountDeviceMirror()
+    return
+  }
   const host = document.createElement('div')
   host.id = EDITOR_HOST_ID
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483000;pointer-events:none;'
@@ -14,7 +20,9 @@ export function mountEditor(): void {
   style.textContent = editorCss
   const root = document.createElement('div')
   shadow.append(style, root)
-  document.body.append(host)
+  // A child of <html>, not <body>: the shell turns <body> into the canvas, and a fixed element inside it would be
+  // positioned (and clipped) by the canvas instead of the window.
+  document.documentElement.append(host)
   // The overlay draws one rectangle around the hovered field. A native focus ring on an inline field that wraps
   // lines follows each line box instead, which gives a second, stepped outline.
   const page = document.createElement('style')
@@ -25,6 +33,8 @@ export function mountEditor(): void {
     '[data-field][contenteditable]:focus, [data-field][contenteditable]:focus-visible { outline: none !important; }',
     '[data-field].ProseMirror { white-space: break-spaces; word-wrap: break-word; font-variant-ligatures: none; }',
     '[data-field].ProseMirror li > p { margin: 0; }',
+    // While the inspector's edge is dragged, the page must not take the pointer.
+    'html[data-bearminion-resizing] body { pointer-events: none; user-select: none; }',
   ].join('\n')
   document.head.append(page)
   render(<EditorApp />, root)

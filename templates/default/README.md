@@ -7,7 +7,7 @@ npm install    # if it was created with --no-install
 npm run dev
 ```
 
-Open the site, press Ctrl+E (Cmd+E on a Mac) for the sidebar, click any text to edit it, and Ctrl/Cmd+S to save. Commit `content/` and `src/assets/` like any other code; a host such as Vercel or Netlify builds the site from the repository.
+Open the site, click any text to edit it, and Ctrl/Cmd+S to save. Commit `content/` and `src/assets/` like any other code; a host such as Vercel or Netlify builds the site from the repository.
 
 | Script | What it does |
 | --- | --- |
@@ -130,7 +130,7 @@ It lists every directory under `sections/` that holds a `definition.ts` in two g
 
 The Add section menu lists the types in the order of `order` in `sections/definitions.ts`; a type that is not listed there (yours) comes last, by name.
 
-Restart `npm run dev`. The section appears in the Add section picker, its fields in the sidebar, and `npm run typecheck` checks the component against the schema. Add a `Quote.stories.ts` next to it if you use Storybook.
+Restart `npm run dev`. The section appears in the Add section picker, its fields in the inspector, and `npm run typecheck` checks the component against the schema. Add a `Quote.stories.ts` next to it if you use Storybook.
 
 A section from a newer release comes into an existing site with `npx bearminion add <name>`; see [The command line](../../docs/cli.md).
 
@@ -231,13 +231,13 @@ The handler holds the keys that must stay private. Put `defineForm(...)` from `b
 
 `astro.config.ts` registers `bearminion()`. It is active only while `pnpm dev` is running. The production build does not add editor routes, scripts, or the overlay.
 
-The page gets a shadow-root overlay. Click text with `data-field` to edit it, and hover a section (`data-section-id`) for add, duplicate, move, and delete. The corner **Editor** button or Ctrl+E / Cmd+E opens the sidebar. Ctrl+S / Cmd+S saves. Escape leaves a field, then closes the add picker or the sidebar. Unsaved edits turn the corner dot amber and trigger a beforeunload warning.
+The page gets a shadow-root overlay. Click text with `data-field` to edit it, and hover a section (`data-section-id`) for add, duplicate, move, and delete. The editor frames the page with a navigation on the left, a top bar and an inspector on the right; Ctrl+E / Cmd+E shows or hides the inspector. Ctrl+S / Cmd+S saves. Escape leaves a field, then closes the add picker, then goes back from a full-screen view. Unsaved edits show as Unsaved in the top bar and trigger a beforeunload warning.
 
-A variant change, a new, duplicated, moved, or deleted section, and a sidebar value with no text of its own on the page (such as a video link) are re-rendered by `POST /__bearminion/api/preview`. The handler validates the draft, renders `SectionList` with Astro's container API inside the Vite SSR runner, and returns HTML. The overlay replaces `main#content` and runs scripts the page had not loaded, so a section type added from the picker works at once. A section script binds on load and again on the `bearminion:preview` event, and marks what it bound so it never binds twice. Nothing is written until save. In dev, an image path under `src/assets/` that is missing from the eager glob is served from `/__bearminion/assets` so a new upload can use a plain `<img>` immediately. When the file is gone, that route returns a Missing image placeholder instead, so the page shows the gap. Production still resolves that path with `import.meta.glob` and Astro `<Image>`, and still throws if the file is missing; the editor's save validation keeps content from pointing at a missing file.
+A variant change, a new, duplicated, moved, or deleted section, and an inspector value with no text of its own on the page (such as a video link) are re-rendered by `POST /__bearminion/api/preview`. The handler validates the draft, renders `SectionList` with Astro's container API inside the Vite SSR runner, and returns HTML. The overlay replaces `main#content` and runs scripts the page had not loaded, so a section type added from the picker works at once. A section script binds on load and again on the `bearminion:preview` event, and marks what it bound so it never binds twice. Nothing is written until save. In dev, an image path under `src/assets/` that is missing from the eager glob is served from `/__bearminion/assets` so a new upload can use a plain `<img>` immediately. When the file is gone, that route returns a Missing image placeholder instead, so the page shows the gap. Production still resolves that path with `import.meta.glob` and Astro `<Image>`, and still throws if the file is missing; the editor's save validation keeps content from pointing at a missing file.
 
 Header links nest up to three levels (`MAX_NAV_DEPTH`). Desktop navigation uses hover and focus flyouts. The mobile menu uses an accordion. The link picker lists pages, `#anchor` on the current page, `/page#anchor` on other pages, and a custom URL.
 
-The API is `/__bearminion/api` on localhost. Saving `content/*.json` asks the editor to reload. If the draft is still dirty, the editor asks to save, discard, or cancel first. Unsaved drafts are kept in `localStorage` until save or discard. An upload does not reload by itself, so the draft can preview the new file before save. Request and response shapes, with curl examples, are in the [Dev API docs](https://docs.bearminion.com/dev-api/), and every sidebar tab is described in [the editor docs](https://docs.bearminion.com/editor/).
+The API is `/__bearminion/api` on localhost. Saving `content/*.json` asks the editor to reload. If the draft is still dirty, the editor asks to save, discard, or cancel first. Unsaved drafts are kept in `localStorage` until save or discard. An upload does not reload by itself, so the draft can preview the new file before save. Request and response shapes, with curl examples, are in the [Dev API docs](https://docs.bearminion.com/dev-api/), and every screen is described in [the editor docs](https://docs.bearminion.com/editor/).
 
 ```bash
 pnpm dev

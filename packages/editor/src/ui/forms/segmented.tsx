@@ -10,7 +10,8 @@ export function Segmented({
 }: {
   label: string
   value: string
-  options: { value: string; label: string }[]
+  /** `dot` draws a status dot before the label: `published` green, `draft` grey. */
+  options: { value: string; label: string; dot?: 'published' | 'draft' }[]
   onChange: (value: string) => void
   hideLabel?: boolean
 }) {
@@ -28,6 +29,7 @@ export function Segmented({
             tabIndex={value === option.value ? 0 : -1}
             onClick={() => onChange(option.value)}
           >
+            {option.dot && <span class={`bm-seg-dot bm-seg-dot-${option.dot}`} aria-hidden="true" />}
             {option.label}
           </button>
         ))}

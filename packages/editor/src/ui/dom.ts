@@ -7,7 +7,7 @@ import { stickyHeaderPin } from '../toolbar-place.js'
 /** The element `mountEditor` attaches the overlay's shadow root to. */
 export const EDITOR_HOST_ID = 'bearminion-editor-host'
 
-const EDITOR_CHROME = '.bm-toolbar, .bm-popover, .bm-dialog, .bm-rich, .bm-sidebar, .bm-dock, .bm-scrim'
+const EDITOR_CHROME = '.bm-toolbar, .bm-popover, .bm-dialog, .bm-rich, .bm-chrome, .bm-scrim'
 
 export function editorShadowRoot(): ShadowRoot | null {
   return document.getElementById(EDITOR_HOST_ID)?.shadowRoot ?? null
@@ -137,15 +137,21 @@ export function footerBox(): DOMRect | null {
 }
 
 /** Bottom of the closed editor's dock (the pill, Save and the open button), or 0 while the sidebar replaces it. */
-export function dockBottom(): number {
-  return editorShadowRoot()?.querySelector('.bm-dock')?.getBoundingClientRect().bottom ?? 0
-}
-
-export function readStickyPin(): number {
+/** Bottom of the site header while it is stuck to the top of the page area, which starts at `edge`. */
+export function readStickyPin(edge = 0): number {
   const header = document.querySelector('[data-organism="header"]')
   if (!(header instanceof HTMLElement)) return 0
   const rect = header.getBoundingClientRect()
-  return stickyHeaderPin({ position: getComputedStyle(header).position, top: rect.top, bottom: rect.bottom })
+  return stickyHeaderPin({ position: getComputedStyle(header).position, top: rect.top, bottom: rect.bottom }, edge)
+}
+
+/** Where the page is drawn: the canvas while the shell frames it, the window otherwise. */
+export function pageArea(): { top: number; left: number; right: number; bottom: number } {
+  if (document.documentElement.hasAttribute('data-bearminion-shell')) {
+    const rect = document.body.getBoundingClientRect()
+    return { top: rect.top, left: rect.left, right: rect.left + document.body.clientWidth, bottom: rect.bottom }
+  }
+  return { top: 0, left: 0, right: document.documentElement.clientWidth || window.innerWidth, bottom: window.innerHeight }
 }
 
 export interface PointerHit {

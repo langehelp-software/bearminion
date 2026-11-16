@@ -381,7 +381,7 @@ export function ImageField({
   )
 }
 
-async function uploadFile(file: File): Promise<{ image: LibraryImage } | { error: string }> {
+export async function uploadFile(file: File): Promise<{ image: LibraryImage } | { error: string }> {
   const prepared = await prepareImage(file, getUploadRules())
   if (!prepared.ok) return { error: prepared.error }
   const result = await uploadImage(prepared.file)
@@ -390,7 +390,7 @@ async function uploadFile(file: File): Promise<{ image: LibraryImage } | { error
 }
 
 /** Resolves to an error message, or null when the file is gone. */
-async function deleteFile(image: LibraryImage): Promise<string | null> {
+export async function deleteFile(image: LibraryImage): Promise<string | null> {
   const result = await deleteImage(image.filename)
   if (result.ok || result.status === 404) return null
   return result.status === 0 ? 'Delete failed.' : result.message

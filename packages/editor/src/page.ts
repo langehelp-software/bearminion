@@ -87,6 +87,10 @@ export function isSystemPage(slug: string): boolean {
   return (SYSTEM_PAGES as readonly string[]).includes(slug)
 }
 
+/** Whether a page is built. A draft is left out of `astro build`, the listings and the sitemap; `astro dev` still shows it. */
+export const pageStatusSchema = z.enum(['published', 'draft'])
+export type PageStatus = z.infer<typeof pageStatusSchema>
+
 export const slugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase kebab-case (the home page uses "index")')
 
 const cache = new WeakMap<SectionRegistry, z.ZodType>()
@@ -115,6 +119,8 @@ function buildPageSchema(section: z.ZodType) {
     .object({
       slug: slugSchema,
       title: textSchema,
+      /** Absent means published, so files from before page status read as they always did. */
+      status: pageStatusSchema.optional(),
       seo: seoSchema,
       sections: z.array(section).superRefine((sections, ctx) => {
         addSectionIdentityIssues(sections, ctx)
@@ -129,6 +135,8 @@ export type Seo = z.infer<typeof seoSchema>
 export interface Page<TSection extends BaseSection = BaseSection> {
   slug: string
   title: string
+  /** Absent means published. */
+  status?: PageStatus
   seo: Seo
   sections: TSection[]
 }

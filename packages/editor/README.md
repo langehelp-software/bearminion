@@ -28,7 +28,7 @@ npm run dev
 It asks for the site's name and web address. Open the address `npm run dev` prints, press **Ctrl+E** (**Cmd+E** on a Mac), click any text to change it, and press **Ctrl/Cmd+S** to save. Push the folder to GitHub and import it in Vercel, Netlify or Cloudflare Pages to put it online.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the Pages tab in the sidebar" width="100%" />
+  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/editor.png" alt="The BearMinion editor: the navigation, the page with a section toolbar on the hero, and the inspector" width="100%" />
 </p>
 
 ## What you can change
@@ -44,7 +44,7 @@ Content is plain JSON in your project, validated on every save and kept in your 
 **Editing online is opt-in.** `npx bearminion add hosted` sets up a second deployment where people sign in with GitHub and edit in the browser. Whoever may push to the repository may edit, and every save is a commit under their name. See [Edit online](https://docs.bearminion.com/hosted-editor/).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/design.png" alt="The Design tab: color mode, brand, neutral and link colors, and a preview of every section tone in light and dark mode" width="100%" />
+  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/design.png" alt="The Design screen: color mode, brand, neutral and link colors, and a preview of every section tone in light and dark mode" width="100%" />
 </p>
 
 ## Learn more

@@ -8,8 +8,7 @@ import { LinkPopover } from './overlay/link-popover.js'
 import { ImageBarOverlay, Outlines, PageImagePicker } from './overlay/outlines.js'
 import { SectionBars } from './overlay/section-bars.js'
 import { SectionPicker } from './overlay/section-picker.js'
-import { Dock, ExitPreviewButton } from './sidebar/editor-controls.js'
-import { Sidebar } from './sidebar/sidebar.js'
+import { Shell } from './shell/shell.js'
 import { createEditor, EditorContext, useEditor } from './state/editor.js'
 
 /** The editor overlay. Owns one editor instance for its lifetime and connects it to the page. */
@@ -23,27 +22,42 @@ export function EditorApp() {
   )
 }
 
-/** Order matters: later elements paint over earlier ones, and the active section bar must be the first toolbar. */
-function EditorView() {
-  const { doc, ui } = useEditor()
-  if (ui.previewing.value) return <ExitPreviewButton />
-  const catalog = doc.catalog.value
+/** Outlines and bars drawn over the page are clipped to the canvas, so they never paint over the shell. */
+function CanvasLayer() {
+  const { layout } = useEditor()
+  const { area, viewportWidth } = layout.metrics.value
+  const clip = `clip-path:inset(${area.top}px ${Math.max(0, viewportWidth - area.right)}px 0 ${area.left}px);`
   return (
-    <>
+    <div class="bm-canvas-layer" style={clip}>
       <Outlines />
       <InsertGap />
       <ImageBarOverlay />
       <SectionBars />
-      <SectionPicker />
-      <RichTextBar />
-      <HeadingFormatBar />
-      <LinkPopover />
-      <PageImagePicker />
-      <SectionConfirm />
+    </div>
+  )
+}
+
+/** Order matters: later elements paint over earlier ones, and the active section bar must be the first toolbar. */
+function EditorView() {
+  const { doc, ui } = useEditor()
+  const editing = !ui.previewing.value && ui.view.value === 'canvas' && ui.viewport.value === 'desktop'
+  return (
+    <>
+      {editing && (
+        <>
+          <CanvasLayer />
+          <SectionPicker />
+          <RichTextBar />
+          <HeadingFormatBar />
+          <LinkPopover />
+          <PageImagePicker />
+          <SectionConfirm />
+        </>
+      )}
+      <Shell catalog={doc.catalog.value} />
       <DraftBanner />
       <TabNotice />
       <SessionDialogs />
-      {ui.open.value ? catalog && <Sidebar catalog={catalog} /> : <Dock />}
     </>
   )
 }

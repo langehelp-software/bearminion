@@ -1,12 +1,15 @@
 import { batch, effect } from '@preact/signals'
 import { getAt, imageObjectPath, isHeadingField, isImageField, isMultilineField, isRichField } from '../../draft.js'
 import { richLinkAt } from '../../rich-text.js'
-import { editableField, fieldPathOf, insertPlainText, isInEditor, resolvePath, sectionIdOf, textOffset } from '../dom.js'
+import { editableField, fieldPathOf, insertPlainText, isInEditor, pageArea, resolvePath, sectionIdOf, textOffset } from '../dom.js'
 import { mountRichEditor, richEditorOf } from '../rich-editor.js'
 import { isLinkRecord } from '../shared.js'
 import { isPagePath } from '../state/document.js'
 import type { Editor } from '../state/editor.js'
 import type { Dispose } from './reactions.js'
+
+/** Height of the rich-text bar with its padding, so it can sit over a field that ends at the bottom of the window. */
+const RICH_BAR_HEIGHT = 44
 
 function isRich(field: HTMLElement, path = fieldPathOf(field)): boolean {
   return isRichField(path, field.getAttribute('data-field-kind'))
@@ -145,7 +148,12 @@ export function attachPageEditing(editor: Editor): Dispose {
     if (richField) {
       startRich(field, selectionIn(field))
       const rect = field.getBoundingClientRect()
-      ui.rich.value = { top: rect.bottom + 8, left: rect.left }
+      // Under the field, or over it when the field ends too close to the bottom of the window for the bar.
+      const below = rect.bottom + 8
+      ui.rich.value = {
+        top: below + RICH_BAR_HEIGHT <= window.innerHeight ? below : Math.max(pageArea().top + 8, rect.top - RICH_BAR_HEIGHT - 8),
+        left: rect.left,
+      }
     } else {
       field.setAttribute('contenteditable', isHeadingField(resolved) ? 'true' : 'plaintext-only')
       editor.richTarget.current = null

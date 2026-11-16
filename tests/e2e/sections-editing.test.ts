@@ -214,8 +214,8 @@ describe('Text, Gallery and Media editing', () => {
     // A picture without a caption shows its description.
     expect(await caption.innerText()).toBe('Alpha')
     expect(await image.getAttribute('alt')).toBe('Alpha')
-    // The page behind a modal dialog does not scroll.
-    expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe('hidden')
+    // The page behind a modal dialog does not scroll. In the editor's frame, <body> is what scrolls.
+    expect(await page.evaluate(scrollerOverflow)).toBe('hidden')
 
     await page.keyboard.press('ArrowRight')
     expect(await counter.innerText()).toBe('2 / 3')
@@ -238,7 +238,7 @@ describe('Text, Gallery and Media editing', () => {
     // Escape closes it, scrolling comes back, and focus returns to the picture that was showing.
     await page.keyboard.press('Escape')
     await page.waitForFunction(() => !document.querySelector('dialog[data-gallery-dialog]')?.hasAttribute('open'))
-    expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe('hidden')
+    expect(await page.evaluate(scrollerOverflow)).not.toBe('hidden')
     // The dialog's `close` event, which moves focus back, fires a moment after `open` is gone.
     await expect.poll(() => openers.nth(2).evaluate((node) => node === document.activeElement)).toBe(true)
 
@@ -487,4 +487,10 @@ async function openGallerySettings(page: Page): Promise<void> {
   await page.locator('[data-section-id="gallery"]').hover()
   if (!(await form.isVisible())) await toolbar.getByRole('button', { name: 'Settings', exact: true }).click()
   await form.waitFor()
+}
+
+/** The overflow of what scrolls the page: <body> while the editor frames it, the document otherwise. */
+function scrollerOverflow(): string {
+  const framed = document.documentElement.hasAttribute('data-bearminion-shell')
+  return getComputedStyle(framed ? document.body : document.documentElement).overflow
 }

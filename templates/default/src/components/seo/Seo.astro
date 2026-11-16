@@ -30,7 +30,9 @@ const title = site.seo.titleTemplate ? site.seo.titleTemplate.replaceAll('%s', p
 const description = page.seo.description || site.seo.description || ''
 const path = pathname.startsWith('/') ? pathname : `/${pathname}`
 const canonical = page.seo.canonical ? resolveAgainstSite(page.seo.canonical) : new URL(path, site.url).href
-const robots = [page.seo.noindex ? 'noindex' : 'index', page.seo.nofollow ? 'nofollow' : 'follow'].join(', ')
+// SEO › Indexing: with "Allow search engines" off (site.seo.robots false), every page asks not to be indexed.
+const noindex = page.seo.noindex || site.seo.robots === false
+const robots = [noindex ? 'noindex' : 'index', page.seo.nofollow ? 'nofollow' : 'follow'].join(', ')
 const ogImageSrc = page.seo.ogImage ?? site.seo.ogImage
 const ogImage = ogImageSrc ? absoluteImage(ogImageSrc) : undefined
 

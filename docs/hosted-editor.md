@@ -113,7 +113,7 @@ Each page then gets its own branch and pull request (`bearminion/page-about`), l
 
 ## What differs from the editor on your computer
 
-Editing is the same: text on the page, sections, the sidebar tabs, images, drafts, and the live preview that redraws a section as you add it or switch its layout. These differ:
+Editing is the same: text on the page, sections, the inspector, the listings and settings screens, images, drafts, and the live preview that redraws a section as you add it or switch its layout. These differ:
 
 | | On your computer | Online |
 | --- | --- | --- |

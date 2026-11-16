@@ -1,7 +1,7 @@
 import { batch, signal } from '@preact/signals'
-import { SIDEBAR_DEFAULT } from '../../sidebar.js'
+import { INSPECTOR_DEFAULT, type View, type Viewport } from '../../shell.js'
 import type { RichActive } from '../rich-editor.js'
-import type { ConfirmAction, DraftOffer, GitState, HeadingBar, Issue, LinkEdit, Tab } from '../types.js'
+import type { ConfirmAction, DraftOffer, GitState, HeadingBar, InspectorTab, Issue, LinkEdit } from '../types.js'
 
 export type InsertWhere = 'above' | 'below'
 
@@ -23,14 +23,20 @@ export type EditorDialog =
   | { kind: 'commit' }
   | { kind: 'seo' }
   | { kind: 'consent' }
-  | { kind: 'siteJsonLd' }
   | { kind: 'leave'; href: string | null }
 
 export function createUiState() {
-  const open = signal(false)
-  const tab = signal<Tab>('pages')
+  /** Whether the inspector (Page and Section tabs) is open beside the canvas. */
+  const open = signal(true)
+  const inspectorTab = signal<InspectorTab>('page')
+  const inspectorWidth = signal(INSPECTOR_DEFAULT)
+  /** The left navigation: open with labels, or an icon rail. */
+  const navOpen = signal(true)
+  /** What covers the canvas: nothing, a content listing, Media or a settings screen. */
+  const view = signal<View>('canvas')
+  /** Desktop edits the page itself; tablet and mobile show it in a device frame. */
+  const viewport = signal<Viewport>('desktop')
   const previewing = signal(false)
-  const sidebarWidth = signal(SIDEBAR_DEFAULT)
   const status = signal('Loading the page.')
   /** Where a save is: writing the files, then waiting for the page to reload with them. */
   const saveStage = signal<'idle' | 'saving' | 'reloading'>('idle')
@@ -67,6 +73,25 @@ export function createUiState() {
     })
   }
 
+  /** Back to the page with the Section tab of `id` open in the inspector. */
+  function showSection(id: string) {
+    batch(() => {
+      selectSection(id)
+      inspectorTab.value = 'section'
+      open.value = true
+      view.value = 'canvas'
+    })
+  }
+
+  /** Cover the canvas with a listing, Media or a settings screen; `canvas` goes back to the page. */
+  function openView(next: View) {
+    batch(() => {
+      view.value = next
+      closePopovers()
+      if (dialog.peek()?.kind === 'history' || dialog.peek()?.kind === 'changes') dialog.value = null
+    })
+  }
+
   /** Close the link editor, the format bar, the add menu, the picker and the confirm. False when none was open. */
   function closePopovers(): boolean {
     if (!linkEdit.peek() && !headingBar.peek() && !addMenu.peek() && !picker.peek() && !confirm.peek()) return false
@@ -93,20 +118,24 @@ export function createUiState() {
     return false
   }
 
-  /** Errors from a failed save, shown at the top of the sidebar. */
+  /** Errors from a failed save, shown at the top of the inspector and of every full-screen view. */
   function fail(message: string, problems: Issue[] = issues.peek()) {
     batch(() => {
       issues.value = problems
       status.value = message
       open.value = true
+      if (view.peek() === 'canvas') inspectorTab.value = 'page'
     })
   }
 
   return {
     open,
-    tab,
+    inspectorTab,
+    inspectorWidth,
+    navOpen,
+    view,
+    viewport,
     previewing,
-    sidebarWidth,
     status,
     saveStage,
     issues,
@@ -127,6 +156,8 @@ export function createUiState() {
     tabNotice,
     gitState,
     selectSection,
+    showSection,
+    openView,
     closePopovers,
     dismissDialog,
     fail,

@@ -1,5 +1,5 @@
 import { signal } from '@preact/signals'
-import { dockBottom, footerBox, pointerTarget, readStickyPin, sectionBox, type PointerHit } from '../dom.js'
+import { footerBox, pageArea, pointerTarget, readStickyPin, sectionBox, type PointerHit } from '../dom.js'
 import type { DocumentStore } from './document.js'
 
 export interface Size {
@@ -13,8 +13,8 @@ export interface OverlayMetrics {
   viewportHeight: number
   /** Bottom of a sticky header, so bars slide under it rather than over it. */
   pinTop: number
-  /** Bottom of the editor's dock, so bars on the page never sit under it. 0 while the sidebar is open. */
-  dockBottom: number
+  /** Where the page is drawn: the canvas inside the shell. Bars and outlines stay inside it. */
+  area: { top: number; left: number; right: number; bottom: number }
   /** Box of each section in the draft that is in the DOM. */
   sections: ReadonlyMap<string, DOMRect>
   footer: DOMRect | null
@@ -28,7 +28,7 @@ const EMPTY: OverlayMetrics = {
   viewportWidth: 0,
   viewportHeight: 0,
   pinTop: 0,
-  dockBottom: 0,
+  area: { top: 0, left: 0, right: 0, bottom: 0 },
   sections: new Map(),
   footer: null,
   field: null,
@@ -74,11 +74,12 @@ export function createLayout(doc: DocumentStore) {
       if (rect) sections.set(section.id, rect)
     }
     const field = hoveredField()
+    const area = pageArea()
     metrics.value = {
       viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight,
-      pinTop: readStickyPin(),
-      dockBottom: dockBottom(),
+      viewportHeight: area.bottom,
+      pinTop: Math.max(area.top, readStickyPin(area.top)),
+      area,
       sections,
       footer: footerBox(),
       field,

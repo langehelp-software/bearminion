@@ -33,11 +33,12 @@ import {
   type SingleType,
 } from './content-types.js'
 import type { BlockEdit } from './entry-blocks.js'
-import { matchPath } from './routing.js'
+import { isDraft, matchPath } from './routing.js'
 import { ContentReadError, ContentValidationError, type ContentIssue } from './errors.js'
 import { imageBodyLimit, imageTooLarge, kindFromMime, sniffImage } from './image-sniff.js'
 import { sniffVideo, videoBodyLimit, videoKindFromMime } from './video-sniff.js'
 import type { EditorContext } from './editor-context.js'
+import type { ListMeta } from './api-types.js'
 import { API_PREFIX, type SectionRegistry } from './model.js'
 import type { CountRule, Option } from './section-options.js'
 import type { OptionalContent } from './section-optional.js'
@@ -207,7 +208,7 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
   }
 
   if (parts.length === 1 && parts[0] === 'images') {
-    if (method === 'GET') return getImages(scoped(context, 'uploads'))
+    if (method === 'GET') return getImages(scoped(context, 'uploads'), new URL(request.url).searchParams.get('usage') === '1')
     if (method === 'POST') return postImage(request, scoped(context, 'uploads'))
     return methodNotAllowed(['GET', 'POST'])
   }
@@ -707,17 +708,30 @@ const sectionAnchors = (sections: readonly unknown[]): string[] =>
       : [],
   )
 
+/** Draft, noindex and the time of the last change: what the listings show beside each document. */
+async function listMeta(context: EditorContext, stored: StoredPage): Promise<ListMeta> {
+  const time = await context.store.modified?.(stored.key).catch(() => undefined)
+  return {
+    ...(isDraft(stored.page) ? { draft: true } : {}),
+    ...(stored.page.seo.noindex === true ? { noindex: true } : {}),
+    ...(time === undefined ? {} : { updatedAt: new Date(time).toISOString() }),
+  }
+}
+
 async function getPages(context: EditorContext): Promise<Response> {
   const loaded = await loadStoredPages(context)
   if (loaded.response) return loaded.response
   return json(200, {
-    pages: loaded.pages.map((entry) => ({
-      slug: entry.page.slug,
-      title: entry.page.title,
-      file: entry.fileName,
-      system: isSystemPage(entry.page.slug),
-      anchors: sectionAnchors(entry.page.sections),
-    })),
+    pages: await Promise.all(
+      loaded.pages.map(async (entry) => ({
+        slug: entry.page.slug,
+        title: entry.page.title,
+        file: entry.fileName,
+        system: isSystemPage(entry.page.slug),
+        anchors: sectionAnchors(entry.page.sections),
+        ...(await listMeta(context, entry)),
+      })),
+    ),
   })
 }
 
@@ -737,6 +751,7 @@ async function getEntries(context: EditorContext, type: MultiType): Promise<Resp
   if (loaded.response) return loaded.response
   const own = loaded.pages.filter((entry) => documentType(context, type, entry.page.slug) === type)
   const files = new Map(own.map((entry) => [entry.page.slug, entry.fileName]))
+  const metas = new Map(await Promise.all(own.map(async (entry) => [entry.page.slug, await listMeta(context, entry)] as const)))
   const sorted = sortEntries(
     type,
     own.map((entry) => entry.page),
@@ -751,6 +766,7 @@ async function getEntries(context: EditorContext, type: MultiType): Promise<Resp
       path: entryPath(type, entry.slug),
       ...(by === null ? {} : { sortValue: entry.fields?.[by] }),
       anchors: sectionAnchors(entry.sections),
+      ...metas.get(entry.slug),
     })),
   })
 }
@@ -1207,9 +1223,13 @@ async function postSitePreview(request: Request, context: EditorContext, meta: H
   }
 }
 
-async function getImages(context: EditorContext): Promise<Response> {
+/** The uploaded images and the upload rules. With `?usage=1`, each image also says where the saved content uses it. */
+async function getImages(context: EditorContext, withUsage = false): Promise<Response> {
   const limits: UploadRules = { maxBytes: context.maxImageBytes, convert: context.imageConvert }
-  return json(200, { images: await context.store.uploads.list(), limits })
+  const images = await context.store.uploads.list()
+  if (!withUsage) return json(200, { images, limits })
+  const usages = await allImageUsages(context)
+  return json(200, { images: images.map((image) => ({ ...image, usages: usages.get(image.path) ?? [] })), limits })
 }
 
 function decodeSegment(segment: string): string {
@@ -1254,14 +1274,20 @@ async function storedDocuments(context: EditorContext): Promise<{ name: string; 
  * drafts before it asks to delete, and saving a draft that still points at a deleted image fails validation.
  */
 async function imageUsages(context: EditorContext, src: string): Promise<string[]> {
+  return (await allImageUsages(context)).get(src) ?? []
+}
+
+/** Every image the saved content uses, with where: one pass over the files instead of one per image. */
+async function allImageUsages(context: EditorContext): Promise<Map<string, string[]>> {
   const labels = Object.fromEntries(Object.values(context.sections).map((definition) => [definition.type, definition.label]))
-  const usages: string[] = []
+  const usages = new Map<string, string[]>()
+  const add = (src: string, where: string) => usages.set(src, [...(usages.get(src) ?? []), where])
   const site = await readStoredJson(context, SITE_KEY, 'site')
-  for (const ref of assetRefs(site)) if (ref.src === src) usages.push(describeSiteRef(ref))
+  for (const ref of assetRefs(site)) add(ref.src, describeSiteRef(ref))
   for (const { name, document: page } of await storedDocuments(context)) {
     const title = 'title' in page && typeof page.title === 'string' ? page.title : name
     const sections = 'sections' in page && Array.isArray(page.sections) ? (page.sections as { type: string }[]) : []
-    for (const ref of assetRefs(page)) if (ref.src === src) usages.push(describePageRef(ref, { title, sections }, labels))
+    for (const ref of assetRefs(page)) add(ref.src, describePageRef(ref, { title, sections }, labels))
   }
   return usages
 }
@@ -1413,6 +1439,8 @@ const createPageSchema = z
     template: z.string().min(1).optional(),
     /** The entry's own fields, for a type that declares them. */
     fields: z.record(z.string(), z.unknown()).optional(),
+    /** `draft` starts the entry as a draft. Absent: published, as before. */
+    status: z.enum(['published', 'draft']).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -1467,7 +1495,7 @@ function pageFromSection(
 }
 
 function draftPage(
-  input: { slug: string; title: string; template?: string; fields?: Record<string, unknown> },
+  input: { slug: string; title: string; template?: string; fields?: Record<string, unknown>; status?: 'published' | 'draft' },
   pages: readonly StoredPage[],
   registry: SectionRegistry,
   type: MultiType,
@@ -1475,12 +1503,14 @@ function draftPage(
   const slug = readSlug(input.slug)
   if (slug === null) return { response: badSlug() }
   const seo = { title: input.title, description: '', noindex: false, nofollow: false }
+  const status = input.status === 'draft' ? { status: 'draft' as const } : {}
   // A new entry starts with something in each required field, so it can be created from a title alone and filled in
   // afterwards. What the body sends wins; the type's schema still has the last word.
   const fields = type.fields || input.fields ? { fields: { ...(type.fields ? starterFields(type.fields) : {}), ...input.fields } } : {}
   const allowed = (name: string): boolean => type.sections === null || type.sections.includes(name)
   const drafted = (definition: SectionRegistry[string]) => ({
     ...(pageFromSection(slug, input.title, seo, definition) as object),
+    ...status,
     ...fields,
   })
 
@@ -1521,6 +1551,7 @@ function draftPage(
     page: {
       slug,
       title: input.title,
+      ...status,
       seo,
       sections: structuredClone(source.page.sections),
       ...(input.fields === undefined && source.page.fields ? { fields: structuredClone(source.page.fields) } : fields),

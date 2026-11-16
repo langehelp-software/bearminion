@@ -1,12 +1,12 @@
 import type { JSX } from 'preact'
-import { describePageChanges, describeSiteChanges } from '../../changes.js'
+import { type ChangeEntry, describePageChanges, describeSiteChanges } from '../../changes.js'
 import { getAt, type PageDraft } from '../../draft.js'
-import type { JsonLdBlock } from '../../json-ld.js'
 import { isSystemPage } from '../../page.js'
 import { text } from '../shared.js'
-import { consentReopenOf, consentTextOf, siteJsonLdOf, siteJsonLdSourceOf } from '../site-draft.js'
+import { consentReopenOf, consentTextOf } from '../site-draft.js'
 import { type Editor, useEditor } from '../state/editor.js'
 import { ScrollLock } from '../scroll-lock.js'
+import { TopBarPopover } from '../shell/popover.js'
 import type { EditorDialog } from '../state/ui.js'
 import type { Catalog, ConfirmAction } from '../types.js'
 import { ChangesDialog } from './changes-dialog.js'
@@ -15,7 +15,6 @@ import { ConsentDialog } from './consent-dialog.js'
 import { ConfirmDialog, LeaveDialog } from './dialog.js'
 import { HistoryDialog } from './history-dialog.js'
 import { SeoDialog } from './seo-dialog.js'
-import { SiteJsonLdDialog } from './site-jsonld-dialog.js'
 
 function parseJson(text: string): unknown {
   if (!text) return null
@@ -24,6 +23,18 @@ function parseJson(text: string): unknown {
   } catch {
     return null
   }
+}
+
+/** What differs from the saved files, per file: the open document's, then `site.json`. */
+export function unsavedFiles(doc: Editor['doc']): { file: string; scope: 'page' | 'site'; entries: ChangeEntry[] }[] {
+  return [
+    {
+      file: doc.pageFile.value,
+      scope: 'page',
+      entries: describePageChanges(parseJson(doc.savedPageJson.value), doc.page.value, doc.catalog.value?.sectionLabels),
+    },
+    { file: 'site.json', scope: 'site', entries: describeSiteChanges(parseJson(doc.savedSiteJson.value), doc.site.value) },
+  ]
 }
 
 /** Dialog body and note for duplicate and delete. The target is bold and named the way the toolbar names it. */
@@ -82,6 +93,18 @@ export function SessionDialogs() {
   const editor = useEditor()
   const dialog = editor.ui.dialog.value
   if (!dialog) return null
+  // Version history and the unsaved changes hang from their top-bar buttons and leave the page usable.
+  if (dialog.kind === 'history' || dialog.kind === 'changes') {
+    return (
+      <TopBarPopover
+        onClose={() => {
+          editor.ui.dialog.value = null
+        }}
+      >
+        <SessionDialog editor={editor} dialog={dialog} />
+      </TopBarPopover>
+    )
+  }
   return (
     <>
       <ScrollLock />
@@ -154,21 +177,6 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
         />
       )
     }
-    case 'siteJsonLd': {
-      const site = doc.site.value
-      if (!site) return null
-      return (
-        <SiteJsonLdDialog
-          blocks={siteJsonLdOf(site)}
-          source={siteJsonLdSourceOf(site)}
-          onApply={(blocks: JsonLdBlock[]) => {
-            edits.writeField('seo.jsonLd', blocks.length > 0 ? blocks : undefined)
-            close()
-          }}
-          onClose={close}
-        />
-      )
-    }
     case 'discard':
       return (
         <ConfirmDialog
@@ -190,14 +198,7 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
       if (!doc.dirty.value) return null
       return (
         <ChangesDialog
-          files={[
-            {
-              file: doc.pageFile.value,
-              scope: 'page',
-              entries: describePageChanges(parseJson(doc.savedPageJson.value), doc.page.value, doc.catalog.value?.sectionLabels),
-            },
-            { file: 'site.json', scope: 'site', entries: describeSiteChanges(parseJson(doc.savedSiteJson.value), doc.site.value) },
-          ]}
+          files={unsavedFiles(doc)}
           onSave={() => {
             close()
             void session.saveAndGo(null)

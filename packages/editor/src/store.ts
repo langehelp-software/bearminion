@@ -56,6 +56,15 @@ export function createFileStore({ root, contentDir, uploadsDir, videosDir }: Fil
       )
     },
 
+    async modified(key) {
+      try {
+        return (await stat(resolve(key))).mtimeMs
+      } catch (error) {
+        if (isErrno(error) && (error.code === 'ENOENT' || error.code === 'ENOTDIR')) return undefined
+        throw error
+      }
+    },
+
     async list(dir) {
       const directory = resolve(dir)
       let entries: Dirent[]

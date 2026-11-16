@@ -20,7 +20,7 @@ function scriptKey(script: HTMLScriptElement): string {
   return script.src || `inline:${script.textContent ?? ''}`
 }
 
-function scriptsOnPage(): Set<string> {
+export function scriptsOnPage(): Set<string> {
   return new Set(Array.from(document.scripts, scriptKey))
 }
 
@@ -29,7 +29,7 @@ function scriptsOnPage(): Set<string> {
  * a field that now renders a component) brings scripts the page has not loaded, so those are added again as live
  * elements. Scripts the page already ran are left alone: their code listens for `bearminion:preview` instead.
  */
-function runNewScripts(root: Element, ran: Set<string>) {
+export function runNewScripts(root: Element, ran: Set<string>) {
   for (const inert of root.querySelectorAll('script')) {
     const key = scriptKey(inert)
     if (ran.has(key)) continue

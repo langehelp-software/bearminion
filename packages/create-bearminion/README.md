@@ -28,12 +28,12 @@ cd my-site
 npm run dev
 ```
 
-Open the address it prints and press **Ctrl+E** (**Cmd+E** on a Mac). Click any text to change it, and press **Ctrl/Cmd+S** to save. Push the folder to GitHub and import it in Vercel, Netlify or Cloudflare Pages to put it online.
+Open the address it prints: the editor opens around the page. Click any text to change it, and press **Ctrl/Cmd+S** to save. Push the folder to GitHub and import it in Vercel, Netlify or Cloudflare Pages to put it online.
 
 `pnpm create bearminion`, `yarn create bearminion` and `bun create bearminion` work the same way and install with that package manager.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the Pages tab in the sidebar" width="100%" />
+  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/editor.png" alt="The BearMinion editor: the navigation, the page with a section toolbar on the hero, and the inspector" width="100%" />
 </p>
 
 ## Options
