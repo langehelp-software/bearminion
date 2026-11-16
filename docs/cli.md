@@ -122,6 +122,7 @@ npx bearminion add blog                # a ready blog, no questions
 | `--field <field>` | Once per field: `name:kind`, `name?:kind` when optional, `name:choice=a\|b\|c`. Kinds: `text`, `long-text`, `date`, `number`, `switch`, `choice`, `image`, `list` |
 | `--sort <field>` | The order of entries: `date:desc`. Default: title, A to Z |
 | `--listing <n>` | Entries on one listing page (default 10), or `none` |
+| `--files-only` | Only bring the site's own files up to date and declare nothing, for types you write by hand ([below](#update-a-site-for-content-types)) |
 
 It writes the type to `src/lib/types/<id>.ts`, adds it to `src/lib/types/index.ts`, and the first time passes those to `src/lib/content-model.ts` with `types: siteTypes`. A content model that is not shaped like the starter's, or declares types some other way, is left alone and gets the lines to add. Before writing, it checks the type the way `astro dev` would and that no page or other type has its address. It also updates the site's own files first, as below. `add blog` is `add type` with the blog already answered: posts at `/blog/<slug>` with a date, an excerpt, a cover and a draft switch, newest first, listed at `/blog`. More in [Content types](content-types.md).
 

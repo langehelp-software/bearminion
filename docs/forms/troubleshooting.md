@@ -5,7 +5,7 @@ description: "What the editor and the build tell you while you set a form up, ho
 
 ## While you build
 
-- `astro dev` and `astro build` print a warning for each Contact section while `src/forms/contact.ts` does not exist. It is a warning, not an error, so a new site still starts and builds.
+- `astro dev` and `astro build` print a warning for each Contact section while `src/forms/contact.ts` does not exist. It is a warning, not an error, so the site still starts and builds while you set the handler up.
 - The section's settings in the editor show the same warning, or, once the file exists, a note that your own code handles the form and has to be tested by hand. The check looks for the file only. It cannot know whether your keys, your service or your host are set up.
 - In **Preview** the form behaves as it will on the live site, including the 1.5 second wait and the error message. Send one to see the thank-you text.
 - `src/forms/<name>.ts` answers at `/api/<name>` on the dev server. Edits to the file apply on the next send, with no restart. Change the folder or the path with `forms: { dir: 'server/forms', prefix: '/hooks' }` in the `bearminion()` options, or turn the route off with `forms: false`.

@@ -56,7 +56,7 @@ Inside an existing git repository, the site is added as a folder and no new repo
 
 ## What you get
 
-The [default BearMinion template](https://github.com/langehelp-software/bearminion/tree/main/templates/default): an Astro and Tailwind site with fourteen section types, the [`bearminion`](https://www.npmjs.com/package/bearminion) editor at the same version as this package, and content as JSON files you own and commit. The template ships inside this package, so it works offline and always matches its editor.
+The [default BearMinion template](https://github.com/langehelp-software/bearminion/tree/main/templates/default): an Astro and Tailwind site with nine section types (five more, Contact included, are one `npx bearminion add` away), the [`bearminion`](https://www.npmjs.com/package/bearminion) editor at the same version as this package, and content as JSON files you own and commit. The template ships inside this package, so it works offline and always matches its editor.
 
 ## Learn more
 
