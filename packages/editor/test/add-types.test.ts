@@ -96,10 +96,10 @@ async function exec(argv: string[], registry: string, extra: Record<string, unkn
   return { code, text: out.join('\n') }
 }
 
-describe('bearminion add types', () => {
+describe('bearminion add type --files-only', () => {
   it('updates the files of a 1.20 site, adds the listing components, and says what is left', async () => {
     const root = site()
-    const { code, text } = await exec(['add', 'types', '--cwd', root, '--yes'], registryDir())
+    const { code, text } = await exec(['add', 'type', '--files-only', '--cwd', root, '--yes'], registryDir())
     expect(code, text).toBe(0)
     for (const [file, content] of Object.entries(NEW)) expect(read(root, file), file).toBe(content)
     expect(text).toContain(`update    ${ROUTE}`)
@@ -115,21 +115,21 @@ describe('bearminion add types', () => {
   it('stops on a file the person changed, writes nothing, and replaces it with --overwrite', async () => {
     const registry = registryDir()
     const root = site({ ...OLD, [ROUTE]: '---\n// my own route\n---\n' })
-    const stopped = await exec(['add', 'types', '--cwd', root, '--yes'], registry)
+    const stopped = await exec(['add', 'type', '--files-only', '--cwd', root, '--yes'], registry)
     expect(stopped.code).toBe(1)
     expect(stopped.text).toContain(`conflict  ${ROUTE}`)
     expect(stopped.text).toContain('Nothing was written.')
     expect(read(root, 'src/lib/content.ts')).toBe(OLD['src/lib/content.ts'])
     expect(fs.existsSync(path.join(root, 'src/components/organisms/EntryList.astro'))).toBe(false)
 
-    const forced = await exec(['add', 'types', '--cwd', root, '--yes', '--overwrite'], registry)
+    const forced = await exec(['add', 'type', '--files-only', '--cwd', root, '--yes', '--overwrite'], registry)
     expect(forced.code, forced.text).toBe(0)
     expect(read(root, ROUTE)).toBe(NEW[ROUTE])
   })
 
   it('has nothing to do on a current site, and no note when the config already passes routes', async () => {
     const root = site(NEW, 'sitemap({ filter: createSitemapFilter(siteRoutes(model, content)) })\n')
-    const { code, text } = await exec(['add', 'types', '--cwd', root, '--yes'], registryDir())
+    const { code, text } = await exec(['add', 'type', '--files-only', '--cwd', root, '--yes'], registryDir())
     expect(code).toBe(0)
     expect(text).toContain('Nothing to write')
     expect(text).not.toContain('is yours')
@@ -138,15 +138,15 @@ describe('bearminion add types', () => {
   it('writes nothing with --dry-run, reports JSON, and does not write unasked', async () => {
     const registry = registryDir()
     const root = site()
-    const dry = await exec(['add', 'types', '--cwd', root, '--dry-run'], registry)
+    const dry = await exec(['add', 'type', '--files-only', '--cwd', root, '--dry-run'], registry)
     expect(dry.code).toBe(0)
     expect(dry.text).toContain('Dry run: nothing was written.')
     expect(read(root, ROUTE)).toBe(OLD[ROUTE])
-    const json = JSON.parse((await exec(['add', 'types', '--cwd', root, '--dry-run', '--json'], registry)).text)
+    const json = JSON.parse((await exec(['add', 'type', '--files-only', '--cwd', root, '--dry-run', '--json'], registry)).text)
     expect(json).toMatchObject({ ok: true, dryRun: true, written: [] })
     expect(json.files).toContainEqual({ path: ROUTE, action: 'update' })
-    expect((await exec(['add', 'types', '--cwd', root], registry)).code).toBe(1)
-    expect((await exec(['add', 'types', 'blog', '--cwd', root, '--yes'], registry)).code).toBe(2)
+    expect((await exec(['add', 'type', '--files-only', '--cwd', root], registry)).code).toBe(1)
+    expect((await exec(['add', 'type', 'blog', '--files-only', '--cwd', root, '--yes'], registry)).code).toBe(2)
     expect(read(root, ROUTE)).toBe(OLD[ROUTE])
   })
 })
@@ -211,6 +211,7 @@ describe('bearminion add blog', () => {
     expect(JSON.parse(text)).toMatchObject({ ok: true, dryRun: true, declared: { id: 'blog' } })
     expect(read(dry, CONTENT_MODEL_PATH)).toBe(MODEL)
     expect((await exec(['add', 'blog', 'news', '--cwd', dry, '--yes'], registry)).code).toBe(2)
+    expect((await exec(['add', 'blog', '--files-only', '--cwd', dry, '--yes'], registry)).code).toBe(2)
   })
 })
 

@@ -70,7 +70,7 @@ With `--json` the document has `ok`, `version`, `sections`, `files` (each with i
 
 ## Add a form handler
 
-The Contact form posts to `/api/contact`, and a handler in `src/forms/contact.ts` answers there. `add form` writes it, and the few lines of glue your host needs to run it:
+The Contact form posts to `/api/contact`, and a handler in `src/forms/contact.ts` answers there. `add form` writes it, and the few lines of glue your host needs to run it. A new site has no Contact section: `add form` adds it too, so one command gives you the section, the handler and the glue. Then put the section on a page in the editor (Add section, Contact).
 
 ```sh
 npx bearminion add form --list                   # what can be added
@@ -123,17 +123,17 @@ npx bearminion add blog                # a ready blog, no questions
 | `--sort <field>` | The order of entries: `date:desc`. Default: title, A to Z |
 | `--listing <n>` | Entries on one listing page (default 10), or `none` |
 
-It writes the type to `src/lib/types/<id>.ts`, adds it to `src/lib/types/index.ts`, and the first time passes those to `src/lib/content-model.ts` with `types: siteTypes`. A content model that is not shaped like the starter's, or declares types some other way, is left alone and gets the lines to add. Before writing, it checks the type the way `astro dev` would and that no page or other type has its address. It also updates the site's own files like `add types` below. `add blog` is `add type` with the blog already answered: posts at `/blog/<slug>` with a date, an excerpt, a cover and a draft switch, newest first, listed at `/blog`. More in [Content types](content-types.md).
+It writes the type to `src/lib/types/<id>.ts`, adds it to `src/lib/types/index.ts`, and the first time passes those to `src/lib/content-model.ts` with `types: siteTypes`. A content model that is not shaped like the starter's, or declares types some other way, is left alone and gets the lines to add. Before writing, it checks the type the way `astro dev` would and that no page or other type has its address. It also updates the site's own files first, as below. `add blog` is `add type` with the blog already answered: posts at `/blog/<slug>` with a date, an excerpt, a cover and a draft switch, newest first, listed at `/blog`. More in [Content types](content-types.md).
 
 `--dry-run`, `-y`, `--overwrite`, `--diff`, `--json` and `--cwd` work as for sections.
 
 ## Update a site for content types
 
-A site made before 1.21 has a route file that knows only pages. Content types need the starter's current files. `add type` brings them in on its way; `add types` brings them in alone, for a site whose types you declare by hand:
+A site made before 1.21 has a route file that knows only pages. Content types need the starter's current files. `add type` brings them in on its way; `--files-only` brings them in alone, for a site whose types you declare by hand:
 
 ```sh
-npx bearminion add types --dry-run     # look first
-npx bearminion add types               # write
+npx bearminion add type --files-only --dry-run     # look first
+npx bearminion add type --files-only               # write
 ```
 
 It writes the starter's own files, from this release, like a section's files: the page route (`src/pages/[...slug].astro`), `src/content.config.ts`, `src/lib/content.ts`, `src/lib/sitemap.ts`, and the two components a listing page uses (`EntryList.astro`, `Pagination.astro`). A file of an earlier release that you did not change is replaced; one you changed stops the command (`--diff` shows how, `--overwrite` replaces it).

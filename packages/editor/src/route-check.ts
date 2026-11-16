@@ -51,7 +51,7 @@ export function missingRoutesMessage(missing: readonly string[]): string {
   return (
     `The content model declares content types, but the build wrote no page for: ${shown}${more}. ` +
     `${ROUTE_FILE} is the starter's file from before content types and knows only pages. ` +
-    `Update the site's files with \`npx bearminion add types\`, then build again. ${TYPES_UPGRADE_DOCS}`
+    `Update the site's files with \`npx bearminion add type --files-only\`, then build again. ${TYPES_UPGRADE_DOCS}`
   )
 }
 
@@ -74,6 +74,6 @@ export function staleRouteFile(model: ContentModel, root: string): string | unde
   return (
     `The content model declares content types, but ${ROUTE_FILE} is the starter's file from before content types: ` +
     `entries, singles and listing pages will answer 404. Update the site's files with ` +
-    `\`npx bearminion add types\`. ${TYPES_UPGRADE_DOCS}`
+    `\`npx bearminion add type --files-only\`. ${TYPES_UPGRADE_DOCS}`
   )
 }

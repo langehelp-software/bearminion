@@ -36,7 +36,7 @@ npx bearminion add type about --kind single --field 'intro?:long-text'
 
 A field is `name:kind`; `name?:kind` makes it optional, and a choice lists its options after `=`. A switch and a list always have a value (off, empty), and an image is always optional. `--listing none` leaves the listing page out. `--dry-run` shows the type's file without writing it.
 
-The command checks the type the way `astro dev` would (the id, the address, the sort field) and that no page or other type already has the address, before it writes anything. It also brings the site's own files up to the ones that publish types, like `add types` below.
+The command checks the type the way `astro dev` would (the id, the address, the sort field) and that no page or other type already has the address, before it writes anything. It also brings the site's own files up to the ones that publish types, as in [Upgrading from 1.20](#upgrading-from-120).
 
 ## Where types live
 
@@ -160,8 +160,8 @@ Updating the package changes nothing on a site that declares no types: the same 
 `npx bearminion add type` brings the site's own files up to date before it declares the type. To declare types by hand on a site made before 1.21, bring the files up to date first:
 
 ```sh
-npx bearminion add types --dry-run
-npx bearminion add types
+npx bearminion add type --files-only --dry-run
+npx bearminion add type --files-only
 ```
 
 It updates the page route, `src/content.config.ts`, `src/lib/content.ts` and `src/lib/sitemap.ts`, and adds the two listing components. Files you did not change are replaced; a file you changed stops the command, and `--diff` shows how it differs. Your `astro.config.ts` is never edited: change the sitemap lines above by hand. More in [the CLI](cli.md#update-a-site-for-content-types).

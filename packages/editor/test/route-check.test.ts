@@ -78,7 +78,7 @@ describe('missingRoutes', () => {
     expect(message).toContain('/blog/p0, /blog/p1')
     expect(message).toContain('and 3 more')
     expect(message).not.toContain('/blog/p10')
-    expect(message).toContain('npx bearminion add types')
+    expect(message).toContain('npx bearminion add type --files-only')
     expect(message).toContain('https://docs.bearminion.com/content-types/')
   })
 })
@@ -88,7 +88,7 @@ describe('staleRouteFile', () => {
 
   it('warns when the model declares types and the route file predates them', () => {
     const root = project({ [route]: "---\nconst page = await getPage(Astro.params.slug ?? 'index')\n---\n" })
-    expect(staleRouteFile(withTypes, root)).toContain('npx bearminion add types')
+    expect(staleRouteFile(withTypes, root)).toContain('npx bearminion add type --files-only')
   })
 
   it('is quiet for a current route file, a site without types, and a site with routes of its own', () => {

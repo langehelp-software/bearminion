@@ -40,8 +40,8 @@ Usage
   npx bearminion add form [<service>] [--host <host>]
   npx bearminion add hosted [--host vercel]
   npx bearminion add type [<id>] [--kind multi|single] [--field name:kind ...]
+  npx bearminion add type --files-only
   npx bearminion add blog
-  npx bearminion add types
   npx bearminion status [--json]
   npx bearminion check form [--host <host>] [--json]
   npx bearminion sync [options]
@@ -49,9 +49,9 @@ Usage
 Commands
   add               Copy sections into this site, with the files they need
   add hosted        Set the site up for the hosted editor: the starter files it needs, the editor module, and a build for the editor deployment
-  add type          Declare a content type: posts, projects, an About page. Asks what it is in a terminal, or takes flags
+  add type          Declare a content type: posts, projects, an About page. Asks what it is in a terminal, or takes flags.
+                    First brings the site's own files up to the ones that publish types (a site made before 1.21 needs that)
   add blog          add type with a ready blog: posts at /blog/<slug> with a date, excerpt, cover and draft switch, newest first
-  add types         Only bring the site's own files up to the ones that publish content types. For a site made before 1.21
   status            Show which sections are in this site and whether their files match this release
   check form        Look for what keeps the Contact form from working: missing files, wrong names, unset variables
   sync              Rewrite sections/definitions.gen.ts and components.gen.ts from the section directories
@@ -81,9 +81,10 @@ Options for add type
                     Kinds: text, long-text, date, number, switch, choice, image, list
   --sort <field>    The order of entries: date:desc, title:asc (the default)
   --listing <n>     Entries on one listing page (default 10), or none for no listing page
+  --files-only      Only bring the site's files up to date, and declare nothing: for types you declare by hand
   Without --kind, --path, --label, --field, --sort or --listing, a terminal asks instead
 
-Options for add type, add blog and add types
+Options for add type and add blog
   --dry-run, -y, --overwrite, --json, --diff work as for sections
 
 Options for check form
@@ -162,6 +163,7 @@ function parse(argv: readonly string[]) {
       field: { type: 'string', multiple: true },
       sort: { type: 'string' },
       listing: { type: 'string' },
+      'files-only': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
     },
   })
@@ -234,8 +236,7 @@ function diffAgainstRelease(root: string, registryDir: string, file: string): st
 async function runAdd(root: string, names: string[], values: Values, io: Io): Promise<number> {
   if (names[0] === 'form') return runAddForm(root, names.slice(1), values, io)
   if (names[0] === 'hosted') return runAddHosted(root, names.slice(1), values, io)
-  if (names[0] === 'types') return runAddTypes(root, names.slice(1), values, io, 'files')
-  if (names[0] === 'type') return runAddTypes(root, names.slice(1), values, io, 'type')
+  if (names[0] === 'type') return runAddTypes(root, names.slice(1), values, io, values['files-only'] ? 'files' : 'type')
   if (names[0] === 'blog') return runAddTypes(root, names.slice(1), values, io, 'blog')
   const { log } = io
   const json = values.json === true
@@ -622,7 +623,7 @@ async function resolveSpec(
 }
 
 /**
- * `add types` brings the site's own files up to the ones that publish content types. `add type` does the same, then
+ * `add type --files-only` brings the site's own files up to the ones that publish content types. `add type` does that, then
  * declares one type: its file in src/lib/types, a line in the index, and `types: siteTypes` in the content model when
  * that file is shaped like the starter's. `add blog` is `add type` with the blog preset.
  */
@@ -634,9 +635,11 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
     return code
   }
   let declaration: Declaration | undefined
+  if (mode === 'blog' && values['files-only'])
+    return fail('`add blog` declares the blog. For the files alone: npx bearminion add type --files-only', 2)
   if (mode === 'files') {
     if (names.length > 0 || hasShapeFlags(values)) {
-      return fail("`add types` takes no names: it updates the site's files. To declare a type, run `npx bearminion add type`.", 2)
+      return fail('--files-only updates the files and declares nothing: leave out the id and the type options.', 2)
     }
   } else {
     const spec = await resolveSpec(root, names, values, io, mode)
@@ -940,10 +943,26 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
   } catch (error) {
     return fail(error instanceof Error ? error.message : String(error))
   }
-  const { registry } = loaded
+  const { registry, dir: registryDir } = loaded
   const plan = planForm(root, handler, glue, values.overwrite === true)
-  const conflicts = plan.files.filter((file) => file.action === 'conflict')
-  const changes = plan.files.filter((file) => file.action !== 'same')
+  // The starter has no Contact section. The form is that section, so a site without it gets it with the recipe.
+  const contact = findItem(registry, 'contact')
+  const sectionsDir = path.join(root, SECTIONS_PATH)
+  const withSection =
+    contact !== undefined &&
+    !fs.existsSync(path.join(sectionsDir, contact.dir)) &&
+    fs.existsSync(path.join(sectionsDir, 'definitions.gen.ts'))
+  let sectionPlan: Plan | undefined
+  if (withSection && contact !== undefined) {
+    try {
+      sectionPlan = planAdd(root, registry, [contact], { overwrite: values.overwrite, lock: readLock(root, registry.template) })
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : String(error))
+    }
+  }
+  const sectionFiles = sectionPlan?.files ?? []
+  const conflicts = [...sectionFiles, ...plan.files].filter((file) => file.action === 'conflict')
+  const changes = [...sectionFiles.filter((file) => writesFile(file.action)), ...plan.files.filter((file) => file.action !== 'same')]
   const report = (extra: Record<string, unknown>) =>
     JSON.stringify(
       {
@@ -953,6 +972,9 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
         host: glue?.name ?? null,
         hostDetected: detected !== undefined,
         files: plan.files.map(({ path: file, action }) => ({ path: file, action })),
+        ...(sectionPlan
+          ? { section: { name: 'contact', files: sectionFiles.map(({ path: file, action }) => ({ path: file, action })) } }
+          : {}),
         env: plan.env,
         ...extra,
       },
@@ -965,6 +987,7 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
       `${values['dry-run'] ? 'Would add' : 'Adding'} the form recipe${glue ? ` for ${glue.name}${detected ? ' (found from the project)' : chosen ? ' (your choice)' : ''}` : ''}${handler ? ` with ${handler.name}` : ''}`,
     )
     log('')
+    if (sectionPlan) log('  The Contact section, which this site does not have yet:')
     for (const file of changes) log(`  ${LABELS[file.action].padEnd(9)} ${file.path}`)
     const same = plan.files.length - changes.length
     if (same > 0) log(`  ${same} file${same === 1 ? '' : 's'} already match the recipe.`)
@@ -1002,9 +1025,10 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
 
   let written: string[]
   try {
+    const sectionWritten = sectionPlan ? applyPlan(root, registryDir, registry, sectionPlan) : []
     const applied = applyForm(root, plan, registry.version, readLock(root, registry.template))
     writeLock(root, applied.lock)
-    written = applied.written
+    written = [...sectionWritten, ...applied.written]
   } catch (error) {
     return fail(error instanceof Error ? error.message : String(error))
   }
@@ -1013,6 +1037,7 @@ async function runAddForm(root: string, names: string[], values: Values, io: Io)
     return 0
   }
   log(`Wrote ${written.length} file${written.length === 1 ? '' : 's'} and noted them in bearminion.lock.json.`)
+  if (sectionPlan) log('Add the Contact section to a page in the editor: Add section, Contact.')
   if (plan.env.length > 0) {
     log(`Set ${plan.env.join(', ')} in your host's settings, and in .env for \`astro dev\`.`)
     if (plan.env.includes('CONTACT_FROM'))

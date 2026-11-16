@@ -6,7 +6,7 @@ import { recordFiles } from './lock.js'
 import type { FileAction } from './plan.js'
 
 /*
- * `bearminion add types`: brings the files of a site made before content types up to the ones that publish declared
+ * `bearminion add type` (and `--files-only` alone): brings the files of a site made before content types up to the ones that publish declared
  * types (the route, the collections, the content readers, the listing's components). It writes the starter's own files
  * only. The content model and `astro.config.ts` are the site's and are never touched; `notes` says what to do there.
  */

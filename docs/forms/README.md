@@ -10,7 +10,7 @@ A contact form that answers "Message sent." when it sent nothing is worse than h
 
 ## The quick way
 
-One command writes the handler and the glue for your host:
+One command writes the handler and the glue for your host, and adds the Contact section when the site does not have it yet (a new site does not):
 
 ```sh
 npx bearminion add form resend --host vercel
@@ -18,7 +18,7 @@ npx bearminion add form resend --host netlify
 npx bearminion add form resend --host cloudflare
 ```
 
-Run the one for your host. A real message has gone through each of them with Resend.
+Run the one for your host, then put the Contact section on a page in the editor. A real message has gone through each of them with Resend.
 
 > **Set the two addresses before you deploy.** The handler reads them from the environment, so they are not in your repository: `CONTACT_FROM` is the sender, an address on a domain you verified with Resend, and `CONTACT_TO` is the inbox that receives the messages. Until both are set the form refuses to send and the visitor sees the error toast. On Cloudflare they go under `vars` in `wrangler.jsonc`, which does put them in the repository.
 
