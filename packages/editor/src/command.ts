@@ -8,7 +8,22 @@ import { checkForm } from './add/check-form.js'
 import { applyForm, detectHost, GLUE, HANDLER_PATH, HANDLERS, planForm } from './add/forms.js'
 import { applyHosted, BUILD_SCRIPT, checklist, HOSTS, planHosted, writesHosted, type HostedAction } from './add/hosted.js'
 import { readLock, writeLock } from './add/lock.js'
-import { blogSteps, CONTENT_MODEL_PATH, declareBlog, type BlogModel } from './add/blog.js'
+import {
+  CONTENT_MODEL_PATH,
+  describeSpec,
+  linkContentModel,
+  manualSteps,
+  PRESETS,
+  registerType,
+  specProblem,
+  TYPES_DIR,
+  TYPES_INDEX,
+  type TypeSpec,
+  typeFileSource,
+  typeNextSteps,
+  typesIndexSource,
+} from './add/type.js'
+import { addressProblem, askSpec, hasShapeFlags, idProblem, specFromFlags } from './add/type-input.js'
 import { applyTypes, nextSteps, planTypes, writesTypes } from './add/types.js'
 import { dirtyFiles, isPresent, planAdd, writesFile, type FileAction, type Plan } from './add/plan.js'
 import { statusOf, type FileState } from './add/status.js'
@@ -24,8 +39,9 @@ Usage
   npx bearminion add --list
   npx bearminion add form [<service>] [--host <host>]
   npx bearminion add hosted [--host vercel]
-  npx bearminion add types
+  npx bearminion add type [<id>] [--kind multi|single] [--field name:kind ...]
   npx bearminion add blog
+  npx bearminion add types
   npx bearminion status [--json]
   npx bearminion check form [--host <host>] [--json]
   npx bearminion sync [options]
@@ -33,8 +49,9 @@ Usage
 Commands
   add               Copy sections into this site, with the files they need
   add hosted        Set the site up for the hosted editor: the starter files it needs, the editor module, and a build for the editor deployment
-  add types         Bring the site's own files up to the ones that publish content types (a blog, for example). For a site made before 1.21
-  add blog          Add a blog: the same files as add types, and the blog type declared in the content model
+  add type          Declare a content type: posts, projects, an About page. Asks what it is in a terminal, or takes flags
+  add blog          add type with a ready blog: posts at /blog/<slug> with a date, excerpt, cover and draft switch, newest first
+  add types         Only bring the site's own files up to the ones that publish content types. For a site made before 1.21
   status            Show which sections are in this site and whether their files match this release
   check form        Look for what keeps the Contact form from working: missing files, wrong names, unset variables
   sync              Rewrite sections/definitions.gen.ts and components.gen.ts from the section directories
@@ -56,7 +73,17 @@ Options for add hosted
   --host <host>     Where the editor deployment runs. Only vercel so far (the default)
   --dry-run, -y, --overwrite, --install, --json, --diff work as for sections
 
-Options for add types and add blog
+Options for add type
+  --kind <kind>     multi (many entries, the default) or single (one page at a fixed address)
+  --path <path>     /news/{slug} for entries, /about for a single. Default: from the id
+  --label <text>    The name the editor shows. Default: from the id
+  --field <field>   A field, once per field: name:kind, name?:kind when optional, name:choice=a|b|c
+                    Kinds: text, long-text, date, number, switch, choice, image, list
+  --sort <field>    The order of entries: date:desc, title:asc (the default)
+  --listing <n>     Entries on one listing page (default 10), or none for no listing page
+  Without --kind, --path, --label, --field, --sort or --listing, a terminal asks instead
+
+Options for add type, add blog and add types
   --dry-run, -y, --overwrite, --json, --diff work as for sections
 
 Options for check form
@@ -75,6 +102,8 @@ Options for both
 /** What the command line needs from its surroundings, so tests can stand in for them. */
 export interface Io {
   log: (line: string) => void
+  /** Asks for a line of text; Enter gives `initial`, or "". Absent when there is no terminal to ask on. */
+  ask?: (question: string, initial?: string) => Promise<string>
   /** Asks a yes or no question. Absent when there is no terminal to ask on. */
   confirm?: (question: string) => Promise<boolean>
   /** Asks the person to pick one of `options`. Absent when there is no terminal to ask on. Undefined when they pick none. */
@@ -127,6 +156,12 @@ function parse(argv: readonly string[]) {
       install: { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
       host: { type: 'string' },
+      kind: { type: 'string' },
+      path: { type: 'string' },
+      label: { type: 'string' },
+      field: { type: 'string', multiple: true },
+      sort: { type: 'string' },
+      listing: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
     },
   })
@@ -199,8 +234,9 @@ function diffAgainstRelease(root: string, registryDir: string, file: string): st
 async function runAdd(root: string, names: string[], values: Values, io: Io): Promise<number> {
   if (names[0] === 'form') return runAddForm(root, names.slice(1), values, io)
   if (names[0] === 'hosted') return runAddHosted(root, names.slice(1), values, io)
-  if (names[0] === 'types') return runAddTypes(root, names.slice(1), values, io, false)
-  if (names[0] === 'blog') return runAddTypes(root, names.slice(1), values, io, true)
+  if (names[0] === 'types') return runAddTypes(root, names.slice(1), values, io, 'files')
+  if (names[0] === 'type') return runAddTypes(root, names.slice(1), values, io, 'type')
+  if (names[0] === 'blog') return runAddTypes(root, names.slice(1), values, io, 'blog')
   const { log } = io
   const json = values.json === true
   const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
@@ -512,29 +548,103 @@ async function runAddHosted(root: string, names: string[], values: Values, io: I
   return installed === 'failed' ? 1 : 0
 }
 
-/** `add types`, and `add blog`, which also declares the blog type in the content model when that file is the starter's. */
-async function runAddTypes(root: string, names: string[], values: Values, io: Io, blog: boolean): Promise<number> {
+type TypesMode = 'files' | 'type' | 'blog'
+
+/** The files `add type` writes for one type, in the order they are written, and what is left to do by hand. */
+interface Declaration {
+  spec: TypeSpec
+  writes: Array<{ path: string; action: 'create' | 'update'; source: string; note: string }>
+  manual: string[]
+}
+
+function planDeclaration(root: string, spec: TypeSpec): Declaration | string {
+  const typeFile = `${TYPES_DIR}/${spec.id}.ts`
+  if (fs.existsSync(path.join(root, typeFile))) return `${typeFile} already exists. Edit it to change that type.`
+  const writes: Declaration['writes'] = [{ path: typeFile, action: 'create', source: typeFileSource(spec), note: describeSpec(spec) }]
+  const indexFile = path.join(root, TYPES_INDEX)
+  let indexAction: 'create' | 'update' | 'present' | 'manual' = 'create'
+  if (fs.existsSync(indexFile)) {
+    const edit = registerType(fs.readFileSync(indexFile, 'utf8'), spec.id)
+    indexAction = edit.action
+    if (edit.action === 'update')
+      writes.push({ path: TYPES_INDEX, action: 'update', source: edit.source, note: `adds ${spec.id} to siteTypes` })
+  } else {
+    writes.push({ path: TYPES_INDEX, action: 'create', source: typesIndexSource(spec.id), note: "gathers the site's types in siteTypes" })
+  }
+  const modelFile = path.join(root, CONTENT_MODEL_PATH)
+  const model = fs.existsSync(modelFile) ? linkContentModel(fs.readFileSync(modelFile, 'utf8')) : ({ action: 'manual' } as const)
+  if (model.action === 'link') {
+    // Last, so the content model never names siteTypes before the files that define it are written.
+    writes.push({
+      path: CONTENT_MODEL_PATH,
+      action: 'update',
+      source: model.source,
+      note: 'passes siteTypes as types; the rest stays as it is',
+    })
+  }
+  return { spec, writes, manual: manualSteps(indexAction, model.action, spec.id) }
+}
+
+/** The type `add type` or `add blog` declares: the preset, the flags, the answers in a terminal, or a reason why not. */
+async function resolveSpec(
+  root: string,
+  names: string[],
+  values: Values,
+  io: Io,
+  mode: 'type' | 'blog',
+): Promise<TypeSpec | { error: string; code: number }> {
+  if (mode === 'blog') {
+    if (names.length > 0 || hasShapeFlags(values)) {
+      return { error: '`add blog` takes no names or type options. For a blog of another shape: npx bearminion add type blog', code: 2 }
+    }
+    return PRESETS.blog as TypeSpec
+  }
+  if (names.length > 1) return { error: '`add type` declares one type at a time: npx bearminion add type news', code: 2 }
+  const id = names[0]
+  if (id !== undefined) {
+    const problem = idProblem(root, id)
+    if (problem) return { error: problem, code: 2 }
+  }
+  const interactive = io.ask !== undefined && io.confirm !== undefined && io.choose !== undefined && values.json !== true
+  let spec: TypeSpec | string | undefined
+  if (!hasShapeFlags(values) && interactive) {
+    spec = await askSpec(io, root, id)
+    if (spec === undefined) return { error: 'Nothing was written.', code: 1 }
+  } else if (id === undefined) {
+    return {
+      error: 'Give the type an id, like npx bearminion add type news --field date:date, or run it in a terminal to be asked. See --help.',
+      code: 2,
+    }
+  } else spec = specFromFlags(id, values)
+  if (typeof spec === 'string') return { error: spec, code: 2 }
+  const problem = specProblem(spec) ?? addressProblem(root, spec)
+  return problem ? { error: problem, code: 2 } : spec
+}
+
+/**
+ * `add types` brings the site's own files up to the ones that publish content types. `add type` does the same, then
+ * declares one type: its file in src/lib/types, a line in the index, and `types: siteTypes` in the content model when
+ * that file is shaped like the starter's. `add blog` is `add type` with the blog preset.
+ */
+async function runAddTypes(root: string, names: string[], values: Values, io: Io, mode: TypesMode): Promise<number> {
   const { log } = io
   const json = values.json === true
   const fail = (message: string, code = 1, extra: Record<string, unknown> = {}) => {
     log(json ? JSON.stringify({ ok: false, error: message, ...extra }, null, 2) : message)
     return code
   }
-  if (names.length > 0) {
-    return fail(
-      blog
-        ? '`add blog` takes no names. For another type, run `add types` and declare it in src/lib/content-model.ts.'
-        : "`add types` takes no names: it updates the site's files, and you declare the types in src/lib/content-model.ts.",
-      2,
-    )
+  let declaration: Declaration | undefined
+  if (mode === 'files') {
+    if (names.length > 0 || hasShapeFlags(values)) {
+      return fail("`add types` takes no names: it updates the site's files. To declare a type, run `npx bearminion add type`.", 2)
+    }
+  } else {
+    const spec = await resolveSpec(root, names, values, io, mode)
+    if ('error' in spec) return fail(spec.error, spec.code)
+    const planned = planDeclaration(root, spec)
+    if (typeof planned === 'string') return fail(planned)
+    declaration = planned
   }
-  const modelFile = path.join(root, CONTENT_MODEL_PATH)
-  const model: BlogModel | undefined = blog
-    ? fs.existsSync(modelFile)
-      ? declareBlog(fs.readFileSync(modelFile, 'utf8'))
-      : { action: 'manual' }
-    : undefined
-  const declares = model?.action === 'declare'
 
   let loaded: ReturnType<typeof loadRegistry>
   let plan: ReturnType<typeof planTypes>
@@ -547,20 +657,27 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
     return fail(error instanceof Error ? error.message : String(error))
   }
   const { registry, dir: registryDir } = loaded
-  plan.dirty = dirtyFiles(
-    root,
-    plan.files.filter((file) => file.action === 'update' || file.action === 'overwrite').map((file) => file.path),
-  )
+  plan.dirty = dirtyFiles(root, [
+    ...plan.files.filter((file) => file.action === 'update' || file.action === 'overwrite').map((file) => file.path),
+    ...(declaration?.writes.filter((write) => write.action === 'update').map((write) => write.path) ?? []),
+  ])
   const conflicts = plan.files.filter((file) => file.action === 'conflict')
   const changes = plan.files.filter((file) => file.action !== 'same')
-  const writes = plan.files.filter((file) => writesTypes(file.action)).length + (declares ? 1 : 0)
+  const writes = plan.files.filter((file) => writesTypes(file.action)).length + (declaration?.writes.length ?? 0)
+  const declared = declaration
+    ? {
+        id: declaration.spec.id,
+        files: declaration.writes.map(({ path: file, action }) => ({ path: file, action })),
+        manual: declaration.manual,
+      }
+    : undefined
   const report = (extra: Record<string, unknown>) =>
     JSON.stringify(
       {
         ok: conflicts.length === 0,
         version: registry.version,
         files: plan.files,
-        ...(model ? { contentModel: model.action } : {}),
+        ...(declared ? { declared } : {}),
         notes: plan.notes,
         dirty: plan.dirty,
         ...extra,
@@ -568,18 +685,28 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
       null,
       2,
     )
+  const after = () => {
+    for (const note of plan.notes) log(note)
+    log('')
+    if (!declaration) {
+      for (const line of nextSteps()) log(line)
+      return
+    }
+    for (const line of declaration.manual) log(line)
+    for (const line of typeNextSteps(declaration.spec)) log(line)
+  }
 
   if (!json) {
-    const what = blog ? 'a blog' : 'content types'
-    log(`${values['dry-run'] ? 'Would update' : 'Updating'} the site's files for ${what} (bearminion ${registry.version})`)
+    const what = declaration ? `the ${declaration.spec.id} type` : 'content types'
+    log(`${values['dry-run'] ? 'Would add' : 'Adding'} ${what} (bearminion ${registry.version})`)
     log('')
     for (const file of changes) {
       const note = NOTES[file.action]
       log(`  ${LABELS[file.action].padEnd(9)} ${file.path}${note ? `  (${note})` : ''}`)
     }
-    if (declares) log(`  ${'declare'.padEnd(9)} ${CONTENT_MODEL_PATH}  (adds the blog type; the rest of the file stays as it is)`)
+    for (const write of declaration?.writes ?? []) log(`  ${write.action.padEnd(9)} ${write.path}  (${write.note})`)
     const same = plan.files.length - changes.length
-    if (same > 0) log(`  ${same} file${same === 1 ? '' : 's'} already match.`)
+    if (same > 0) log(`  ${same} of the starter's file${same === 1 ? '' : 's'} already match.`)
     log('')
   }
 
@@ -604,23 +731,25 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
     if (json) log(report({ written: [] }))
     else {
       log('Nothing to write: every file is already in place.')
-      for (const note of plan.notes) log(note)
-      if (model) {
-        log('')
-        for (const line of blogSteps(model.action)) log(line)
-      }
+      after()
     }
     return 0
   }
 
   if (!json && plan.files.some((file) => file.action === 'update')) {
-    log('Files that you did not change are replaced by this release. Read the diff and run your build.')
+    log("The starter's files that you did not change are replaced by this release. Read the diff and run your build.")
   }
   if (!json && plan.dirty.length > 0) log(`Uncommitted changes in ${plan.dirty.join(', ')} will be overwritten.`)
 
   if (values['dry-run']) {
     if (json) log(report({ dryRun: true, written: [] }))
     else {
+      if (declaration) {
+        log(`${declaration.writes[0]?.path}:`)
+        log('')
+        for (const line of (declaration.writes[0]?.source ?? '').trimEnd().split('\n')) log(`  ${line}`)
+        log('')
+      }
       for (const note of plan.notes) log(note)
       log('Dry run: nothing was written.')
     }
@@ -629,7 +758,10 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
 
   if (!values.yes) {
     if (json || io.confirm === undefined) {
-      return fail('Not asking in here: pass --yes to write, or --dry-run to look first.', 1, { files: plan.files })
+      return fail('Not asking in here: pass --yes to write, or --dry-run to look first.', 1, {
+        files: plan.files,
+        ...(declared ? { declared } : {}),
+      })
     }
     if (!(await io.confirm(`Write ${writes} file${writes === 1 ? '' : 's'}?`))) {
       log('Nothing was written.')
@@ -642,10 +774,12 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
     const applied = applyTypes(root, registryDir, registry, plan, lock)
     writeLock(root, applied.lock)
     written = applied.written
-    // Last, so a failure above leaves the content model declaring nothing the site's files cannot yet publish.
-    if (model?.action === 'declare') {
-      fs.writeFileSync(modelFile, model.source)
-      written.push(CONTENT_MODEL_PATH)
+    // After the starter's files, so a failure above leaves no type declared that the site cannot yet publish.
+    for (const write of declaration?.writes ?? []) {
+      const target = path.join(root, write.path)
+      fs.mkdirSync(path.dirname(target), { recursive: true })
+      fs.writeFileSync(target, write.source)
+      written.push(write.path)
     }
   } catch (error) {
     return fail(error instanceof Error ? error.message : String(error))
@@ -654,10 +788,8 @@ async function runAddTypes(root: string, names: string[], values: Values, io: Io
     log(report({ written }))
     return 0
   }
-  log(`Wrote ${written.length} file${written.length === 1 ? '' : 's'}. The starter's files are noted in bearminion.lock.json.`)
-  for (const note of plan.notes) log(note)
-  log('')
-  for (const line of model ? blogSteps(model.action) : nextSteps()) log(line)
+  log(`Wrote ${written.length} file${written.length === 1 ? '' : 's'}.`)
+  after()
   return 0
 }
 

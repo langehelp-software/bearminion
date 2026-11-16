@@ -87,13 +87,6 @@ async function main(): Promise<number> {
     url = answer ? (normalizeUrl(answer) ?? undefined) : undefined
   }
 
-  let blog = options.blog ?? false
-  if (options.blog === undefined && interactive) {
-    const answer = await p.confirm({ message: 'Want a blog? Posts at /blog. You can add it later too.', initialValue: false })
-    if (typeof answer !== 'boolean') return cancelled()
-    blog = answer
-  }
-
   const pm = options.packageManager ?? detectPackageManager(process.env.npm_config_user_agent)
   const spin = p.spinner()
   spin.start('Unpacking the template')
@@ -104,10 +97,9 @@ async function main(): Promise<number> {
     siteName: siteName.trim() || toSiteName(directory),
     ...(url ? { url } : {}),
     storybook: options.storybook,
-    blog,
   })
   spin.stop(
-    `Done. ${siteName} lives in ${path.relative(process.cwd(), targetDir) || '.'}${blog ? ', with a blog' : ''}${options.storybook ? ', Storybook included' : ''}`,
+    `Done. ${siteName} lives in ${path.relative(process.cwd(), targetDir) || '.'}${options.storybook ? ', Storybook included' : ''}`,
   )
 
   let installed = false

@@ -6,6 +6,17 @@ import { run } from './command.js'
 /** `npx bearminion`. The registry sits next to `dist/` in the installed package. */
 const registryDir = fileURLToPath(new URL('../registry/default', import.meta.url))
 
+/** A line of text; Enter keeps `initial`, shown in brackets. */
+async function ask(question: string, initial?: string): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  try {
+    const answer = (await rl.question(initial ? `${question} [${initial}] ` : `${question} `)).trim()
+    return answer === '' ? (initial ?? '') : answer
+  } finally {
+    rl.close()
+  }
+}
+
 async function confirm(question: string): Promise<boolean> {
   const rl = createInterface({ input: process.stdin, output: process.stdout })
   try {
@@ -28,4 +39,4 @@ async function choose(question: string, options: ReadonlyArray<{ value: string; 
   }
 }
 
-process.exitCode = await run(process.argv.slice(2), { registryDir, ...(process.stdin.isTTY ? { confirm, choose } : {}) })
+process.exitCode = await run(process.argv.slice(2), { registryDir, ...(process.stdin.isTTY ? { ask, confirm, choose } : {}) })

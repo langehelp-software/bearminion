@@ -9,8 +9,6 @@ export interface CliOptions {
   install: boolean
   git: boolean
   storybook: boolean
-  /** Undefined when neither `--blog` nor `--no-blog` was given: the person is asked, and the default is no. */
-  blog?: boolean
   yes: boolean
   help: boolean
   version: boolean
@@ -26,7 +24,6 @@ Usage
 Options
   --name <name>     Site name (default: from the directory)
   --url <address>   Public address, such as https://example.com (you can set it later in the editor)
-  --blog            Add a blog: posts at /blog/<slug>, listed at /blog (off by default; add it later with npx bearminion add blog)
   --storybook       Include Storybook (off by default; it is a lot of extra packages)
   --pm <manager>    Package manager: ${PACKAGE_MANAGERS.join(', ')} (default: the one you ran)
   --no-install      Skip installing dependencies
@@ -58,7 +55,6 @@ export function parseCliArgs(argv: string[]): CliOptions {
     install: values.install,
     git: values.git,
     storybook: values.storybook,
-    ...(values.blog !== undefined ? { blog: values.blog } : {}),
     yes: values.yes,
     help: values.help,
     version: values.version,
@@ -78,7 +74,6 @@ function parse(argv: string[]) {
       install: { type: 'boolean', default: true },
       git: { type: 'boolean', default: true },
       storybook: { type: 'boolean', default: false },
-      blog: { type: 'boolean' },
       yes: { type: 'boolean', short: 'y', default: false },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },

@@ -2,7 +2,20 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { CONTENT_MODEL_PATH, declareBlog } from '../src/add/blog.js'
+import {
+  CONTENT_MODEL_PATH,
+  linkContentModel,
+  normalizePath,
+  PRESETS,
+  registerType,
+  specProblem,
+  TYPES_DIR,
+  TYPES_INDEX,
+  type TypeSpec,
+  typeFileSource,
+  typesIndexSource,
+  variableName,
+} from '../src/add/type.js'
 import { run } from '../src/command.js'
 import { readRegistry, writeRegistry } from '../src/registry/build.js'
 import { TYPES_GROUP } from '../src/registry/groups.js'
@@ -96,7 +109,7 @@ describe('bearminion add types', () => {
     // The site's own config is not written, and the person is told what it leaves out.
     expect(read(root, 'astro.config.ts')).toContain('content.pages')
     expect(text).toMatch(/astro\.config\.ts is yours and was not changed.*sitemap/)
-    expect(text).toContain('defineTypes')
+    expect(text).toContain('npx bearminion add type')
   })
 
   it('stops on a file the person changed, writes nothing, and replaces it with --overwrite', async () => {
@@ -151,24 +164,28 @@ const MODEL = [
 ].join('\n')
 
 describe('bearminion add blog', () => {
-  it('updates the files and declares the blog in a content model shaped like the starter’s', async () => {
+  it('updates the files, writes the blog type and the index, and passes them in a content model shaped like the starter’s', async () => {
     const root = site({ ...OLD, [CONTENT_MODEL_PATH]: MODEL })
     const { code, text } = await exec(['add', 'blog', '--cwd', root, '--yes'], registryDir())
     expect(code, text).toBe(0)
-    expect(text).toContain(`declare   ${CONTENT_MODEL_PATH}`)
-    expect(text).toContain('Wrote 7 files')
+    expect(text).toContain(`create    ${TYPES_DIR}/blog.ts`)
+    expect(text).toContain(`create    ${TYPES_INDEX}`)
+    expect(text).toContain(`update    ${CONTENT_MODEL_PATH}`)
+    expect(text).toContain('Wrote 9 files')
     expect(read(root, ROUTE)).toBe(NEW[ROUTE])
+    expect(read(root, `${TYPES_DIR}/blog.ts`)).toBe(typeFileSource(PRESETS.blog as TypeSpec))
+    expect(read(root, TYPES_INDEX)).toContain('export const siteTypes = defineTypes({\n  blog,\n})')
     const model = read(root, CONTENT_MODEL_PATH)
-    expect(model).toContain("import { defineTheme, defineTypes, imageSchema, multi } from 'bearminion'")
-    expect(model).toContain("import { z } from 'zod'")
-    expect(model).toContain("  site: siteDefinition,\n  types: defineTypes({\n    blog: multi({\n      path: '/blog/{slug}',")
-    expect(model).toContain('  theme: defineTheme({}),')
-    // The content model is the site's own file, so it is not tracked in the lock.
+    expect(model).toContain(
+      "import { siteDefinition } from '../components/organisms/site-definition'\nimport { siteTypes } from './types'\n",
+    )
+    expect(model).toContain('  site: siteDefinition,\n  types: siteTypes,\n  theme: defineTheme({}),')
+    // The type files and the content model are the site's own, so they are not tracked in the lock.
     expect(Object.keys(JSON.parse(read(root, LOCK_FILE)).files)).not.toContain(CONTENT_MODEL_PATH)
 
     const again = await exec(['add', 'blog', '--cwd', root, '--yes'], registryDir())
-    expect(again.code).toBe(0)
-    expect(again.text).toContain('already declares content types')
+    expect(again.code).toBe(1)
+    expect(again.text).toContain(`${TYPES_DIR}/blog.ts already exists`)
     expect(read(root, CONTENT_MODEL_PATH)).toBe(model)
   })
 
@@ -176,10 +193,11 @@ describe('bearminion add blog', () => {
     const own = 'export const contentModel = makeModel()\n'
     const root = site({ ...NEW, [CONTENT_MODEL_PATH]: own })
     const { code, text } = await exec(['add', 'blog', '--cwd', root, '--yes'], registryDir())
-    expect(code).toBe(0)
+    expect(code, text).toBe(0)
     expect(read(root, CONTENT_MODEL_PATH)).toBe(own)
     expect(text).toContain('was left as it is')
-    expect(text).toContain('blog: multi({')
+    expect(text).toContain('  types: siteTypes,')
+    expect(fs.existsSync(path.join(root, `${TYPES_DIR}/blog.ts`))).toBe(true)
   })
 
   it('declares nothing when a changed file stops the update, and nothing on a dry run', async () => {
@@ -187,24 +205,163 @@ describe('bearminion add blog', () => {
     const stopped = site({ ...OLD, [ROUTE]: '---\n// mine\n---\n', [CONTENT_MODEL_PATH]: MODEL })
     expect((await exec(['add', 'blog', '--cwd', stopped, '--yes'], registry)).code).toBe(1)
     expect(read(stopped, CONTENT_MODEL_PATH)).toBe(MODEL)
+    expect(fs.existsSync(path.join(stopped, TYPES_DIR))).toBe(false)
     const dry = site({ ...OLD, [CONTENT_MODEL_PATH]: MODEL })
     const { text } = await exec(['add', 'blog', '--cwd', dry, '--dry-run', '--json'], registry)
-    expect(JSON.parse(text)).toMatchObject({ ok: true, dryRun: true, contentModel: 'declare' })
+    expect(JSON.parse(text)).toMatchObject({ ok: true, dryRun: true, declared: { id: 'blog' } })
     expect(read(dry, CONTENT_MODEL_PATH)).toBe(MODEL)
+    expect((await exec(['add', 'blog', 'news', '--cwd', dry, '--yes'], registry)).code).toBe(2)
   })
 })
 
-describe('declareBlog', () => {
-  it('keeps the imports the file has, and adds zod once', () => {
-    const withZod = MODEL.replace('import { siteDefinition }', "import { z } from 'zod'\nimport { siteDefinition }")
-    const result = declareBlog(withZod)
-    expect(result.action).toBe('declare')
-    expect(result.action === 'declare' && result.source.match(/from 'zod'/g)).toHaveLength(1)
-    expect(declareBlog(MODEL.replace('  site: siteDefinition,', '  site: siteDefinition,\n  types: defineTypes({}),')).action).toBe(
-      'present',
+describe('bearminion add type', () => {
+  it('declares a second type next to the first: a new file and one line in the index', async () => {
+    const registry = registryDir()
+    const root = site({ ...NEW, [CONTENT_MODEL_PATH]: MODEL })
+    expect((await exec(['add', 'blog', '--cwd', root, '--yes'], registry)).code).toBe(0)
+    const model = read(root, CONTENT_MODEL_PATH)
+    const { code, text } = await exec(
+      [
+        'add',
+        'type',
+        'case-studies',
+        '--cwd',
+        root,
+        '--yes',
+        '--field',
+        'client:text',
+        '--field',
+        'year:number',
+        '--field',
+        'level?:choice=small|large',
+        '--field',
+        'tags:list',
+        '--sort',
+        'year:desc',
+        '--listing',
+        '6',
+      ],
+      registry,
     )
-    expect(declareBlog(MODEL.replace("import { defineTheme } from 'bearminion'", '')).action).toBe('manual')
-    expect(declareBlog(MODEL.replace('  site: siteDefinition,', '  site: mySite,')).action).toBe('manual')
+    expect(code, text).toBe(0)
+    expect(read(root, CONTENT_MODEL_PATH)).toBe(model)
+    const index = read(root, TYPES_INDEX)
+    expect(index).toContain("import { blog } from './blog'\nimport { caseStudies } from './case-studies'\n")
+    expect(index).toContain("defineTypes({\n  blog,\n  'case-studies': caseStudies,\n})")
+    const file = read(root, `${TYPES_DIR}/case-studies.ts`)
+    expect(file).toContain("import { multi } from 'bearminion'\nimport { z } from 'zod'")
+    expect(file).toContain("export const caseStudies = multi({\n  path: '/case-studies/{slug}',")
+    expect(file).toContain("    level: z.enum(['small', 'large']).optional(),")
+    expect(file).toContain('    tags: z.array(z.string()).default([]),')
+    expect(file).toContain("  sort: { by: 'year', order: 'desc' },\n  listing: { perPage: 6 },")
+
+    const clash = await exec(['add', 'type', 'posts', '--path', '/blog/{slug}', '--cwd', root, '--yes'], registry)
+    expect(clash.code).toBe(2)
+    expect(clash.text).toContain(`/blog is already the address of the type in ${TYPES_DIR}/blog.ts`)
+  })
+
+  it('declares a single without fields or a listing', async () => {
+    const root = site({ ...NEW, [CONTENT_MODEL_PATH]: MODEL })
+    const { code, text } = await exec(['add', 'type', 'about', '--kind', 'single', '--cwd', root, '--yes'], registryDir())
+    expect(code, text).toBe(0)
+    expect(read(root, `${TYPES_DIR}/about.ts`)).toContain("import { single } from 'bearminion'\n\n")
+    expect(read(root, `${TYPES_DIR}/about.ts`)).toContain("export const about = single({\n  path: '/about',\n})")
+  })
+
+  it('refuses what astro dev would refuse, before writing anything', async () => {
+    const registry = registryDir()
+    const root = site({ ...NEW, [CONTENT_MODEL_PATH]: MODEL, 'content/pages/about.json': '{}\n' })
+    const cases: Array<[string[], string]> = [
+      [['add', 'type', 'News'], 'kebab-case'],
+      [['add', 'type', 'home'], 'cannot be a type id'],
+      [['add', 'type', 'news', '--field', 'title:text'], 'every entry already has a title'],
+      [['add', 'type', 'news', '--field', 'when?:date', '--sort', 'when:desc'], 'optional'],
+      [['add', 'type', 'news', '--field', 'x:colour'], 'the kind must be one of'],
+      [['add', 'type', 'news', '--listing', 'many'], '--listing'],
+      [['add', 'type', 'about', '--kind', 'single', '--listing', '5'], 'A single'],
+      [['add', 'type'], 'Give the type an id'],
+      [['add', 'type', 'company', '--kind', 'single', '--path', '/about'], '/about is already a page (content/pages/about.json)'],
+    ]
+    for (const [argv, message] of cases) {
+      const { code, text } = await exec([...argv, '--cwd', root, '--yes'], registry)
+      expect(code, argv.join(' ')).toBe(2)
+      expect(text, argv.join(' ')).toContain(message)
+    }
+    expect(fs.existsSync(path.join(root, TYPES_DIR))).toBe(false)
+  })
+
+  it('asks in a terminal: what it is, its address, its fields, a listing and the order', async () => {
+    const root = site({ ...NEW, [CONTENT_MODEL_PATH]: MODEL })
+    const answers = ['events', '', 'startsOn', 'venue', 'Main hall, Garden', '']
+    // Add a field, startsOn required, another, venue required, another (then no name), a listing, write.
+    const yesNo = [true, true, true, true, true, true, true]
+    const picks = ['multi', 'date', 'choice', 'startsOn:asc']
+    const asked: string[] = []
+    const { code, text } = await exec(['add', 'type', '--cwd', root], registryDir(), {
+      ask: async (question: string, initial?: string) => {
+        asked.push(question)
+        return answers.shift() || initial || ''
+      },
+      confirm: async (question: string) => {
+        asked.push(question)
+        return yesNo.shift() ?? false
+      },
+      choose: async (question: string) => {
+        asked.push(question)
+        return picks.shift()
+      },
+    })
+    expect(code, `${text}\n${asked.join('\n')}`).toBe(0)
+    const file = read(root, `${TYPES_DIR}/events.ts`)
+    expect(file).toContain("  path: '/events/{slug}',")
+    expect(file).toContain('    startsOn: z.iso.date(),')
+    expect(file).toContain("    venue: z.enum(['Main hall', 'Garden']),")
+    expect(file).toContain("  sort: { by: 'startsOn', order: 'asc' },\n  listing: { perPage: 10 },")
+    expect(asked.at(-1)).toBe('Write 3 files?')
+  })
+
+  it('stops when the person gives no id, and writes nothing', async () => {
+    const root = site({ ...NEW, [CONTENT_MODEL_PATH]: MODEL })
+    const { code } = await exec(['add', 'type', '--cwd', root], registryDir(), {
+      ask: async () => '',
+      confirm: async () => true,
+      choose: async () => undefined,
+    })
+    expect(code).toBe(1)
+    expect(fs.existsSync(path.join(root, TYPES_DIR))).toBe(false)
+  })
+})
+
+describe('the type files', () => {
+  it('writes each preset and flag shape as a type the package accepts', () => {
+    for (const spec of Object.values(PRESETS)) expect(specProblem(spec)).toBeUndefined()
+    expect(variableName('2024-news')).toBe('type2024News')
+    expect(normalizePath('multi', 'news/')).toBe('/news/{slug}')
+    expect(normalizePath('single', '/about')).toBe('/about')
+  })
+
+  it('adds to an index this command wrote, and leaves any other shape alone', () => {
+    const index = typesIndexSource('blog')
+    const edit = registerType(index, 'news')
+    expect(edit.action).toBe('update')
+    expect(registerType(edit.action === 'update' ? edit.source : '', 'news').action).toBe('present')
+    expect(registerType('export const siteTypes = { blog }\n', 'news').action).toBe('manual')
+    const sorted = registerType(typesIndexSource('news'), 'blog')
+    expect(sorted.action === 'update' && sorted.source).toContain("import { blog } from './blog'\nimport { news } from './news'\n")
+    const empty = registerType("import { defineTypes } from 'bearminion'\n\nexport const siteTypes = defineTypes({})\n", 'news')
+    expect(empty.action === 'update' && empty.source).toContain(
+      "import { news } from './news'\n\nexport const siteTypes = defineTypes({\n  news,\n})",
+    )
+  })
+
+  it('passes siteTypes in the content model once, and leaves a model with its own types alone', () => {
+    const linked = linkContentModel(MODEL)
+    expect(linked.action).toBe('link')
+    expect(linkContentModel(linked.action === 'link' ? linked.source : '').action).toBe('linked')
+    expect(linkContentModel(MODEL.replace('  site: siteDefinition,', '  site: siteDefinition,\n  types: defineTypes({}),')).action).toBe(
+      'other',
+    )
+    expect(linkContentModel(MODEL.replace('  site: siteDefinition,', '  site: mySite,')).action).toBe('manual')
   })
 })
 

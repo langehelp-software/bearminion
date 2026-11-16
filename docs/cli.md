@@ -104,21 +104,41 @@ Your `astro.config.ts` is never edited. The editor build is a separate config, s
 
 The command ends with what is left to do outside the repository: the GitHub App, a second Vercel project whose Build Command is `npm run build:editor`, and four environment variables. Today the only host is `vercel` (the default); for Cloudflare see the [integration guide](integration.md#the-editor-deployment-on-astro). `--dry-run`, `-y`, `--overwrite`, `--install`, `--diff`, `--json` and `--cwd` work as for sections.
 
+## Add a content type
+
+```sh
+npx bearminion add type                # asks what the type is
+npx bearminion add type news --field date:date --sort date:desc   # or says it with flags
+npx bearminion add blog                # a ready blog, no questions
+```
+
+`add type` declares one content type: a blog, case studies, events, a fixed About page. In a terminal it asks for the id, many entries or one page, the address, the fields, a listing page and the order. Any of `--kind`, `--path`, `--label`, `--field`, `--sort` or `--listing` turns the questions off, so scripts and assistants can run it:
+
+| Option | What it does |
+| --- | --- |
+| `--kind <kind>` | `multi`, many entries (the default), or `single`, one page at a fixed address |
+| `--path <path>` | `/news/{slug}` for entries, `/about` for a single. Default: from the id |
+| `--label <text>` | The name the editor shows. Default: from the id |
+| `--field <field>` | Once per field: `name:kind`, `name?:kind` when optional, `name:choice=a\|b\|c`. Kinds: `text`, `long-text`, `date`, `number`, `switch`, `choice`, `image`, `list` |
+| `--sort <field>` | The order of entries: `date:desc`. Default: title, A to Z |
+| `--listing <n>` | Entries on one listing page (default 10), or `none` |
+
+It writes the type to `src/lib/types/<id>.ts`, adds it to `src/lib/types/index.ts`, and the first time passes those to `src/lib/content-model.ts` with `types: siteTypes`. A content model that is not shaped like the starter's, or declares types some other way, is left alone and gets the lines to add. Before writing, it checks the type the way `astro dev` would and that no page or other type has its address. It also updates the site's own files like `add types` below. `add blog` is `add type` with the blog already answered: posts at `/blog/<slug>` with a date, an excerpt, a cover and a draft switch, newest first, listed at `/blog`. More in [Content types](content-types.md).
+
+`--dry-run`, `-y`, `--overwrite`, `--diff`, `--json` and `--cwd` work as for sections.
+
 ## Update a site for content types
 
-A site made before 1.21 has a route file that knows only pages. Content types (a blog, a news list, a fixed About page) need the starter's current files. `add types` brings them in:
+A site made before 1.21 has a route file that knows only pages. Content types need the starter's current files. `add type` brings them in on its way; `add types` brings them in alone, for a site whose types you declare by hand:
 
 ```sh
 npx bearminion add types --dry-run     # look first
 npx bearminion add types               # write
-npx bearminion add blog                # the same, plus a blog declared in the content model
 ```
 
 It writes the starter's own files, from this release, like a section's files: the page route (`src/pages/[...slug].astro`), `src/content.config.ts`, `src/lib/content.ts`, `src/lib/sitemap.ts`, and the two components a listing page uses (`EntryList.astro`, `Pagination.astro`). A file of an earlier release that you did not change is replaced; one you changed stops the command (`--diff` shows how, `--overwrite` replaces it).
 
-Your `astro.config.ts` and your content model are never edited. The command ends with the lines to add to `src/lib/content-model.ts` to declare a type, and tells you when your config still builds the sitemap from pages only.
-
-`npx bearminion add blog` does the same and then declares a blog for you: it adds the blog type to `src/lib/content-model.ts` (posts at `/blog/<slug>` with a date, an excerpt, a cover and a draft switch, newest first, listed at `/blog`). It edits that file only when it is shaped like the starter's and declares no types yet; otherwise it leaves the file alone and prints the lines to add. On a new site, `npm create bearminion@latest -- --blog` starts with the same blog.
+Your `astro.config.ts` and your content model are never edited. The command tells you when your config still builds the sitemap from pages only.
 
 You only need this when you declare a type. A site with no `types` in its content model builds exactly as before with its old files, and `astro build` stops with the list of missing addresses if you declare a type without running it. `--dry-run`, `-y`, `--overwrite`, `--diff`, `--json` and `--cwd` work as for sections.
 

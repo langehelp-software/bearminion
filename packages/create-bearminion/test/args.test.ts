@@ -23,10 +23,8 @@ describe('parseCliArgs', () => {
     })
   })
 
-  it('leaves the blog undecided unless asked, so the person can be asked', () => {
-    expect(parseCliArgs([])).not.toHaveProperty('blog')
-    expect(parseCliArgs(['--blog']).blog).toBe(true)
-    expect(parseCliArgs(['--no-blog']).blog).toBe(false)
+  it('has no blog option: types are added after the site exists', () => {
+    expect(() => parseCliArgs(['--blog'])).toThrow()
   })
 
   it('refuses an unknown package manager, an unknown option and two directories', () => {

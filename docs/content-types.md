@@ -7,41 +7,78 @@ A content type is a kind of document your site has. Three are built in and need 
 
 If all you have is pages, skip this page. Nothing here is on until you declare a type.
 
-## The short way: a blog
+A new site starts with pages only.
+
+## Add a type
+
+```sh
+npx bearminion add type
+```
+
+In a terminal it asks what the type is: its id (`news`, `case-studies`), whether it has many entries or is one page at a fixed address, the address, its fields, a listing page and the order of entries. Each field is one of the controls the editor draws: text, a paragraph, a date, a number, a switch, a choice from a list, an image, or a list of words. Then it writes the type and tells you where to find it in the editor.
+
+For a blog, skip the questions:
 
 ```sh
 npx bearminion add blog
 ```
 
-It brings the site's files up to date and declares a blog in your content model: posts at `/blog/<slug>` with a date, an excerpt, a cover and a draft switch, newest first, listed at `/blog`, ten to a page. Then open the editor and write the first post under Pages, Blog, New entry. A new site gets the same with `npm create bearminion@latest -- --blog`. Everything below is what that set up, and how to change it or declare other types.
+That is `add type` with a ready answer: posts at `/blog/<slug>` with a date, an excerpt, a cover and a draft switch, newest first, listed at `/blog`, ten to a page. Then open the editor and write the first post under Pages, Blog, New entry.
 
-## Declare a type
+Scripts and assistants pass flags instead of answering. Any of them turns the questions off:
 
-Types go in the content model (`src/lib/content-model.ts` in the starter), next to `sections` and `site`:
+```sh
+npx bearminion add type case-studies \
+  --field client:text --field year:number --field 'level?:choice=small|large' --field tags:list \
+  --sort year:desc --listing 6
+npx bearminion add type about --kind single --field 'intro?:long-text'
+```
+
+A field is `name:kind`; `name?:kind` makes it optional, and a choice lists its options after `=`. A switch and a list always have a value (off, empty), and an image is always optional. `--listing none` leaves the listing page out. `--dry-run` shows the type's file without writing it.
+
+The command checks the type the way `astro dev` would (the id, the address, the sort field) and that no page or other type already has the address, before it writes anything. It also brings the site's own files up to the ones that publish types, like `add types` below.
+
+## Where types live
+
+Each type is its own file in `src/lib/types/`, and `src/lib/types/index.ts` gathers them. `add type` writes both and, the first time, passes them to the content model with one line:
 
 ```ts
-import { defineTypes, multi, single } from 'bearminion'
+// src/lib/types/blog.ts
+import { imageSchema, multi } from 'bearminion'
 import { z } from 'zod'
+
+export const blog = multi({
+  path: '/blog/{slug}',
+  fields: z.object({
+    date: z.iso.date(),
+    excerpt: z.string().max(200).optional(),
+    cover: imageSchema.optional(),
+    draft: z.boolean().default(false),
+  }),
+  sort: { by: 'date', order: 'desc' },
+  listing: { perPage: 10 },
+})
+
+// src/lib/types/index.ts
+import { defineTypes } from 'bearminion'
+import { blog } from './blog'
+
+export const siteTypes = defineTypes({
+  blog,
+})
+
+// src/lib/content-model.ts
+import { siteTypes } from './types'
 
 export const contentModel = {
   sections: sectionDefinitions,
   site: siteDefinition,
-  types: defineTypes({
-    blog: multi({
-      path: '/blog/{slug}',
-      fields: z.object({
-        date: z.iso.date(),
-        excerpt: z.string().max(200).optional(),
-        draft: z.boolean().default(false),
-      }),
-      sections: ['text', 'media', 'cta'],
-      sort: { by: 'date', order: 'desc' },
-      listing: { perPage: 10 },
-    }),
-    about: single({ path: '/about' }),
-  }),
+  types: siteTypes,
+  // ...
 }
 ```
+
+The type files are yours: change a field, add `sections: ['text', 'media', 'cta']`, or write a new one by hand and add it to the index. The command only ever adds a file and a line to the index. A content model that declares `types` some other way (`types: defineTypes({ ... })` written in place) is left alone, and the command prints the line that joins the two. The options below are the same wherever a type is declared.
 
 That is the whole setup. There is no route file to add: the starter's one route draws every address. A mistake in the config (a clashing address, a sort field that does not exist) stops `astro dev` and `astro build` with the type and the option to fix.
 
@@ -120,7 +157,7 @@ A config from before 1.21 passes `content.pages` there. It still works, and it l
 
 Updating the package changes nothing on a site that declares no types: the same pages, the same HTML, with the files you have.
 
-To declare a type on a site made before 1.21, bring its own files up to date first:
+`npx bearminion add type` brings the site's own files up to date before it declares the type. To declare types by hand on a site made before 1.21, bring the files up to date first:
 
 ```sh
 npx bearminion add types --dry-run

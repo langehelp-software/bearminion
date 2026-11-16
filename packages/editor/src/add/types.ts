@@ -84,23 +84,13 @@ export function applyTypes(
   }
 }
 
-/** What is left for the person to do: declaring a type is theirs. */
+/** What is left for the person to do: declaring a type. */
 export function nextSteps(): string[] {
   return [
-    'The site can now publish content types. To add one, declare it in src/lib/content-model.ts:',
+    'The site can now publish content types. To declare one, run:',
     '',
-    "  import { defineTypes, multi } from 'bearminion'",
-    "  import { z } from 'zod'",
+    '  npx bearminion add type',
     '',
-    '  types: defineTypes({',
-    '    blog: multi({',
-    "      path: '/blog/{slug}',",
-    '      fields: z.object({ date: z.iso.date(), excerpt: z.string().max(200).optional() }),',
-    "      sort: { by: 'date', order: 'desc' },",
-    '      listing: { perPage: 10 },',
-    '    }),',
-    '  }),',
-    '',
-    `Entries are created in the editor and stored in content/blog/. More: ${TYPES_DOCS}`,
+    `It asks what the type is and writes it to src/lib/types. More: ${TYPES_DOCS}`,
   ]
 }
