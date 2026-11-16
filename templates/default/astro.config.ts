@@ -19,7 +19,10 @@ const content = loadContent(contentDir, contentModel, { tolerateOrphans: true })
 const routes = siteRoutes(contentModel, content, { locale: content.site.lang ?? 'en' })
 const documents = routes.map((route) => route.page)
 
-/** The style guide and the variants gallery are theme workshops: `astro dev` serves them, `astro build` leaves them out. */
+/**
+ * The style guide, the variants gallery and the one-section previews are theme workshops: `astro dev` serves them,
+ * `astro build` leaves them out. The docs build its own copy of the previews (apps/docs/scripts/build-previews.mjs).
+ */
 const devPages: AstroIntegration = {
   name: 'bearminion-site:dev-pages',
   hooks: {
@@ -27,6 +30,10 @@ const devPages: AstroIntegration = {
       if (command !== 'dev') return
       injectRoute({ pattern: '/style-guide', entrypoint: new URL('./src/dev/style-guide.astro', import.meta.url) })
       injectRoute({ pattern: '/variants', entrypoint: new URL('./src/dev/variants.astro', import.meta.url) })
+      injectRoute({
+        pattern: '/section-preview/[section]/[variant]',
+        entrypoint: new URL('./src/dev/section-preview.astro', import.meta.url),
+      })
     },
   },
 }

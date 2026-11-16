@@ -48,7 +48,7 @@ src/components/
 
 ## Add a section type
 
-A section type is one directory under `src/components/sections/` and one command, `npx bearminion sync`. This walks through a `quote` section: a pull quote with an attribution.
+A section type is one directory under `src/components/sections/` and one command, `npx bearminion sync`. This walks through a `quote` section: a pull quote with an attribution. For a section with a list of items, step by step, see [Build your own section](https://docs.bearminion.com/custom-section/).
 
 **1. The definition** (`quote/definition.ts`). The Zod schema validates the JSON and drives the editor's Content fields; `defaults` is what a new section starts with and must pass the schema.
 
@@ -194,7 +194,7 @@ The site's own images (`logo.png`, `favicon.png`, `og.png`, `hero.png`) live in 
 
 `astro.config.ts` sets `site` from `site.json` and adds `@astrojs/sitemap`. The filter keeps content pages whose `seo.noindex` is false. `content/pages/preview.json` is the sample noindex page: it is built, it emits `noindex`, and it is absent from the sitemap. `src/pages/robots.txt.ts` points crawlers at `sitemap-index.xml`.
 
-The style guide at `/style-guide` renders every typography size and button variant. `/variants` renders every section, header, and footer variant. They live in `src/dev/` and only `npm run dev` serves them (the `devPages` integration in `astro.config.ts`), so they never reach the built site. Delete that integration and the folder if you do not want them.
+The style guide at `/style-guide` renders every typography size and button variant. `/variants` renders every section, header, and footer variant. `/section-preview/<section>/<variant>` (such as `/section-preview/text-image/right`) renders one section alone with its default content: the docs show these pages live. They live in `src/dev/` and only `npm run dev` serves them (the `devPages` integration in `astro.config.ts`), so they never reach the built site. Delete that integration and the folder if you do not want them.
 
 ## Analytics
 

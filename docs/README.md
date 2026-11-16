@@ -13,6 +13,7 @@ BearMinion is three things: the [`bearminion`](https://www.npmjs.com/package/bea
 | [Sections](sections/README.md) | See every section and layout, which ones a new site starts with, and the options and content each one takes |
 | [Forms](forms/README.md) | Make the Contact form send messages: the handler in `src/forms`, its keys in the environment, the glue for your host, form services, email, Turnstile and spam checks |
 | [The command line](cli.md) | Add sections to a site with `npx bearminion add`, what it does with files you changed, the lock file, and `sync` for your own section directories |
+| [Build your own section](custom-section.md) | Make a section type step by step: a Timeline with a list of milestones, from an empty folder to the Add section picker |
 | [Building a theme](themes.md) | Define section types, the header and footer, fonts, the live preview and content collections |
 | [Content types](content-types.md) | Declare a blog, a news list or a fixed page: entries with their own fields, a sort order and a paginated listing page, and how to update a site made before 1.21 |
 | [Markdown collections](collections.md) | Edit an existing Astro content collection (Markdown and frontmatter) through the editor API, with the site's own schema and no reformatting of what you did not touch (experimental) |
@@ -22,4 +23,4 @@ BearMinion is three things: the [`bearminion`](https://www.npmjs.com/package/bea
 
 To start from Astro's own CLI instead, `npm create astro@latest -- --template langehelp-software/bearminion/templates/default my-site` copies the same template as it is in the repository, Storybook and BearMinion branding included.
 
-The template's own guide covers its components, SEO, Storybook and [adding a section type](../templates/default/README.md#add-a-section-type).
+The template's own guide covers its components, SEO, Storybook and [adding a section type](../templates/default/README.md#add-a-section-type); [Build your own section](custom-section.md) is the step-by-step version.

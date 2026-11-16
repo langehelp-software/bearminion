@@ -6,7 +6,7 @@ sidebar:
   label: Overview
 ---
 
-There are 14 section types and 41 layouts. A new site starts with nine of them, marked **starter** below; the rest are one command away (`npx bearminion add pricing`), and the Contact section comes with its form handler from `npx bearminion add form`. Each one has its own page: what it is for, the layouts you can switch between, and the options and content it takes. Every screenshot is the layout with its default content, on the `base` tone.
+There are 14 section types and 41 layouts. A new site starts with nine of them, marked **starter** below; the rest are one command away (`npx bearminion add pricing`), and the Contact section comes with its form handler from `npx bearminion add form`. Each one has its own page: what it is for, the layouts you can switch between, and the options and content it takes. On docs.bearminion.com every layout is shown live, with its default content: switch its tone and the screen width, and open the **Content** tab for the section as it sits in a page file. On GitHub the pages show a screenshot of each layout instead.
 
 Every section shares four controls, in the editor's **Section** tab and in the page JSON:
 
