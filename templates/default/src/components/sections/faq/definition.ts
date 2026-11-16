@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { defineSection, linkSchema, richTextSchema, textSchema, withEmphasis, type CountRule } from 'bearminion'
-import { DEFAULT_CONTACT_ANCHOR, accent, eyebrow, heading } from '../shared'
+import { DEFAULT_CONTACT_HREF, accent, eyebrow, heading } from '../shared'
 import { faqWireframe } from './wireframe'
 
 export const faqVariants = ['accordion', 'split', 'grid'] as const
@@ -38,7 +38,7 @@ export const faq = defineSection({
     eyebrow: 'FAQ',
     heading: 'Questions, answered plainly.',
     marks: accent('Questions, answered plainly.', 'plainly.'),
-    link: { label: 'Contact us', href: `#${DEFAULT_CONTACT_ANCHOR}` },
+    link: { label: 'Contact us', href: DEFAULT_CONTACT_HREF },
     items: [
       { q: 'What is included?', a: 'Answer the question people ask most before they buy, in two or three sentences.' },
       { q: 'How long does it take to get started?', a: 'Give a realistic time frame and say what the reader needs to have ready.' },

@@ -22,7 +22,7 @@ Content: `body`, with optional `eyebrow` and `heading`.
 
 ## Add it to your site
 
-A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+A new site has it. A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
 
 ```sh
 npx bearminion add text

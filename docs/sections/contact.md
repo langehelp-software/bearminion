@@ -35,10 +35,12 @@ Each detail has a **Hide from crawlers** switch. When it is on, the built page c
 
 ## Add it to your site
 
-A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+A new site does not have it: the form needs a handler and, once published, a few lines of glue for your host. One command brings the section with both, and never overwrites a file you changed:
 
 ```sh
-npx bearminion add contact
+npx bearminion add form resend --host vercel   # or netlify, cloudflare
 ```
+
+Then put the section on a page in the editor. `npx bearminion add contact` copies the section alone, for a handler you write yourself. See [Forms](../forms/README.md).
 
 Back to [all sections](README.md). See [The command line](../cli.md) for what `add` does.

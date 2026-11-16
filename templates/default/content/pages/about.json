@@ -15,7 +15,7 @@
           }
         ],
         "primary": {
-          "href": "/#contact",
+          "href": "mailto:hello@example.com",
           "label": "Get in touch"
         },
         "secondary": {
@@ -76,7 +76,7 @@
           }
         ],
         "primary": {
-          "href": "/#contact",
+          "href": "mailto:hello@example.com",
           "label": "Contact us"
         },
         "secondary": {

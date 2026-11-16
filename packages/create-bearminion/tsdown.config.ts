@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { defineConfig } from 'tsdown'
-import { assertTemplateRange, copyTemplate } from './src/template.ts'
+import { assertTemplateRange, copyTemplate, trimToStarter } from './src/template.ts'
 
 const here = import.meta.dirname
 const templateSource = path.resolve(here, '../../templates/default')
@@ -25,9 +25,15 @@ export default defineConfig({
   onSuccess: () => {
     copyTemplate(templateSource, templateTarget)
     assertTemplateRange(templateTarget, bearminion.version)
-    // The lock a new site starts with: which release each file `bearminion add` can update came from.
     const registryTool = path.resolve(here, '../editor/dist/registry-build.js')
-    if (!existsSync(registryTool)) throw new Error('Build bearminion first (pnpm build:lib): create-bearminion needs its registry tool.')
+    const bearminionCli = path.resolve(here, '../editor/dist/cli.js')
+    if (!existsSync(registryTool) || !existsSync(bearminionCli)) {
+      throw new Error('Build bearminion first (pnpm build:lib): create-bearminion needs its registry tool and command line.')
+    }
+    // A new site starts with the starter's sections; the rest stay one `npx bearminion add` away.
+    trimToStarter(templateTarget)
+    execFileSync(process.execPath, [bearminionCli, 'sync', '--cwd', templateTarget], { stdio: 'inherit' })
+    // The lock a new site starts with: which release each file `bearminion add` can update came from.
     execFileSync(
       process.execPath,
       [registryTool, 'lock', '--template', templateTarget, '--out', path.join(templateTarget, 'bearminion.lock.json')],

@@ -10,7 +10,8 @@ import {
   transformPackageJson,
   transformSiteJson,
 } from '../src/scaffold.js'
-import { assertTemplateRange, copyTemplate } from '../src/template.js'
+import { execFileSync } from 'node:child_process'
+import { assertTemplateRange, copyTemplate, STARTER_SECTIONS, trimToStarter } from '../src/template.js'
 
 const source = path.resolve(import.meta.dirname, '../../../templates/default')
 const editorVersion = (
@@ -48,6 +49,47 @@ describe('copyTemplate', () => {
   it('asks for the bearminion version being released', () => {
     expect(() => assertTemplateRange(template, editorVersion)).not.toThrow()
     expect(() => assertTemplateRange(template, '9.9.9')).toThrow(/Expected "\^9\.9\.9"/)
+  })
+})
+
+describe('trimToStarter', () => {
+  it("keeps the starter's sections, drops the files only the others used, and the starter's content uses no other", () => {
+    const trimmed = path.join(work, 'trimmed')
+    copyTemplate(source, trimmed)
+    const removed = trimToStarter(trimmed)
+    const sectionsDir = path.join(trimmed, 'src/components/sections')
+    const left = readdirSync(sectionsDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+    expect(left.sort()).toEqual([...STARTER_SECTIONS].sort())
+    expect(removed).toEqual(expect.arrayContaining(['src/components/sections/contact', 'src/lib/contact-form.ts']))
+    // Shared by kept sections, or used by the site itself: never removed.
+    for (const file of ['src/lib/cn.ts', 'src/lib/link-attrs.ts', 'src/lib/form-check.ts', 'src/components/sections/shared.ts']) {
+      expect(existsSync(path.join(trimmed, file)), file).toBe(true)
+    }
+
+    const cli = path.resolve(import.meta.dirname, '../../editor/dist/cli.js')
+    execFileSync(process.execPath, [cli, 'sync', '--cwd', trimmed], { stdio: 'pipe' })
+    expect(() => execFileSync(process.execPath, [cli, 'sync', '--check', '--cwd', trimmed], { stdio: 'pipe' })).not.toThrow()
+    expect(readFileSync(path.join(sectionsDir, 'components.gen.ts'), 'utf8')).not.toContain('contact')
+
+    const types = new Set(STARTER_SECTIONS.map((dir) => dir.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase())))
+    for (const file of walk(path.join(trimmed, 'content/pages'))) {
+      const page = JSON.parse(readFileSync(path.join(trimmed, 'content/pages', file), 'utf8')) as { sections: { type: string }[] }
+      for (const section of page.sections) expect(types.has(section.type), `${file}: ${section.type}`).toBe(true)
+    }
+    // No link points at a section the starter does not have.
+    for (const file of walk(path.join(trimmed, 'content'))) {
+      expect(readFileSync(path.join(trimmed, 'content', file), 'utf8'), file).not.toMatch(
+        /"\/?#(contact|pricing|stats|testimonials|logos)"/,
+      )
+    }
+  })
+
+  it('refuses a starter list that names a section the template does not have', () => {
+    const copy = path.join(work, 'unknown')
+    copyTemplate(source, copy)
+    expect(() => trimToStarter(copy, ['hero', 'nope'])).toThrow(/nope/)
   })
 })
 

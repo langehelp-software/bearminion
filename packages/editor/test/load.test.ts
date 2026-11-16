@@ -17,7 +17,7 @@ describe('loadContent', () => {
     expect(content.site.url).toBe('https://example.com')
     expect(content.site.seo.titleTemplate).toBe('%s · BearMinion')
     expect(content.site.header.variant).toBe('floating')
-    expect(content.site.header.links.map((item) => item.href)).toEqual(['/#features', '/#pricing', '/#faq', '/about'])
+    expect(content.site.header.links.map((item) => item.href)).toEqual(['/#features', '/#faq', '/about'])
     expect(content.site.footer.variant).toBe('wordmark')
     expect(content.site.footer.columns).toHaveLength(3)
     expect(content.site.theme).toEqual({ mode: 'light', motion: true })
@@ -26,19 +26,8 @@ describe('loadContent', () => {
     expect(content.pages.find((page) => page.slug === 'preview')?.seo.noindex).toBe(true)
     expect(content.pages.find((page) => page.slug === 'index')?.seo.noindex).toBe(false)
     const home = content.pages.find((page) => page.slug === 'index')
-    expect(home?.sections.map((section) => section.type)).toEqual([
-      'hero',
-      'logoStrip',
-      'features',
-      'textImage',
-      'stats',
-      'testimonials',
-      'pricing',
-      'faq',
-      'cta',
-      'contact',
-    ])
-    expect(home?.sections.find((section) => section.type === 'stats')?.tone).toBe('inverse')
+    expect(home?.sections.map((section) => section.type)).toEqual(['hero', 'features', 'textImage', 'steps', 'faq', 'cta'])
+    expect(home?.sections.find((section) => section.type === 'steps')?.tone).toBe('inverse')
     expect(home?.seo.ogImage).toBe('src/assets/uploads/og.png')
   })
 
