@@ -17,9 +17,9 @@ hero/
   Hero.stories.ts Storybook
 ```
 
-`definition.ts` calls `defineSection({ type, label, description, schema, defaults, variants, defaultVariant, options?, optional, counts?, wireframe, icons?, showWhen?, form?, refine? })`. `variants` becomes the section's `variant` field and control, and `options` adds controls after variant, tone and motion. `optional` names the props an author may drop (a test checks it against the schema). `counts` holds list-length rules per array prop. `refine` holds rules the schema cannot express, such as a variant that needs an exact item count. `defaults` must already satisfy `schema`. `form` names the handler in `src/forms` that the section's form posts to (`'contact'` is `src/forms/contact.ts` at `/api/contact`); the sidebar then says whether that file exists and that its code has to be tested by hand. See [Forms](forms/README.md).
+`definition.ts` calls `defineSection({ type, label, description, schema, defaults, variants, defaultVariant, options?, optional, counts?, wireframe, icons?, showWhen?, form?, refine? })`. `variants` becomes the section's `variant` field and control, and `options` adds controls after variant, tone and motion. `optional` names the props an author may drop (a test checks it against the schema). `counts` holds list-length rules per array prop. `refine` holds rules the schema cannot express, such as a variant that needs an exact item count. `defaults` must already satisfy `schema`. `form` names the handler in `src/forms` that the section's form posts to (`'contact'` is `src/forms/contact.ts` at `/api/contact`); the inspector then says whether that file exists and that its code has to be tested by hand. See [Forms](forms/README.md).
 
-The sidebar reads the schema for two things. A string enum anywhere in `props`, a list item's field included, becomes a choice: a segmented control for up to four choices, a select for more. An object with `src` and `alt` is an image slot, whatever the prop is called. Fields are named by their place in `props`, with list items as `[]`: `steps[].icon`, `items[].image`.
+The inspector reads the schema for two things. A string enum anywhere in `props`, a list item's field included, becomes a choice: a segmented control for up to four choices, a select for more. An object with `src` and `alt` is an image slot, whatever the prop is called. Fields are named by their place in `props`, with list items as `[]`: `steps[].icon`, `items[].image`.
 
 `icons` draws the choices of a field as an icon grid. Give SVG path data on a 24 × 24 grid, drawn as a 1.8 stroke, for every choice:
 
@@ -27,7 +27,7 @@ The sidebar reads the schema for two things. A string enum anywhere in `props`, 
 icons: { 'steps[].icon': { terminal: 'M4 5h16v14H4zM8 10l2.5 2L8 14M12.5 14H16', edit: 'M4 20h4L19 9l-4-4L4 16z' } },
 ```
 
-`showWhen` hides a prop in the sidebar while the section's options make it unused. Every option named must match; a list matches any of its values, and `variant`, `tone` and `motion` count as options. A hidden prop keeps its value in the file:
+`showWhen` hides a prop in the inspector while the section's options make it unused. Every option named must match; a list matches any of its values, and `variant`, `tone` and `motion` count as options. A hidden prop keeps its value in the file:
 
 ```ts
 showWhen: {

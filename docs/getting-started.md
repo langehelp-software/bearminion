@@ -40,11 +40,11 @@ cd my-site
 npm run dev
 ```
 
-Open the address it prints (usually `http://localhost:4321`) and press **Ctrl+E** (**Cmd+E** on a Mac) to open the editor.
+Open the address it prints (usually `http://localhost:4321`) The editor opens around the page.
 
 - **Click any text** to change it. Select words in a heading to make them bold, italic or a different font.
 - **Hover a section** for its toolbar: move it, add one above or below, duplicate it, open its settings or delete it.
-- **Use the sidebar** for pages, navigation, the footer, colors and site settings.
+- **Use the shell around the page**: the inspector on the right for the page and the selected section, and the navigation on the left for your pages, media, navigation, footer, colors, site settings and SEO.
 - **Click an image** to upload a new one or pick one from the library.
 
 Press **Ctrl/Cmd+S** to save. The editor writes your changes to `content/` and new images to `src/assets/uploads/`. Until you save, your edits stay in the browser, and they survive a reload.
@@ -96,7 +96,7 @@ The editor and its API exist only while `npm run dev` runs. `npm run build` leav
 
 ## Next
 
-- [The editor](editor.md): everything you can do on the page and in the sidebar
+- [The editor](editor.md): everything you can do on the page and in the shell around it
 - [Edit online](hosted-editor.md): let people edit in the browser, signed in with GitHub
 - [Building a theme](themes.md): add a section type, or change the look
 - [Content files](content.md): the JSON the editor writes, for editing by hand or by script

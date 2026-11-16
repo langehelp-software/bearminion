@@ -33,7 +33,7 @@ It asks for the site's name and web address, then installs everything and makes 
 
 **2. Edit it**
 
-Open the address it prints (usually http://localhost:4321) and press **Ctrl+E** (**Cmd+E** on a Mac). Click any text to change it, hover a section to move, add or remove it, and use the sidebar for pages, menus, colors and images. Press **Ctrl/Cmd+S** to save.
+Open the address it prints (usually http://localhost:4321) The editor opens around the page. Click any text to change it, hover a section to move, add or remove it, and use the shell around the page for pages, menus, colors, media and SEO. Press **Ctrl/Cmd+S** to save.
 
 **3. Put it online**
 
@@ -42,7 +42,7 @@ Push the folder to a GitHub repository and import it in [Vercel](https://vercel.
 From then on: edit, save, commit, push. The site rebuilds by itself.
 
 <p align="center">
-  <img src=".github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the Pages tab in the sidebar" width="100%" />
+  <img src=".github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the editor shell around the page" width="100%" />
 </p>
 
 ## What you can change

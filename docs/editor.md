@@ -1,20 +1,20 @@
 ---
 title: The editor
-description: "Everything the BearMinion editor does: inline editing, sections, the sidebar tabs, images, drafts, saving, history and git."
+description: "Everything the BearMinion editor does: inline editing, sections, the shell around the page, content listings, media, settings, drafts, saving, history and git."
 ---
 
-The editor is an overlay on your own site. You edit the page where it is, and the sidebar holds everything that is not on the page. Nothing reaches your files until you save.
+The editor is an overlay on your own site. You edit the page where it is, and a shell around it holds everything that is not on the page: a navigation on the left, a top bar, an inspector on the right, and full-screen views for your content, media and settings. Nothing reaches your files until you save.
 
 This page describes the editor on your computer, in `astro dev`. The same editor can run at a web address where people sign in with GitHub: see [Edit online](hosted-editor.md), which also lists [what differs there](hosted-editor.md#what-differs-from-the-editor-on-your-computer).
 
-![The editor open on the home page: a section toolbar on the left of the page and the sidebar on the right.](images/editor-overview.webp)
+![The editor open on the home page: the navigation on the left, the top bar, the page in the middle with a section toolbar, and the inspector on the right.](images/editor-overview.webp)
 
 On this page:
 
 - [Open the editor](#open-the-editor)
 - [Edit text on the page](#edit-text-on-the-page)
 - [Edit sections](#edit-sections)
-- [The sidebar](#the-sidebar): [Pages](#pages), [Section](#section), [Navigation](#navigation), [Footer](#footer), [Design](#design) and [Site](#site)
+- [The editor shell](#the-editor-shell): [the navigation](#the-navigation), [the top bar](#the-top-bar), [the inspector](#the-inspector), [content listings](#content-listings), [Media](#media) and the settings screens: [Navigation](#navigation), [Footer](#footer), [Design](#design), [Site](#site) and [SEO](#seo)
 - [Images](#images)
 - [Preview](#preview)
 - [Save, drafts and history](#save-drafts-and-history)
@@ -22,16 +22,7 @@ On this page:
 
 ## Open the editor
 
-Run `npm run dev` in your site (`pnpm dev` from the root of the BearMinion repository). A dock at the top right opens the sidebar. The shortcut is Ctrl+E or Cmd+E.
-
-![The dock: preview, the Saved or Unsaved pill, Save, and the panel button.](images/editor-dock.webp)
-
-The dock has four controls:
-
-- **Preview** hides all editor chrome ([details](#preview)).
-- **Saved or Unsaved** shows whether the draft differs from what is on disk.
-- **Save** writes the page and the site.
-- **Panel** opens the sidebar.
+Run `npm run dev` in your site (`pnpm dev` from the root of the BearMinion repository) and open it in the browser. The editor frames the page: it sits below the top bar, between the navigation and the inspector, and scrolls on its own. The site's sticky header sticks to the top of that frame, and its media queries still see the whole window, as before. Ctrl+E or Cmd+E opens and closes the inspector.
 
 ## Edit text on the page
 
@@ -86,35 +77,61 @@ Hover or select a section to outline it and show a toolbar on its top edge.
 | Move up, move down | Disabled at the ends |
 | Add | Opens “Add above” and “Add below”, then the section-type list |
 | Duplicate | Asks for confirmation, then changes the draft |
-| Settings | Opens the [Section tab](#section) for this section |
+| Settings | Opens the [Section tab](#section) of the inspector for this section |
 | Delete | Danger style. Asks for confirmation, then changes the draft |
 
-The toolbar stays visible while the section is in view. When the section top scrolls past, it pins under a sticky site header until the section ends, also while the sidebar is open. It does not cover the next section's toolbar. Escape cancels a confirmation and Enter confirms it.
+The toolbar stays visible while the section is in view. When the section top scrolls past, it pins under a sticky site header until the section ends. It does not cover the next section's toolbar. Escape cancels a confirmation and Enter confirms it.
 
-## The sidebar
+## The editor shell
 
-The tabs are Pages, Section, Navigation, Footer, Design and Site. The sidebar opens on Pages, and after a reload it comes back open on the tab you were on.
+![The shell: the navigation on the left, the top bar, the page and the inspector.](images/editor-overview.webp)
 
-The header shows the BearMinion mark, the preview button, the Saved or Unsaved pill, Save (same as Ctrl/Cmd+S) with a [menu](#save-menu), and a close button.
+### The navigation
 
-The panel starts at 440px. A handle on its left edge drags the width, arrow keys step it and a double-click resets it. The width stays between 380px and 40% of the viewport (the minimum shrinks when 40% is smaller than 380px) and is stored in `localStorage` as `bearminion:sidebar-width`. While the sidebar is open, the page gets that much right padding, so the section you edit stays beside the panel.
+The left column has three groups:
 
-### Pages
+| Group | Items |
+| --- | --- |
+| Content | **Pages**, then one item for every multi content type the site declares (see [Content types](content-types.md)), then **Media**. Each content item shows how many documents it has |
+| Layout | **Navigation**, **Footer** |
+| Settings | **Site**, **Design**, **SEO** |
 
-![The Pages tab: the page list, the current page, its SEO card and the section outline.](images/editor-tab-pages.webp)
+An item opens its [full-screen view](#full-screen-views) over the page. On the page, the content type of the open document is highlighted. **Collapse** at the bottom (Ctrl+\\ or Cmd+\\) turns the column into an icon rail with a tooltip on each icon. The choice is kept in `localStorage` as `bearminion:shell-nav-open`.
 
-**The page list.** Follow a link to open a page, delete one, or create one from a section template with New page.
+### The top bar
 
-**The current page.** Title and slug (a rename is applied on save). The home page is a fixed page at `/`: it has no slug to change and no other page can take its place, so to change what visitors see first, edit its sections. A new page's slug is made from its title as you type it (accents are dropped, so `Łódź` becomes `lodz`, and an existing slug gets a number), until you edit the slug yourself. Changing a title later never changes the slug. A site whose addresses must not change can lock this with `pages: { rename: false, delete: false }` in the `bearminion()` options: the slug field becomes read-only and the Delete button is hidden. Creating pages and editing their content still work. See [Integration](integration.md).
+On the page, the left side shows where you are: the content type (it opens that listing), the document's title and its address. Undo and Redo follow, the same as Ctrl/Cmd+Z and Shift+Ctrl/Cmd+Z. In a full-screen view the left side is a **Back to** button and the view's name instead.
 
-**Content types.** When the site declares content types (see [Content types](content-types.md)), each one gets its own list under Pages, in the type's sort order, with its own New entry form. Open an entry by its address (`/blog/first-post`) or from the list. Its own fields, such as a post's date, excerpt and cover, are in the **Fields** group under the title; an optional field you empty is removed from the file. The Add section picker offers only the sections the type allows. A type's **listing page** and a **single** are in the lists too, marked `listing` and `fixed`: their content is edited like any page, but their address is set in the content model, so they have no slug to change and cannot be deleted. Unsaved drafts, undo steps and saved versions are kept per document, so the page `contact` and the post `contact` never mix.
+In the middle, the [viewport switch](#viewport) picks Desktop, Tablet or Mobile. The right side has:
 
-- The home page is `index`, shows a home badge in the list, and its slug is locked.
-- Turning the switch on for another page asks before it replaces the current home, which moves to a slug generated from its title.
+- **Version history**, a popover with the saved versions of the page and of the site. See [History](#history).
+- **The inspector button**, which shows or hides the inspector (Ctrl/Cmd+E).
+- **Commit changes**, with the number of changed files, when [git](#git) is on.
+- **Preview** ([details](#preview)).
+- **Saved**, or **Unsaved · N changes**, which opens the list of changes with Save and Discard.
+- **Save** (Ctrl/Cmd+S). It is greyed out while there is nothing to save.
 
-**Outline.** A numbered list of the page's sections. Clicking a row opens that section on the Section tab.
+Below 1180px of window width Preview shows its icon only, and below 1000px the viewport switch and the content type are hidden.
 
-#### SEO
+### The inspector
+
+The panel on the right edits the open document. It has two tabs, **Page** and **Section**.
+
+It starts at 352px. Drag its left edge, use the arrow keys on it (16px a step, Home and End for the limits), or double-click it to reset. The width stays between 280px and 560px and is kept in `localStorage` as `bearminion:inspector-width`. It starts closed in a window narrower than 1100px, and closes once when the window shrinks past that. Whether it is open, and which full-screen view is up, survive a reload, so a save brings you back to the same place.
+
+#### Page
+
+**Title and slug.** A rename is applied on save. The home page is a fixed page at `/`: it has no slug to change and no other page can take its place, so to change what visitors see first, edit its sections. A new page's slug is made from its title as you type it (accents are dropped, so `Łódź` becomes `lodz`, and an existing slug gets a number), until you edit the slug yourself. Changing a title later never changes the slug. A site whose addresses must not change can lock this with `pages: { rename: false, delete: false }` in the `bearminion()` options: the slug field becomes read-only and Delete is hidden. Creating pages and editing their content still work. See [Integration](integration.md).
+
+**Status.** Published or Draft. A draft is left out of `astro build`, the listings and the sitemap, and still shows in `astro dev` and the editor. Published is the default and is stored as no `status` at all, so files from before this setting read as published. The home and 404 pages, singles and listing pages are always published. A content type with its own `draft` field keeps using that field instead.
+
+**Show in search engines.** The opposite of the page's `seo.noindex`. The 404 page is always left out.
+
+**Fields.** When the document belongs to a content type with fields of its own (a post's date, excerpt and cover), they follow. An optional field you empty is removed from the file.
+
+**Sections.** The page's sections in order. Click a row to open it on the Section tab. Hover a row for move up, move down, duplicate, settings and remove, or drag it by its grip. **Add section** opens the section picker.
+
+##### SEO
 
 The SEO card shows the page as a search result, with the social image as a square thumbnail and badges for what is set (noindex, nofollow, canonical, JSON-LD). Problems with `seo.*` fields are listed on the card.
 
@@ -133,7 +150,7 @@ The SEO card shows the page as a search result, with the social image as a squar
 
 Apply is blocked while the JSON is invalid. The dialog edits a copy: Apply writes one undo step, Cancel or Escape drops the edits. The page scroll is locked behind the dialog without shifting the layout.
 
-### Section
+#### Section
 
 ![The Section tab: the section picker, anchor, layout and content.](images/editor-tab-section.webp)
 
@@ -151,22 +168,51 @@ Choices with up to four values are segmented controls, longer lists are selects,
 
 **Optional text and buttons.** Clear an optional text field and it is hidden on the page and dropped from the file on save. A button has a Remove control and, once gone, an Add slot. A wrapper whose children are all gone (a section header, an actions row) is not rendered. What defines an item, such as a feature title or a question and its answer, stays required: remove the whole item instead. `section-optional.ts` lists the optional props.
 
-**Links.** Link fields open the same [link control](#links-and-targets) as the Navigation tab.
+**Links.** Link fields open the same [link control](#links-and-targets) as the Navigation screen.
 
 **Form handler.** A Contact section has no endpoint or key fields. Its settings end with a note about the code behind the form: a warning while `src/forms/contact.ts` does not exist, and once it does, a line saying the form posts to `/api/contact`, is handled by your own code, and has to be tested by hand because BearMinion cannot check it. The note reads the folder each time the section opens, so a new file shows up without a restart. See [Forms](forms/README.md).
 
 Duplicate section and Delete section sit at the bottom and ask for confirmation.
 
-### Navigation
+### Full-screen views
 
-![The Navigation tab: brand, header layout and the link list.](images/editor-tab-navigation.webp)
+A content listing, Media and the settings screens cover the page and the inspector. The navigation and the top bar stay. Esc closes a popover first, then leaves preview, then goes back to the page.
+
+#### Content listings
+
+![The Pages listing: search, status tabs, and a table of pages with their address, status, indexing and last change.](images/editor-listing.webp)
+
+**Pages** lists every page, the home and 404 pages and the site's singles. Every declared multi type has a listing of its own, with its entries and its listing page.
+
+- **New page** (or New entry) asks for a title, a slug and the section the document starts from, then opens it. It starts as a draft unless you turn that off.
+- **Search** matches the title and the slug.
+- **All, Published, Draft, Unsaved** filter by status, each with a count. Unsaved is the document open on the page while it has unsaved changes.
+- Click a column header to sort by it. The default is Last updated, newest first. The time is the file's, so it shows what changed on disk.
+- Hover a row for **Edit**, **Duplicate** (a draft copy called “… (copy)” at `<slug>-copy`), **View** (the page in a new tab) and **Delete**. Select rows with their checkboxes to delete several. The home and 404 pages, singles, listing pages and the open document are never deleted, and a type that turns deleting off has no Delete at all. Deleting asks first and removes the file at once, not on the next save.
+- Ten rows a page.
+
+A listing page and a single are marked `listing` and `single`: their content is edited like any page, but their address is set in the content model. Unsaved drafts, undo steps and saved versions are kept per document, so the page `contact` and the post `contact` never mix.
+
+#### Media
+
+![The Media screen: a grid of uploaded images, each with where it is used, and a drop target.](images/editor-media.webp)
+
+Every uploaded image in `src/assets/uploads`, with where the saved content uses it (“Used on Home page › Hero”) or “Not used”. **Upload**, or drop images on the last tile, adds them; an image nothing uses can be deleted from its card. The same rules as the [image picker](#images) apply.
+
+#### Settings screens
+
+Navigation, Footer, Site, Design and SEO are one screen each, with every group as a card. The file each screen writes is named under its title.
+
+#### Navigation
+
+![The Navigation screen: brand, header layout and the link list.](images/editor-tab-navigation.webp)
 
 - **Brand.** The name, or a logo image with a height slider.
 - **Header layout.** Variant, tone and sticky.
 - **Links.** Drag a row to reorder or nest it, indent and outdent, and pick a link target. Nesting stops at `MAX_NAV_DEPTH` (3): a top-level link, a child and a grandchild.
 - **Buttons.** Up to two header buttons.
 
-#### Links and targets
+##### Links and targets
 
 The same link control edits header links, header buttons, footer links, and button and plan links. It offers:
 
@@ -177,9 +223,9 @@ The same link control edits header links, header buttons, footer links, and butt
 
 An internal link to a missing page or anchor shows a warning. It does not block saving.
 
-### Footer
+#### Footer
 
-![The Footer tab: layout, text, legal line, badge and columns.](images/editor-tab-footer.webp)
+![The Footer screen: layout, text, legal line, badge and columns.](images/editor-tab-footer.webp)
 
 - **Layout.** Variant and tone.
 - **Text.** Footer text, the legal line and the badge, and a **Powered by BearMinion** switch. It controls the small link to bearminion.com in the footer's bottom row. Turn it off to remove the link.
@@ -187,15 +233,15 @@ An internal link to a missing page or anchor shows a warning. It does not block 
 
 On the page, the columns stack on small screens, left-aligned: 1 column, then 2 from 416px of footer width, then 3 from 640px. From 896px they sit in a row on the right edge of the footer.
 
-The footer also carries a small “Footer” bar with a settings button that opens this tab.
+The footer also carries a small “Footer” bar with a settings button that opens this screen.
 
-### Design
+#### Design
 
-![The Design tab: three seed colors, the color mode and the contrast check.](images/editor-tab-design.webp)
+![The Design screen: three seed colors, the color mode and the contrast check.](images/editor-tab-design.webp)
 
 **Seed colors.** Three: brand, neutral and link. Plus the color mode. Tone palettes and dark mode are derived from them (`theme.colors` in `site.json`, `#rrggbb`).
 
-**Contrast.** Text on fills picks near-black or near-white by contrast. Links are moved to 4.5:1. The tab lists any text pair still under WCAG AA. The page previews the palette live.
+**Contrast.** Text on fills picks near-black or near-white by contrast. Links are moved to 4.5:1. The screen lists any text pair still under WCAG AA. The page previews the palette live.
 
 **In the page.** The layout injects `themeCss(site.theme.colors)` as `<style id="bm-theme">`. A site without colors ships nothing extra.
 
@@ -205,28 +251,69 @@ Turning the switch off sets `theme.colors.customTones` to `false`: the overrides
 
 The editor's own colors are separate and unaffected.
 
-### Site
-
-![The Site tab: identity, search defaults, analytics and theme.](images/editor-tab-site.webp)
+#### Site
 
 | Group | Fields |
 | --- | --- |
 | Identity | Name (with style buttons for the selected text and a wordmark preview), URL, favicon |
-| Search defaults | Title template, description, og image |
 | Analytics & scripts | Raw snippets for the page head and the end of the body |
-| Structured data | The JSON-LD every page carries, edited in a dialog. See [Site JSON-LD](#site-json-ld) |
 | Cookie banner | A switch, and a dialog for the banner's text and privacy policy link |
 | Theme | Options from `siteOptions` |
 
 Analytics snippets run on your live site only: not in dev, and not on Vercel or Netlify previews. See [Analytics](getting-started.md#analytics) for how the template decides, and the `BEARMINION_ANALYTICS` override. With the cookie banner on, which is the default, they also wait until the visitor accepts: see [Cookie banner](getting-started.md#cookie-banner).
 
-#### Site JSON-LD
+#### SEO
 
-**Edit JSON-LD** in the Structured data group opens a dialog with the blocks every page carries. It takes an object, an array, or a pasted `<script type="application/ld+json">` tag, the same as the page SEO dialog, and Apply is blocked while the JSON is invalid.
+![The SEO screen: search defaults, indexing and the structured data every page carries.](images/editor-seo.webp)
 
-**Generate Organization and WebSite** fills both blocks from the site name, address and language (`en` when none is set). It never runs by itself. Blocks that already have the same `@id` are replaced and every other block is kept, so you can run it again after renaming the site. A logo is added only when the brand logo is a full `https://` address, because an uploaded image gets its public address when the site is built. Paste a `"logo"` URL by hand otherwise.
+| Group | Fields |
+| --- | --- |
+| Search defaults | Title template, description, OG image |
+| Indexing | **Allow search engines** and **Generate sitemap.xml** |
+| Structured data · every page | The JSON-LD every page carries, one card per block |
 
-While the site address is still `https://example.com`, the dialog warns you before you generate. There is no `SearchAction`: Google no longer shows the sitelinks search box, so the markup would have no effect.
+**Indexing.** Turning off Allow search engines (`seo.robots: false` in `site.json`) adds `noindex` to every page and makes `robots.txt` disallow the site. Turning off Generate sitemap.xml (`seo.sitemap: false`) leaves the sitemap out of the build and the `Sitemap:` line out of `robots.txt`. Both are on by default, and only `false` is stored. The starter's `src/components/seo/Seo.astro`, `src/pages/robots.txt.ts` and `astro.config.ts` read them; a site created before these switches existed has its own copies of those files, so see [Update a site to the Indexing switches](#update-a-site-to-the-indexing-switches).
+
+**Structured data.** One collapsible card per block, named by its `@type` and `@id`, with a `valid`, `warning` (no `@context` or `@type`) or `error` (not valid JSON) badge. A card takes an object, an array, or a pasted `<script type="application/ld+json">` tag, the same as the page SEO dialog, and **Format** tidies it and splits an array into one card per block. A valid edit goes into the draft as you type; while a card is broken the draft keeps its last valid version. The meter counts the blocks (10 at most) and their size (50 KB at most). A page with its own JSON-LD replaces only the generated WebPage block, and a page block with the same `@id` wins over the site's.
+
+**Generate Organization and WebSite** fills both blocks from the site name, address and language (`en` when none is set). It never runs by itself. Blocks that already have the same `@id` are replaced and every other block is kept, so you can run it again after renaming the site. A logo is added only when the brand logo is a full `https://` address, because an uploaded image gets its public address when the site is built. Paste a `"logo"` URL by hand otherwise. While the site address is still `https://example.com`, the screen warns you before you generate. There is no `SearchAction`: Google no longer shows the sitelinks search box, so the markup would have no effect.
+
+##### Update a site to the Indexing switches
+
+A site created before these switches existed keeps working as it was: the switches are stored, but its own files do not read them yet. To have them take effect, make three small changes:
+
+1. In `src/components/seo/Seo.astro`, count `site.seo.robots === false` as `noindex`:
+
+   ```ts
+   const noindex = page.seo.noindex || site.seo.robots === false
+   const robots = [noindex ? 'noindex' : 'index', page.seo.nofollow ? 'nofollow' : 'follow'].join(', ')
+   ```
+
+2. In `astro.config.ts`, leave the sitemap out when it is turned off:
+
+   ```ts
+   ...(content.site.seo.sitemap === false ? [] : [sitemap({ filter: createSitemapFilter(routes) })]),
+   ```
+
+3. In `src/pages/robots.txt.ts`, read both switches. The starter's file is:
+
+   ```ts
+   import type { APIRoute } from 'astro'
+   import { getSite } from '../lib/content'
+
+   export const GET: APIRoute = async ({ site: origin }) => {
+     const { seo } = await getSite()
+     const lines = ['User-agent: *', seo.robots === false ? 'Disallow: /' : 'Allow: /']
+     if (seo.sitemap !== false) lines.push(`Sitemap: ${new URL('sitemap-index.xml', origin ?? new URL('https://example.com')).href}`)
+     return new Response(`${lines.join('\n')}\n`, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+   }
+   ```
+
+Page status needs no change in your files: drafts are left out by `siteRoutes`, which the starter's routes and sitemap already use.
+
+### Viewport
+
+Desktop is the page itself, where you edit. **Tablet** (820px) and **Mobile** (390px) show the same address in a frame of that width, with the unsaved draft, so the site's own media queries apply. Nothing in the frame is editable and its links do not navigate; switch back to Desktop to edit. The inspector stays beside the frame, and its edits show in the frame a moment later.
 
 ## Images
 
@@ -239,7 +326,7 @@ Every image field is the same control: sections, logo, OG images.
 - Change image and Remove.
 - **Show in section** for images that sit in a section. Off writes `hidden: true`, which removes the image and its frame from the page while the file and alt text stay.
 
-Click the slot, or Change image, to open the picker. On the page, click an image slot (the image, its frame or an empty placeholder) to open the same picker over the page, without the sidebar.
+Click the slot, or Change image, to open the picker. On the page, click an image slot (the image, its frame or an empty placeholder) to open the same picker over the page. The [Media](#media) screen shows the whole library.
 
 ![The image picker with the Upload and Library tabs.](images/editor-image-picker.webp)
 
@@ -261,7 +348,7 @@ In dev, a `src/assets/` path that is not in the eager `import.meta.glob` is rend
 
 ## Preview
 
-The eye button in the header, or on the closed editor's bar, hides every panel, outline and bar so the page looks as visitors see it. A bubble at the bottom right, or Esc, exits and reopens the sidebar if it was open.
+**Preview** in the top bar hides the navigation, the inspector and every outline and bar, so the page looks as visitors see it across the whole width. The top bar stays with one button, **Exit preview**; Esc does the same. Preview mode survives a reload until you leave it.
 
 ## Save, drafts and history
 
@@ -271,28 +358,24 @@ Edits stay in an in-memory draft.
 
 - Text you type on the page changes the DOM immediately.
 - Tone and motion update the `data-*` attributes on the section, so tone colors follow the existing CSS.
-- A variant change, a section you add, duplicate, move or delete, any value you type in the sidebar, and a value with no text of its own on the page (a video link, a section option, an optional field filled or emptied) go to `POST /__bearminion/api/preview`. The page shows a sidebar edit about a fifth of a second after you stop typing.
+- A variant change, a section you add, duplicate, move or delete, any value you type in the inspector, and a value with no text of its own on the page (a video link, a section option, an optional field filled or emptied) go to `POST /__bearminion/api/preview`. The page shows an inspector edit about a fifth of a second after you stop typing.
 
 The dev server validates that JSON, renders the page sections with Astro's container API through the Vite SSR module runner (the theme's `defineThemePreview` module, `/src/lib/render-preview.ts` by default), and returns HTML. The overlay replaces `main#content`, runs any script in the new markup that the page has not loaded yet, and dispatches `bearminion:preview` so scripts already on the page can bind the new nodes. The response is not written to disk.
 
-Header, navigation, footer and other `site.json` fields appear after you save and reload. The first time one of those changes, the editor asks you to save and reload now or keep editing. The sidebar keeps that notice while the site draft is dirty.
+Header, navigation, footer and other `site.json` fields appear after you save and reload. The first time one of those changes, the editor asks you to save and reload now or keep editing. The notice stays while the site draft is dirty.
 
 ### Save
 
-![The Save menu: Undo, Redo, Version history and Discard changes.](images/editor-save-menu.webp)
+Save in the top bar, or Ctrl or Cmd+S, is the only way to write the draft to disk. It sends the page and the site in one `POST /save`.
 
-Ctrl or Cmd+S is the only way to write the draft to disk. It sends the page and the site in one `POST /save`.
-
-- The server validates both, including a rename or a move to home, before it writes anything. Then it writes them together. The page reloads only after that succeeds.
-- A validation error stays on the page. The sidebar lists the field errors, repeated next to the matching control.
+- The server validates both, including a rename, before it writes anything. Then it writes them together. The page reloads only after that succeeds, and comes back at the same scroll position, view and inspector.
+- A validation error stays on the page. The inspector and the open full-screen view list the field errors, repeated next to the matching control.
 - Closing or reloading the tab with unsaved edits triggers the browser's beforeunload warning.
-- Save does not create a git commit. Use Save menu → Commit changes… ([git](#git)).
+- Save does not create a git commit. Use **Commit changes** in the top bar ([git](#git)).
 
-A content-file change, a Vite full reload, a link to another page, or a page opened from the Pages tab goes through the same choice when the draft is dirty: save and reload, discard changes, or cancel.
+**Unsaved · N changes** in the top bar opens the list of what differs from the files, field by field, with Save and **Discard**. Discard asks first, then reloads the page and the site from disk.
 
-#### Save menu
-
-The menu next to Save has Undo, Redo, Version history… and Discard changes…, plus Commit changes… when [git](#git) is on.
+A content-file change, a Vite full reload, a link to another page, or a document opened from a listing goes through the same choice when the draft is dirty: save and reload, discard changes, or cancel.
 
 ### Autosaved drafts
 
@@ -318,14 +401,16 @@ Another tab that saves the same page raises “Another tab saved this page.”
 
 - Only changed files under `contentDir` and `uploadsDir` can be committed.
 - Git runs without a shell, and there is no push.
-- With `git` off, or outside a repo, the editor hides Commit changes….
+- With `git` off, or outside a repo, the editor hides Commit changes.
 
 ## Keyboard shortcuts
 
 | Keys | Does |
 | --- | --- |
-| Ctrl/Cmd+E | Opens or closes the sidebar |
 | Ctrl/Cmd+S | Saves the page and the site |
-| Esc | Blurs the field you are editing. Then closes, in order: a confirmation, the link popover, the format bar, the add-section picker, the sidebar |
-| Left, Right | Moves between the sidebar tabs when focus is on the tab list |
-| Arrow keys on the resize handle | Change the sidebar width |
+| Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z | Undo and redo, outside a text field |
+| Ctrl/Cmd+E | Shows or hides the inspector |
+| Ctrl/Cmd+\\ | Collapses or expands the navigation |
+| Esc | Blurs the field you are editing. Then closes, in order: a dialog or popover, a confirmation, the link popover, the format bar, the add-section picker; leaves preview; and goes back from a full-screen view to the page |
+| Left, Right | Moves between the inspector tabs when focus is on the tab list |
+| Arrow keys, Home, End on the inspector's edge | Change the inspector width |

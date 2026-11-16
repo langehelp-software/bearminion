@@ -7,7 +7,7 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.21",
+          "tag": "BearMinion 1.22",
           "text": "Available now"
         },
         "button": false,
@@ -16,7 +16,7 @@
         "glow": true,
         "heading": "The BearMinion for the bare minimum.",
         "image": {
-          "alt": "The BearMinion editor over a site: a heading being edited on the page, the section toolbar, and the Pages tab in the sidebar",
+          "alt": "The BearMinion editor over a site: a heading being edited on the page, the section toolbar, and the editor shell around the page",
           "fit": "auto",
           "hidden": true,
           "src": "src/assets/uploads/editor.png"
@@ -257,29 +257,29 @@
         "heading": "Nine real screens. No mockups.",
         "images": [
           {
-            "alt": "The editor open on the home page: a section toolbar beside the page and the sidebar on the right",
+            "alt": "The editor open on the home page: the navigation on the left, the page with a section toolbar, and the inspector on the right",
             "fit": "contain",
             "src": "src/assets/uploads/editor-overview.webp"
           },
           {
-            "alt": "The Navigation tab: the header links, their order and the button",
-            "caption": "Navigation: header links and button",
+            "alt": "The Navigation screen: brand, header layout, links and buttons",
+            "caption": "Navigation: brand, layout, links and buttons",
             "fit": "contain",
             "src": "src/assets/uploads/editor-tab-navigation.webp"
           },
           {
-            "alt": "The Footer tab: layout, columns and links",
+            "alt": "The Footer screen: layout, content and columns",
             "fit": "contain",
             "src": "src/assets/uploads/editor-tab-footer.webp"
           },
           {
-            "alt": "The Design tab: palette, fonts, corners and motion for the whole site",
-            "caption": "Design: palette, fonts and corners",
+            "alt": "The Design screen: color mode, seed colors and the tone preview",
+            "caption": "Design: color mode and seed colors",
             "fit": "contain",
             "src": "src/assets/uploads/editor-tab-design.webp"
           },
           {
-            "alt": "The Site tab: name, address, language, social image, analytics and the cookie banner",
+            "alt": "The Site screen: identity, analytics and the cookie banner",
             "fit": "contain",
             "src": "src/assets/uploads/editor-tab-site.webp"
           }
@@ -409,7 +409,7 @@
           },
           {
             "prompt": "→",
-            "text": "Next: cd my-site, npm run dev, then Ctrl+E"
+            "text": "Next: cd my-site, npm run dev"
           }
         ],
         "primary": {

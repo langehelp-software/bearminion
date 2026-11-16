@@ -17,7 +17,7 @@ The folder name is the section's name. It is kebab-case (`timeline`, `team-grid`
 
 ## 2. Describe the content: `definition.ts`
 
-The definition says what a Timeline holds, what a new one starts with, and how the editor shows it. The schema is [Zod](https://zod.dev): it checks every save and builds the fields in the editor's sidebar.
+The definition says what a Timeline holds, what a new one starts with, and how the editor shows it. The schema is [Zod](https://zod.dev): it checks every save and builds the fields in the editor's inspector.
 
 ```ts
 // src/components/sections/timeline/definition.ts
@@ -67,12 +67,12 @@ export const timeline = defineSection({
 What each part does:
 
 - **`milestoneSchema`** is one item of the list. `textSchema` is a line of plain text, `richTextSchema` allows bold, italic, links and inline code. `.strict()` refuses keys the schema does not name, so a typo in a content file is an error instead of a silently ignored value.
-- **`milestones: z.array(...)`** is the repeating field. Any array of objects becomes a list in the sidebar. `.min(2).max(8)` is the hard limit a save must meet.
+- **`milestones: z.array(...)`** is the repeating field. Any array of objects becomes a list in the inspector. `.min(2).max(8)` is the hard limit a save must meet.
 - **`withEmphasis`** adds `marks` next to `heading`: the words drawn in the italic serif ("got here."). `eyebrow` and `heading` come from `shared.ts`, so they behave like every other section's.
 - **`defaults`** is what a new Timeline starts with. It must pass the schema, or `astro dev` stops with `Invalid defaults for section "timeline"` and the value that fails. Give lists the number of items you recommend: the defaults are what a person sees first. A new row the editor adds starts as a copy of the first item here, with its text set to "New".
-- **`variants`** are the layouts, picked in the sidebar. The component draws each one. `defaultVariant` is the layout a new section gets.
+- **`variants`** are the layouts, picked in the inspector. The component draws each one. `defaultVariant` is the layout a new section gets.
 - **`optional`** names what an author may clear: `eyebrow` and `heading`, and each milestone's `text`. The editor lets these be emptied and drops them from the file on save; anything not listed stays filled. Name exactly the props that are `.optional()` in the schema. A prop listed here but required in the schema can be emptied and then refuses to save.
-- **`counts`** is what the sidebar shows next to the list ("4, recommended 3 to 5") and where it stops the Add and Remove buttons.
+- **`counts`** is what the inspector shows next to the list ("4, recommended 3 to 5") and where it stops the Add and Remove buttons.
 
 ## 3. Draw the thumbnail: `wireframe.ts`
 
@@ -147,7 +147,7 @@ const field = (path: string) => `sections.${index}.props.${path}`
 The parts that matter to the editor:
 
 - **`SectionShell`** draws the section's frame: its `id`, its anchor, the tone's colours and the motion. Every section starts with it, so tones and motion work without you touching them.
-- **`data-field`** on every value you want editable on the page. The value is its path in the page file: `sections.2.props.milestones.1.title` is the title of the second milestone in the third section. For list items, put the item's position in the path, as `milestones.${item}.title` does. A value without `data-field` is still edited in the sidebar, just not by clicking it on the page.
+- **`data-field`** on every value you want editable on the page. The value is its path in the page file: `sections.2.props.milestones.1.title` is the title of the second milestone in the third section. For list items, put the item's position in the path, as `milestones.${item}.title` does. A value without `data-field` is still edited in the inspector, just not by clicking it on the page.
 - **`markdown={milestone.text}`** on `Typography` renders rich text, so bold and links in the sentence show. Plain text fields (`year`, `title`) go in as children.
 - **`section-container`**, `rounded-card`, `bg-surface`, `ring-line`, `text-muted` and `border-line` are the theme's classes, so the section follows the site's colours and every tone. `@min-[760px]:` is a container query: the columns layout switches at the section's width, not the window's.
 

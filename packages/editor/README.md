@@ -28,7 +28,7 @@ npm run dev
 It asks for the site's name and web address. Open the address `npm run dev` prints, press **Ctrl+E** (**Cmd+E** on a Mac), click any text to change it, and press **Ctrl/Cmd+S** to save. Push the folder to GitHub and import it in Vercel, Netlify or Cloudflare Pages to put it online.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the Pages tab in the sidebar" width="100%" />
+  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the editor shell around the page" width="100%" />
 </p>
 
 ## What you can change
