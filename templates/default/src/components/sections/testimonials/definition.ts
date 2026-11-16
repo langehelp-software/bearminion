@@ -32,7 +32,19 @@ export const testimonials = defineSection({
     eyebrow: 'Testimonials',
     heading: 'What people say',
     marks: accent('What people say', 'people say'),
-    items: [{ quote: 'A short quote from a happy customer, in their own words.', name: 'Alex Morgan', role: 'Role, Company' }],
+    items: [
+      {
+        quote: 'A short quote from a happy customer. One or two sentences that sound like a real person.',
+        name: 'Alex Morgan',
+        role: 'Role, Company',
+      },
+      { quote: 'Quotes work best when they name a specific result, not just a compliment.', name: 'Sam Rivera', role: 'Role, Company' },
+      {
+        quote: 'Ask for permission before you publish a name, and add a photo if you have one.',
+        name: 'Jordan Lee',
+        role: 'Role, Company',
+      },
+    ],
   },
   variants: testimonialsVariants,
   defaultVariant: 'grid',

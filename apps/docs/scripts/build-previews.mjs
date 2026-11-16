@@ -36,7 +36,15 @@ const previews = {
 // The template reads its content folder from the working directory, as `astro build` run there would.
 process.chdir(template)
 try {
-  await build({ root: template, base: '/previews', outDir, logLevel: 'warn', integrations: [previews] })
+  await build({
+    root: template,
+    base: '/previews',
+    outDir,
+    logLevel: 'warn',
+    integrations: [previews],
+    // Empty frames (a Media section with no video yet) are drawn, as in the editor, so each layout shows its shape.
+    vite: { define: { 'import.meta.env.BEARMINION_PREVIEWS': 'true' } },
+  })
   rmSync(target, { recursive: true, force: true })
   // Only the previews and the files they load. The template's own pages are not part of the docs.
   cpSync(path.join(outDir, ROUTE), path.join(target, ROUTE), { recursive: true })

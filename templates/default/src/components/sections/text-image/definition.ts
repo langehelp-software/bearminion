@@ -27,7 +27,7 @@ export const textImage = defineSection({
     heading: 'Explain it in three steps.',
     marks: accent('Explain it in three steps.', 'three steps.'),
     body: 'A paragraph that walks through how it works, from the first contact to the result.',
-    points: ['Step one: what happens first'],
+    points: ['Step one: what happens first', 'Step two: what you do for them', 'Step three: what they end up with'],
     link: { label: 'Learn more', href: '#' },
     image: { src: 'placeholder', alt: '' },
   },

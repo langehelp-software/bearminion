@@ -31,7 +31,12 @@ export const stats = defineSection({
     eyebrow: 'By the numbers',
     heading: 'Figures that build trust.',
     marks: accent('Figures that build trust.', 'build trust.'),
-    items: [{ value: '120+', label: 'customers since launch' }],
+    items: [
+      { value: '120+', label: 'customers since launch' },
+      { value: '98%', label: 'would recommend us' },
+      { value: '24 h', label: 'average reply time' },
+      { value: '10 yrs', label: 'in business' },
+    ],
   },
   variants: statsVariants,
   defaultVariant: 'row',
