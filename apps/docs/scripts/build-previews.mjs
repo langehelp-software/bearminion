@@ -3,8 +3,7 @@
 // with the base path /previews, then copies only the previews and their assets into public/previews.
 //
 //   node scripts/build-previews.mjs
-import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
-import os from 'node:os'
+import { cpSync, existsSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -21,7 +20,10 @@ if (!existsSync(path.resolve(docs, '../../packages/editor/dist/index.js'))) {
 // The template resolves `astro` from its own node_modules: load it from there, so its config and this build agree.
 const { build } = await import(pathToFileURL(path.join(template, 'node_modules/astro/dist/index.js')).href)
 
-const outDir = mkdtempSync(path.join(os.tmpdir(), 'bearminion-previews-'))
+// Inside the repository, not the system temp folder: Astro moves files from the template's .astro folder into the
+// build with a rename, which fails across file systems (on Vercel, /tmp is another one).
+const outDir = path.join(docs, 'node_modules/.cache/bearminion-previews')
+rmSync(outDir, { recursive: true, force: true })
 const previews = {
   name: 'bearminion-docs:previews',
   hooks: {
