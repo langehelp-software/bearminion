@@ -42,7 +42,7 @@ Push the folder to a GitHub repository and import it in [Vercel](https://vercel.
 From then on: edit, save, commit, push. The site rebuilds by itself.
 
 <p align="center">
-  <img src=".github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the editor shell around the page" width="100%" />
+  <img src=".github/assets/editor.png" alt="The BearMinion editor: the navigation, the page with a section toolbar on the hero, and the inspector" width="100%" />
 </p>
 
 ## What you can change
@@ -55,7 +55,7 @@ From then on: edit, save, commit, push. The site rebuilds by itself.
 - **Colors**: pick three, and the editor builds a full light and dark palette that stays readable
 
 <p align="center">
-  <img src=".github/assets/design.png" alt="The Design tab: color mode, brand, neutral and link colors, and a preview of every section tone in light and dark mode" width="100%" />
+  <img src=".github/assets/design.png" alt="The Design screen: color mode, brand, neutral and link colors, and a preview of every section tone in light and dark mode" width="100%" />
 </p>
 
 Your content is plain files in your project, so every change is in your git history and nothing can lock you in. The editor only exists on your computer: the published site is fast, static HTML.

@@ -16,7 +16,7 @@
         "glow": true,
         "heading": "The BearMinion for the bare minimum.",
         "image": {
-          "alt": "The BearMinion editor over a site: a heading being edited on the page, the section toolbar, and the editor shell around the page",
+          "alt": "The BearMinion editor over a site: the navigation, the page with a section toolbar on the hero, and the inspector",
           "fit": "auto",
           "hidden": true,
           "src": "src/assets/uploads/editor.png"
@@ -158,7 +158,7 @@
           {
             "description": "Pick three colors. The theme derives the rest and checks contrast against WCAG, so nobody squints.",
             "image": {
-              "alt": "The Design tab preview: every tone in light and dark, each text pair at WCAG AA contrast",
+              "alt": "The Design screen's preview card: every tone in light and dark, each text pair at WCAG AA contrast",
               "fit": "cover",
               "position": "center",
               "src": "src/assets/uploads/editor-design-tab.png"
@@ -168,7 +168,7 @@
           {
             "description": "Nested menus, the footer, and a title, description and social image for every page. The boring parts, handled.",
             "image": {
-              "alt": "The Navigation tab brand settings: the name or a logo image, and the logo height",
+              "alt": "The Navigation screen's Brand card: the name or a logo image, and the logo height",
               "fit": "cover",
               "position": "center",
               "src": "src/assets/uploads/editor-navigation-tab.png"
@@ -178,7 +178,7 @@
           {
             "description": "Every save is kept, with undo and redo. Turn on git and Save commits the changed files. It never pushes. That part is your call.",
             "image": {
-              "alt": "Version history: every save of the page, with a Restore button on each",
+              "alt": "Version history from the top bar: every save of the page, with a Restore button on each",
               "fit": "cover",
               "position": "center",
               "src": "src/assets/uploads/editor-version-history.png"

@@ -33,7 +33,7 @@ Open the address it prints: the editor opens around the page. Click any text to 
 `pnpm create bearminion`, `yarn create bearminion` and `bun create bearminion` work the same way and install with that package manager.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/editor.png" alt="The BearMinion editor: a section toolbar on the hero, a heading being edited, and the editor shell around the page" width="100%" />
+  <img src="https://raw.githubusercontent.com/langehelp-software/bearminion/main/.github/assets/editor.png" alt="The BearMinion editor: the navigation, the page with a section toolbar on the hero, and the inspector" width="100%" />
 </p>
 
 ## Options
