@@ -86,9 +86,12 @@ export interface RouteOptions {
 
 const emptySeo = (title: string) => ({ title, description: '', noindex: false, nofollow: false })
 
-/** An entry that is not ready to be published: its type declares a `draft` field and it is on. */
-export function isDraft(entry: { fields?: Record<string, unknown> }): boolean {
-  return entry.fields?.draft === true
+/**
+ * A document that is not ready to be published: its status is `draft`, or its type declares a `draft` field and it is
+ * on. A build leaves it out of the routes, the listings and the sitemap.
+ */
+export function isDraft(entry: { status?: string; fields?: Record<string, unknown> }): boolean {
+  return entry.status === 'draft' || entry.fields?.draft === true
 }
 
 /** What a declared single shows before it has been saved once: its label and nothing else. */

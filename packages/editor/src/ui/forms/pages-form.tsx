@@ -17,8 +17,11 @@ export function NewDocumentForm({
   noun = 'page',
   taken,
   labels,
+  canDraft = true,
   onNavigate,
 }: {
+  /** False for a type with its own `draft` field: that field says whether an entry is published. */
+  canDraft?: boolean
   type?: string
   path?: string
   noun?: 'page' | 'entry'
@@ -35,6 +38,7 @@ export function NewDocumentForm({
   const [error, setError] = useState('')
   const templates = Object.entries(labels)
   const [template, setTemplate] = useState(() => (labels.hero !== undefined ? 'hero' : (templates[0]?.[0] ?? '')))
+  const [draft, setDraft] = useState(true)
   return (
     <div class="bm-card">
       <Field
@@ -65,13 +69,27 @@ export function NewDocumentForm({
           ))}
         </select>
       </label>
+      {canDraft && (
+        <label class="bm-switch-row">
+          <span class="bm-switch-text">
+            <span class="bm-switch-title">Start as a draft</span>
+            <span class="bm-hint">Left out of the build until you set it to Published.</span>
+          </span>
+          <input type="checkbox" role="switch" checked={draft} onChange={(event) => setDraft(event.currentTarget.checked)} />
+        </label>
+      )}
       <button
         type="button"
         class="bm-primary"
         disabled={slug === ''}
         onClick={() => {
           setError('')
-          void createEntry(type, { slug, title, ...(template === '' ? {} : { template }) }).then((result) => {
+          void createEntry(type, {
+            slug,
+            title,
+            ...(template === '' ? {} : { template }),
+            ...(canDraft && draft ? { status: 'draft' as const } : {}),
+          }).then((result) => {
             if (result.ok) onNavigate(path === undefined ? pageHref(slug) : path.replace('{slug}', slug))
             else setError(result.status === 0 ? `Could not create the ${noun}.` : result.message)
           })

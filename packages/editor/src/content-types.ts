@@ -1,7 +1,16 @@
 import { z } from 'zod'
 import { textSchema } from './fields.js'
 import type { SectionRegistry } from './model.js'
-import { addSectionIdentityIssues, createPageSchema, createTolerantPageSchema, seoSchema, slugSchema, type Page, type Seo } from './page.js'
+import {
+  addSectionIdentityIssues,
+  createPageSchema,
+  createTolerantPageSchema,
+  pageStatusSchema,
+  seoSchema,
+  slugSchema,
+  type Page,
+  type Seo,
+} from './page.js'
 import { createSectionSchema, createTolerantSectionSchema, type BaseSection } from './section-schema.js'
 import { PAGES_DIR } from './store-core.js'
 
@@ -578,6 +587,7 @@ export function createEntrySchema(registry: SectionRegistry, type: ContentType, 
     .object({
       slug: slugSchema,
       title: textSchema,
+      status: pageStatusSchema.optional(),
       seo: seoSchema,
       sections: sectionList(registry, type, tolerant),
       ...(type.fields ? { fields: type.fields } : {}),

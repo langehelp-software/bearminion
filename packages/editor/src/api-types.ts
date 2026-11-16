@@ -142,6 +142,8 @@ export interface CreatePageRequest {
   slug: string
   title: string
   template?: string
+  /** `draft` starts the document as a draft. Absent: published. */
+  status?: 'published' | 'draft'
 }
 
 /** `POST /git/commit`. */

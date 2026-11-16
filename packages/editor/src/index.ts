@@ -93,7 +93,7 @@ export type { ContentMigration, ContentMigrator, ContentVersioning, DocumentKind
 
 export type * from './api-types.js'
 
-export { SYSTEM_PAGES, createPageSchema, isSystemPage, jsonLdSchema, seoSchema } from './page.js'
+export { SYSTEM_PAGES, createPageSchema, isSystemPage, jsonLdSchema, pageStatusSchema, seoSchema } from './page.js'
 export {
   formatJsonLd,
   generateSiteJsonLd,
@@ -106,7 +106,7 @@ export {
   upsertJsonLd,
 } from './json-ld.js'
 export type { JsonLdBlock, JsonLdResult, SiteJsonLdIds, SiteJsonLdSource } from './json-ld.js'
-export type { Page, Seo } from './page.js'
+export type { Page, PageStatus, Seo } from './page.js'
 
 export {
   buttonStyles,

@@ -18,6 +18,8 @@ export interface SectionDraft {
 export interface PageDraft {
   slug: string
   title: string
+  /** Absent means published. */
+  status?: 'published' | 'draft'
   seo: Record<string, unknown>
   sections: SectionDraft[]
   /** The document's own fields, when its content type declares any. */

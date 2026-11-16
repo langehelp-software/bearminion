@@ -117,6 +117,19 @@ async function call(
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
 
 describe('editor API', () => {
+  it('creates a page as a draft when asked, and lists it as one', async () => {
+    const context = withRegistry(seed())
+    const created = await call(context, 'POST', `${API_PREFIX}/pages`, { json: { slug: 'later', title: 'Later', status: 'draft' } })
+    expect(created.status).toBe(201)
+    const stored = JSON.parse(fs.readFileSync(path.join(context.contentDir, 'pages', 'later.json'), 'utf8')) as { status?: string }
+    expect(stored.status).toBe('draft')
+    const listed = (await (await call(context, 'GET', `${API_PREFIX}/pages`)).json()) as { pages: { slug: string; draft?: boolean }[] }
+    expect(listed.pages.find((item) => item.slug === 'later')?.draft).toBe(true)
+    expect(listed.pages.find((item) => item.slug === 'index')).not.toHaveProperty('draft')
+    const wrong = await call(context, 'POST', `${API_PREFIX}/pages`, { json: { slug: 'nope', title: 'Nope', status: 'hidden' } })
+    expect(wrong.status).toBe(400)
+  })
+
   it('lists each page with what the listings show beside it: noindex and when its file last changed', async () => {
     const context = withRegistry(seed())
     const file = path.join(context.contentDir, 'pages', 'index.json')

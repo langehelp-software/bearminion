@@ -68,6 +68,8 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
   const label = pagesType ? 'Pages' : (info?.label ?? type)
   const noun = pagesType ? 'page' : 'entry'
   const storage = pagesType ? 'content/pages/{slug}.json' : `content/${info?.id ?? type}/{slug}.json`
+  /** A type with its own `draft` field keeps using it; the others get a page status. */
+  const draftField = !pagesType && (info?.fields ?? []).some((field) => field.name === 'draft')
   const canDelete = pagesType ? catalog.pageRules?.delete !== false : info?.delete !== false
   const ref = doc.ref.value
   const savedSlug = doc.savedSlug.value
@@ -127,7 +129,12 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
   async function duplicate(item: PageSummary) {
     setError('')
     const slug = copySlug(item.slug, taken)
-    const result = await createEntry(item.type ?? 'pages', { slug, title: `${item.title} (copy)`, template: item.slug })
+    const result = await createEntry(item.type ?? 'pages', {
+      slug,
+      title: `${item.title} (copy)`,
+      template: item.slug,
+      ...(draftField ? {} : { status: 'draft' as const }),
+    })
     if (!result.ok) setError(result.message)
     await session.load()
   }
@@ -193,6 +200,7 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
             noun={noun}
             taken={taken}
             labels={templates}
+            canDraft={!draftField}
             onNavigate={session.requestLeave}
           />
         </div>

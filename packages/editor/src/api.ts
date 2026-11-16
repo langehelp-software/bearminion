@@ -1439,6 +1439,8 @@ const createPageSchema = z
     template: z.string().min(1).optional(),
     /** The entry's own fields, for a type that declares them. */
     fields: z.record(z.string(), z.unknown()).optional(),
+    /** `draft` starts the entry as a draft. Absent: published, as before. */
+    status: z.enum(['published', 'draft']).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -1493,7 +1495,7 @@ function pageFromSection(
 }
 
 function draftPage(
-  input: { slug: string; title: string; template?: string; fields?: Record<string, unknown> },
+  input: { slug: string; title: string; template?: string; fields?: Record<string, unknown>; status?: 'published' | 'draft' },
   pages: readonly StoredPage[],
   registry: SectionRegistry,
   type: MultiType,
@@ -1501,12 +1503,14 @@ function draftPage(
   const slug = readSlug(input.slug)
   if (slug === null) return { response: badSlug() }
   const seo = { title: input.title, description: '', noindex: false, nofollow: false }
+  const status = input.status === 'draft' ? { status: 'draft' as const } : {}
   // A new entry starts with something in each required field, so it can be created from a title alone and filled in
   // afterwards. What the body sends wins; the type's schema still has the last word.
   const fields = type.fields || input.fields ? { fields: { ...(type.fields ? starterFields(type.fields) : {}), ...input.fields } } : {}
   const allowed = (name: string): boolean => type.sections === null || type.sections.includes(name)
   const drafted = (definition: SectionRegistry[string]) => ({
     ...(pageFromSection(slug, input.title, seo, definition) as object),
+    ...status,
     ...fields,
   })
 
@@ -1547,6 +1551,7 @@ function draftPage(
     page: {
       slug,
       title: input.title,
+      ...status,
       seo,
       sections: structuredClone(source.page.sections),
       ...(input.fields === undefined && source.page.fields ? { fields: structuredClone(source.page.fields) } : fields),

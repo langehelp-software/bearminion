@@ -5,6 +5,7 @@ import { isSystemPage } from '../../page.js'
 import type { LibraryImage } from '../image-field.js'
 import { Icon } from '../icons.js'
 import { Field } from './fields.js'
+import { Segmented } from './segmented.js'
 import { SeoCard } from './seo-card.js'
 import { TypeFieldsForm } from './type-fields-form.js'
 
@@ -65,6 +66,9 @@ export function PageForm({
   const isHome = kind === 'page' && page.slug === 'index'
   const isSystem = kind === 'page' && isSystemPage(page.slug)
   const heading = { page: 'Page', entry: 'Entry', single: 'Page', listing: 'Listing page' }[kind]
+  // Only a page or an entry at its own address can be a draft. A type with its own `draft` field keeps that switch.
+  const hasStatus =
+    (kind === 'page' && !isHome && !isSystem) || (kind === 'entry' && !(fields ?? []).some((field) => field.name === 'draft'))
   return (
     <>
       <div class="bm-stack">
@@ -89,6 +93,26 @@ export function PageForm({
                   : (fixedReason ?? 'Renaming pages is turned off for this site, so this address stays as it is.')
           }
         />
+        {hasStatus && (
+          <div class="bm-stack bm-stack-tight">
+            <Segmented
+              label="Status"
+              value={page.status === 'draft' ? 'draft' : 'published'}
+              options={[
+                { value: 'published', label: 'Published', dot: 'published' },
+                { value: 'draft', label: 'Draft', dot: 'draft' },
+              ]}
+              onChange={(value) => {
+                // Published is the default, so it is stored as no status at all: older files stay as they are.
+                const { status: _status, ...rest } = page
+                onChange(value === 'draft' ? { ...rest, status: 'draft' } : rest)
+              }}
+            />
+            <p class="bm-hint">
+              {page.status === 'draft' ? 'Left out of the build and the sitemap. Visible here in the editor.' : 'Included in the build.'}
+            </p>
+          </div>
+        )}
         <label class="bm-switch-row">
           <span class="bm-switch-text">
             <span class="bm-switch-title">Show in search engines</span>

@@ -159,6 +159,18 @@ describe('siteRoutes', () => {
     expect(first?.entries.map((entry) => entry.slug)).toEqual(['wip', 'd'])
   })
 
+  it('leaves a page marked draft out of a build, and never the home or 404 page', () => {
+    const root = project({
+      'pages/index.json': page('index', 'Home', { status: 'draft' }),
+      'pages/404.json': page('404'),
+      'pages/contact.json': page('contact', 'Contact', { status: 'draft' }),
+      'pages/about.json': page('about', 'About', { status: 'published' }),
+    })
+    const content = loadContent(path.join(root, 'content'), starterModel)
+    expect(paths(siteRoutes(starterModel, content))).toEqual(['/', '/404', '/about'])
+    expect(paths(siteRoutes(starterModel, content, { drafts: true }))).toContain('/contact')
+  })
+
   it('gives a listing with no entries its first page, and an unsaved listing and single their defaults', () => {
     const content = loadContent(path.join(project({ 'pages/index.json': page('index') }), 'content'), model())
     const routes = siteRoutes(model(), content)
