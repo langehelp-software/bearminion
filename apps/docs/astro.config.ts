@@ -95,7 +95,7 @@ export default defineConfig({
             'sections/contact',
           ],
         },
-        { label: 'Building with BearMinion', items: ['themes', 'integration', 'dev-api'] },
+        { label: 'Building with BearMinion', items: ['custom-section', 'themes', 'integration', 'dev-api'] },
       ],
     }),
     // After the build: every internal link and #anchor must exist. starlight-links-validator cannot be used here: it

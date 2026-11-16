@@ -48,7 +48,7 @@ src/components/
 
 ## Add a section type
 
-A section type is one directory under `src/components/sections/` and one command, `npx bearminion sync`. This walks through a `quote` section: a pull quote with an attribution.
+A section type is one directory under `src/components/sections/` and one command, `npx bearminion sync`. This walks through a `quote` section: a pull quote with an attribution. For a section with a list of items, step by step, see [Build your own section](https://docs.bearminion.com/custom-section/).
 
 **1. The definition** (`quote/definition.ts`). The Zod schema validates the JSON and drives the editor's Content fields; `defaults` is what a new section starts with and must pass the schema.
 

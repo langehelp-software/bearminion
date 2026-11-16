@@ -3,11 +3,11 @@ title: Building a theme
 description: "What a BearMinion theme supplies: section types, the header and footer definition, the theme contract, live preview and content collections."
 ---
 
-What a theme supplies to `bearminion`: section types, the header and footer definition, the fixed theme contract, the live preview renderer and content collections. The default template is a complete example; its README walks through [adding a section type](../templates/default/README.md#add-a-section-type).
+What a theme supplies to `bearminion`: section types, the header and footer definition, the fixed theme contract, the live preview renderer and content collections. The default template is a complete example; its README walks through [adding a section type](../templates/default/README.md#add-a-section-type), and [Build your own section](custom-section.md) does it step by step with a list field.
 
 ## Section registry
 
-The package ships no section types. A site defines each one in its own directory and passes the set to `bearminion({ sections, site })`, `loadContent(dir, { sections, site })` and `loadPages(dir, sections)`. The starter's sections are `hero`, `logoStrip`, `features`, `text`, `textImage`, `stats`, `testimonials`, `steps`, `gallery`, `pricing`, `media`, `faq`, `cta` and `contact`, each with two or three variants (see [Sections](sections/README.md) for screenshots of every layout), in `templates/default/src/components/sections/<name>/`:
+The package ships no section types. A site defines each one in its own directory and passes the set to `bearminion({ sections, site })`, `loadContent(dir, { sections, site })` and `loadPages(dir, sections)`. The template's sections are `hero`, `logoStrip`, `features`, `text`, `textImage`, `stats`, `testimonials`, `steps`, `gallery`, `pricing`, `media`, `faq`, `cta` and `contact`, each with two or three variants (see [Sections](sections/README.md) for every layout, and which nine a new site starts with), in `templates/default/src/components/sections/<name>/`:
 
 ```text
 hero/
