@@ -27,11 +27,36 @@ const SCREENSHOT = /^\.\.\/images\/sections\/([a-z0-9-]+)\.webp$/
 const escapeAttribute = (text: string) =>
   text.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 
+const svg = (paths: string) =>
+  `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`
+
+/** The widths a preview is drawn at, as icons: the label is the button's name and tooltip. */
+const WIDTHS = [
+  {
+    width: 1280,
+    label: 'Desktop, 1280 pixels',
+    icon: svg('<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/>'),
+  },
+  { width: 768, label: 'Tablet, 768 pixels', icon: svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M11 18h2"/>') },
+  { width: 390, label: 'Phone, 390 pixels', icon: svg('<rect x="7.5" y="3" width="9" height="18" rx="2"/><path d="M11 18h2"/>') },
+]
+
+/** The four tones, as swatches. */
+const TONES = ['base', 'subtle', 'inverse', 'brand']
+
+const OPEN_ICON = svg('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>')
+
 /** The markup of one live preview. `public/section-preview.js` makes the controls work; without it the frame still shows. */
 export function previewHtml(section: string, variant: string, title: string): string {
   const src = `/previews/section/${section}/${variant}/`
-  const button = (attribute: string, value: string, label: string, pressed = false) =>
-    `<button type="button" ${attribute}="${value}" aria-pressed="${pressed}">${label}</button>`
+  const tones = TONES.map(
+    (tone) =>
+      `<button type="button" class="bm-preview-swatch" data-tone-choice="${tone}" aria-pressed="${tone === 'base'}" aria-label="Tone: ${tone}" title="Tone: ${tone}"><span data-swatch="${tone}"></span></button>`,
+  ).join('')
+  const widths = WIDTHS.map(
+    ({ width, label, icon }) =>
+      `<button type="button" class="bm-preview-icon" data-width="${width}" aria-pressed="${width === 1280}" aria-label="${label}" title="${label}">${icon}</button>`,
+  ).join('')
   return [
     `<bm-section-preview class="not-content bm-preview" data-section="${section}" data-variant="${variant}">`,
     '<div class="bm-preview-bar">',
@@ -40,15 +65,9 @@ export function previewHtml(section: string, variant: string, title: string): st
     '<button type="button" role="tab" data-tab="content" aria-selected="false">Content</button>',
     '</div>',
     '<div class="bm-preview-controls">',
-    `<div class="bm-preview-group" role="group" aria-label="Tone">${['base', 'subtle', 'inverse', 'brand'].map((tone) => button('data-tone-choice', tone, tone, tone === 'base')).join('')}</div>`,
-    `<div class="bm-preview-group" role="group" aria-label="Width">${[
-      ['1280', 'Desktop'],
-      ['768', 'Tablet'],
-      ['390', 'Phone'],
-    ]
-      .map(([width, label]) => button('data-width', width as string, label as string, width === '1280'))
-      .join('')}</div>`,
-    `<a class="bm-preview-open" href="${src}" target="_blank" rel="noopener">Open</a>`,
+    `<div class="bm-preview-group" role="group" aria-label="Tone">${tones}</div>`,
+    `<div class="bm-preview-group" role="group" aria-label="Width">${widths}</div>`,
+    `<div class="bm-preview-group"><a class="bm-preview-open bm-preview-icon" href="${src}" target="_blank" rel="noopener" aria-label="Open in a new tab" title="Open in a new tab">${OPEN_ICON}</a></div>`,
     '</div>',
     '</div>',
     `<div class="bm-preview-stage"><iframe src="${src}" title="${escapeAttribute(title)}" loading="lazy"></iframe></div>`,

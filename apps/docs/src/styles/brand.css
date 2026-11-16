@@ -191,6 +191,47 @@ h1#_top,
   font-size: var(--sl-text-xs);
 }
 
+.bm-preview .bm-preview-icon {
+  display: inline-grid;
+  place-items: center;
+  padding: 0.3rem;
+}
+
+/* A tone is a dot in that tone's colours: the page background, the subtle band, the dark band, the brand band. */
+.bm-preview .bm-preview-swatch {
+  display: inline-grid;
+  place-items: center;
+  padding: 0.3rem;
+}
+
+.bm-preview-swatch span {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 1px solid var(--sl-color-gray-4);
+  border-radius: 999px;
+}
+
+[data-swatch="base"] {
+  background: #f7f8f8;
+}
+
+[data-swatch="subtle"] {
+  background: #e3e6e8;
+}
+
+[data-swatch="inverse"] {
+  background: #15171c;
+}
+
+[data-swatch="brand"] {
+  background: #6ee86f;
+}
+
+.bm-preview-group + .bm-preview-group {
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--sl-color-gray-5);
+}
+
 .bm-preview-copy {
   position: absolute;
   top: 0.5rem;
