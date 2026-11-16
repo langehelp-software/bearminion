@@ -23,7 +23,6 @@ export type EditorDialog =
   | { kind: 'commit' }
   | { kind: 'seo' }
   | { kind: 'consent' }
-  | { kind: 'siteJsonLd' }
   | { kind: 'leave'; href: string | null }
 
 export function createUiState() {

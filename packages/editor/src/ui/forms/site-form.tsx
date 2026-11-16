@@ -5,7 +5,9 @@ import { Icon } from '../icons.js'
 import { type LibraryImage, ImageField } from '../image-field.js'
 import { Info } from '../info.js'
 import { text, isImageRecord } from '../shared.js'
-import { consentEnabled, hasAnalyticsSnippet, siteJsonLdOf } from '../site-draft.js'
+import type { JsonLdBlock } from '../../json-ld.js'
+import { consentEnabled, hasAnalyticsSnippet, siteJsonLdOf, siteJsonLdSourceOf } from '../site-draft.js'
+import { JsonLdEditor } from './json-ld-editor.js'
 import type { SiteDraft, Option } from '../types.js'
 import { OptionControl, Field } from './fields.js'
 import { Segmented } from './segmented.js'
@@ -47,7 +49,7 @@ export function SiteForm({
   onOptional,
   onConsentEnabled,
   onEditConsent,
-  onEditJsonLd,
+  onJsonLd,
   onMarks,
   onUploaded,
   onDeleted,
@@ -65,8 +67,8 @@ export function SiteForm({
   onConsentEnabled: (enabled: boolean) => void
   /** Opens the dialog with the banner's text. */
   onEditConsent: () => void
-  /** Opens the dialog with the JSON-LD every page carries. */
-  onEditJsonLd: () => void
+  /** The JSON-LD every page carries, as the SEO screen's editor last had it valid. */
+  onJsonLd: (blocks: JsonLdBlock[]) => void
   onMarks: (path: string, patch: MarkPatch, start: number, end: number) => void
   onUploaded: (image: LibraryImage) => void
   onDeleted: (image: LibraryImage) => void
@@ -111,7 +113,7 @@ export function SiteForm({
             onDeleted={onDeleted}
           />
         </div>
-        <JsonLdGroup site={site} onEdit={onEditJsonLd} />
+        <JsonLdEditor blocks={siteJsonLdOf(site)} source={siteJsonLdSourceOf(site)} onChange={onJsonLd} />
       </div>
     )
   }
@@ -247,26 +249,6 @@ function ConsentGroup({
       <button type="button" class="bm-tertiary bm-consent-edit" onClick={onEdit}>
         <Icon name="settings" size={14} />
         Edit banner
-      </button>
-    </div>
-  )
-}
-
-/** Structured data on every page: a summary here, the blocks in a dialog. */
-function JsonLdGroup({ site, onEdit }: { site: SiteDraft; onEdit: () => void }) {
-  const blocks = siteJsonLdOf(site)
-  const types = blocks.map((block) => (typeof block['@type'] === 'string' ? block['@type'] : 'block'))
-  return (
-    <div class="bm-stack">
-      <p class="bm-group">Structured data</p>
-      <p class="bm-hint">
-        {blocks.length === 0
-          ? 'None. Add an Organization and a WebSite so search engines know who runs the site.'
-          : `On every page: ${types.join(', ')}.`}
-      </p>
-      <button type="button" class="bm-tertiary bm-consent-edit" onClick={onEdit}>
-        <Icon name="settings" size={14} />
-        Edit JSON-LD
       </button>
     </div>
   )
