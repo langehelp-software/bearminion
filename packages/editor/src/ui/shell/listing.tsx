@@ -114,9 +114,10 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
       : catalog.sectionLabels
   })()
 
+  /** Back to the canvas first: the view is kept across a reload, and the document should open on the page. */
   const open = (path: string) => {
-    if (new URL(path, location.href).pathname === location.pathname) ui.openView('canvas')
-    else session.requestLeave(path)
+    ui.openView('canvas')
+    if (new URL(path, location.href).pathname !== location.pathname) session.requestLeave(path)
   }
 
   function toggle(key: string) {
@@ -201,7 +202,7 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
             taken={taken}
             labels={templates}
             canDraft={!draftField}
-            onNavigate={session.requestLeave}
+            onNavigate={open}
           />
         </div>
       )}

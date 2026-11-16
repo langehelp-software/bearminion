@@ -54,8 +54,16 @@ export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; cat
   const { doc, ui, links } = useEditor()
   const type = listingType(view)
   const settings = (SETTINGS_VIEWS as readonly string[]).includes(view) ? (view as SettingsView) : null
+  const label =
+    type === 'pages'
+      ? 'Pages'
+      : type !== null
+        ? (doc.types.value.find((item) => item.id === type)?.label ?? type)
+        : settings
+          ? SETTINGS[settings].title
+          : 'Media'
   return (
-    <main class="bm-view bm-panel bm-chrome" aria-label="Editor view">
+    <main class="bm-view bm-panel bm-chrome" aria-label={label}>
       <IssueContext.Provider value={ui.issues.value.filter((issue) => issue.file === undefined || issue.file === 'site')}>
         <LinksContext.Provider
           value={{ pages: doc.pages.value, currentSlug: doc.linkKey.value, anchors: doc.anchors.value, editLink: links.open }}

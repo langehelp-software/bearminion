@@ -32,7 +32,7 @@ export function NavSidebar({ groups }: { groups: NavGroup[] }) {
                   type="button"
                   class={current ? 'bm-nav-item bm-nav-item-on' : 'bm-nav-item'}
                   aria-current={current ? 'page' : undefined}
-                  aria-label={open ? undefined : item.label}
+                  aria-label={item.label}
                   onClick={() => ui.openView(item.view)}
                 >
                   <Icon name={item.icon} size={18} />

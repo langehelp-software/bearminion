@@ -13,6 +13,8 @@ export function frameCss(rect: CanvasRect): string {
   const body = `html[${FRAMED_ATTR}] > body`
   return [
     `html[${FRAMED_ATTR}] { overflow: hidden !important; }`,
+    // A site locks scrolling on <html> behind a modal (a lightbox); in the frame it is <body> that scrolls.
+    `html[${FRAMED_ATTR}]:has(dialog:modal) > body { overflow: hidden !important; }`,
     `${body} { position: fixed !important; inset: auto !important; top: ${rect.top}px !important; left: ${rect.left}px !important; width: ${rect.width}px !important; height: ${rect.height}px !important; min-width: 0 !important; max-width: none !important; min-height: 0 !important; max-height: none !important; margin: 0 !important; overflow: auto !important; overscroll-behavior: contain; transform: translateZ(0) !important; }`,
   ].join('\n')
 }
