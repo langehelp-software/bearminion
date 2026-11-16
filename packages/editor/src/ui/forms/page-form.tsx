@@ -89,6 +89,26 @@ export function PageForm({
                   : (fixedReason ?? 'Renaming pages is turned off for this site, so this address stays as it is.')
           }
         />
+        <label class="bm-switch-row">
+          <span class="bm-switch-text">
+            <span class="bm-switch-title">Show in search engines</span>
+            <span class="bm-hint">
+              {isSystem
+                ? 'The 404 page always stays out of search results.'
+                : page.seo.noindex === true
+                  ? 'Marked noindex and left out of the sitemap.'
+                  : 'Indexed and listed in the sitemap.'}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            data-editor-field="seo.noindex"
+            checked={!isSystem && page.seo.noindex !== true}
+            disabled={isSystem}
+            onChange={(event) => onChange({ ...page, seo: { ...page.seo, noindex: !event.currentTarget.checked } })}
+          />
+        </label>
       </div>
       {fields && fields.length > 0 && (
         <TypeFieldsForm
