@@ -93,7 +93,7 @@ export async function openClean(page: Page, origin: string, pathname = '/'): Pro
     }
   }
   await page.reload({ waitUntil: 'networkidle' })
-  await page.getByRole('button', { name: 'Editor', exact: true }).waitFor()
+  await page.getByRole('navigation', { name: 'Editor' }).waitFor()
   await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
 }
 

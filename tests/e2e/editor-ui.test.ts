@@ -68,7 +68,7 @@ describe('editor overlay', () => {
   })
 
   it('edits a hero title, adds a section, and uploads an image', async () => {
-    // Wide enough that the hero image is not under the sidebar, which can stay open across the save reload.
+    // Wide enough that the hero image is not under the inspector, which stays open across the save reload.
     const page = await browser.newPage({ viewport: { width: 1700, height: 900 } })
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
@@ -82,8 +82,7 @@ describe('editor overlay', () => {
       })
     })
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' })
-    const editorButton = page.getByRole('button', { name: 'Editor', exact: true })
-    await editorButton.waitFor()
+    await editorNav(page).waitFor()
 
     const title = page.locator('[data-section-id="hero"] [data-field="sections.0.props.heading"]')
     await title.click({ position: { x: 12, y: 8 } })
@@ -109,11 +108,14 @@ describe('editor overlay', () => {
     await page.keyboard.press('Control+s')
     await waitFor(() => fs.readFileSync(indexPath, 'utf8').includes('"id": "cta-2"'), 'added section missing from index.json')
     await reloadedAgain
-    // The sidebar can stay open across the save reload, so wait for the editor itself, not its button.
+    // The save reloads the page: wait for the editor to be ready again.
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
 
-    await page.locator('[data-section-id="hero"] [data-field="sections.0.props.image.alt"]').click()
+    // The hero's image field is on the inspector's Section tab; the hero is selected when the page opens.
+    await openInspector(page)
+    await page.getByRole('tab', { name: 'Section' }).click()
     await page.locator('[data-editor-field="sections.0.props.image"]').waitFor()
+    await page.locator('[data-section-id="hero"] [data-field="sections.0.props.image.alt"]').click()
     const upload = path.join(os.tmpdir(), 'bearminion-pixel.png')
     fs.writeFileSync(upload, png)
     await page.getByRole('dialog', { name: 'Choose image' }).getByRole('tab', { name: 'Upload' }).click()
@@ -142,7 +144,7 @@ describe('editor overlay', () => {
       navigated = true
     })
     await page.locator('[data-section-id="hero"]').click({ position: { x: 24, y: 80 } })
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
+    await openInspector(page)
     await page.getByRole('tab', { name: 'Section' }).click()
     await shot(page, 'anchor_field_sidebar.png')
     await page.getByRole('textbox', { name: /^Anchor/ }).fill('top')
@@ -160,7 +162,8 @@ describe('editor overlay', () => {
   }, 90_000)
 
   it('shows nested navigation and anchor choices in the link picker', async () => {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    // Wide enough that the canvas between the navigation and the inspector still gets the desktop header.
+    const page = await browser.newPage({ viewport: { width: 1700, height: 900 } })
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' })
     const desktopNav = page.locator('header nav[aria-label="Primary"]').first()
     // The starter's first header link has one child, "How it works".
@@ -174,8 +177,8 @@ describe('editor overlay', () => {
     await desktopNav.getByRole('link', { name: /^Features/ }).hover()
     await nested.waitFor({ state: 'visible' })
     await shot(page, 'nested_nav_dropdown.png')
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Navigation' }).click()
+    await openInspector(page)
+    await openScreen(page, 'Navigation')
     await page.getByRole('combobox', { name: 'Link target' }).first().click()
     await page.getByRole('option', { name: '#features' }).first().waitFor()
     await page.getByRole('option', { name: '#faq' }).first().waitFor()
@@ -193,7 +196,7 @@ describe('editor overlay', () => {
     expect(await page.getByRole('tab', { name: 'Images' }).count()).toBe(0)
     const upload = path.join(os.tmpdir(), `bearminion-live-${Date.now()}.png`)
     fs.writeFileSync(upload, png)
-    // Clicking the image on the page opens the picker straight away, without the sidebar.
+    // Clicking the image on the page opens the picker straight away, over the page.
     const picker = page.getByRole('dialog', { name: 'Choose image' })
     await picker.waitFor()
     expect(await field.isVisible()).toBe(false)
@@ -207,7 +210,7 @@ describe('editor overlay', () => {
     await image.waitFor({ state: 'visible' })
     expect(await image.getAttribute('src')).toMatch(/__bearminion\/assets|\/_image/)
     expect(await field.isVisible()).toBe(false)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
+    await openInspector(page)
     await page.getByRole('tab', { name: 'Section' }).click()
     await field.waitFor()
     await shot(page, 'image_field.png')
@@ -315,9 +318,9 @@ describe('editor overlay', () => {
     const title = page.locator('[data-section-id="hero"] [data-field="sections.0.props.heading"]')
     await title.click()
     await title.fill(heading)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Site' }).click()
-    await page.getByRole('tabpanel', { name: 'Site' }).getByLabel('URL').fill(siteUrl)
+    await openInspector(page)
+    await openScreen(page, 'Site')
+    await page.getByRole('main', { name: 'Site' }).getByLabel('URL').fill(siteUrl)
     await page.getByRole('button', { name: 'Unsaved' }).click()
     const dialog = page.getByRole('dialog', { name: 'Unsaved changes' })
     await dialog.waitFor()
@@ -333,16 +336,15 @@ describe('editor overlay', () => {
     await page.close()
   }, 90_000)
 
-  it('discards unsaved changes from the save menu', async () => {
+  it('discards unsaved changes from the list of changes', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await openClean(page)
     const title = page.locator('[data-section-id="hero"] [data-field="sections.0.props.heading"]')
     const original = (await title.textContent()) ?? ''
     await title.click()
     await title.fill(`Throwaway ${Date.now()}`)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('button', { name: 'More actions' }).click()
-    await page.getByRole('menuitem', { name: 'Discard changes…' }).click()
+    await page.getByRole('button', { name: /^Unsaved/ }).click()
+    await page.getByRole('dialog', { name: 'Unsaved changes' }).getByRole('button', { name: 'Discard', exact: true }).click()
     await page.getByRole('alertdialog', { name: 'Discard changes' }).getByRole('button', { name: 'Discard' }).click()
     await page.waitForLoadState('networkidle')
     await page
@@ -352,7 +354,7 @@ describe('editor overlay', () => {
     await page.close()
   }, 90_000)
 
-  it('undoes and redoes a text edit from the save menu', async () => {
+  it('undoes and redoes a text edit from the top bar', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await openClean(page)
     const title = page.locator('[data-section-id="hero"] [data-field="sections.0.props.heading"]')
@@ -360,16 +362,13 @@ describe('editor overlay', () => {
     const edited = `Undo me ${Date.now()}`
     await title.click()
     await title.fill(edited)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('button', { name: 'More actions' }).click()
-    // The step is recorded once typing pauses, so the item enables a moment after the edit.
-    await page.getByRole('menuitem', { name: 'Undo' }).click({ timeout: 5000 })
+    // The step is recorded once typing pauses, so the button enables a moment after the edit.
+    await page.getByRole('button', { name: 'Undo', exact: true }).click({ timeout: 5000 })
     await page
       .locator('[data-section-id="hero"] [data-field="sections.0.props.heading"]')
       .filter({ hasText: original.slice(0, 10) })
       .waitFor()
-    await page.getByRole('button', { name: 'More actions' }).click()
-    await page.getByRole('menuitem', { name: 'Redo' }).click({ timeout: 5000 })
+    await page.getByRole('button', { name: 'Redo', exact: true }).click({ timeout: 5000 })
     await page.locator('[data-section-id="hero"] [data-field="sections.0.props.heading"]').filter({ hasText: edited }).waitFor()
     await page.close()
   }, 90_000)
@@ -377,9 +376,9 @@ describe('editor overlay', () => {
   it('does not reload when save fails validation', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await openClean(page)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Site' }).click()
-    await page.getByRole('tabpanel', { name: 'Site' }).getByLabel('URL').fill('not a url')
+    await openInspector(page)
+    await openScreen(page, 'Site')
+    await page.getByRole('main', { name: 'Site' }).getByLabel('URL').fill('not a url')
     await page.getByRole('button', { name: 'Unsaved' }).click()
     await page.getByRole('dialog', { name: 'Unsaved changes' }).getByRole('button', { name: 'Save', exact: true }).click()
     await page.getByText('url: Invalid URL').waitFor()
@@ -397,7 +396,7 @@ describe('editor overlay', () => {
       const hero = page.locator('[data-section-id="hero"]')
       await hero.locator('[data-field="sections.0.props.primary.label"]').waitFor()
       await hero.click({ position: { x: 24, y: 80 } })
-      await page.getByRole('button', { name: 'Editor', exact: true }).click()
+      await openInspector(page)
       await page.getByRole('tab', { name: 'Section' }).click()
       await page.getByRole('button', { name: 'Remove primary' }).click()
       await page.getByRole('textbox', { name: /^Eyebrow/ }).fill('')
@@ -416,10 +415,10 @@ describe('editor overlay', () => {
       expect(saved.sections[0]?.props.secondary).toBeDefined()
       await reloaded
       await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
-      // The sidebar can come back open on the Section tab; select the hero and open it either way.
+      // The inspector can come back on the Section tab; select the hero and open it either way.
       await hero.click({ position: { x: 24, y: 80 } })
       const sectionTab = page.getByRole('tab', { name: 'Section' })
-      if (!(await sectionTab.isVisible())) await page.getByRole('button', { name: 'Editor', exact: true }).click()
+      if (!(await sectionTab.isVisible())) await openInspector(page)
       await sectionTab.click()
       await page.getByRole('button', { name: 'Add primary' }).click()
       await hero.locator('[data-field="sections.0.props.primary.label"]').waitFor()
@@ -436,9 +435,8 @@ describe('editor overlay', () => {
     const title = page.locator('[data-section-id="hero"] [data-field="sections.0.props.heading"]')
     await title.click()
     await title.fill(heading)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Pages' }).click()
-    await page.getByRole('tabpanel').getByRole('link', { name: 'About' }).click()
+    await openScreen(page, 'Pages')
+    await page.getByRole('main', { name: 'Pages' }).getByRole('button', { name: 'About', exact: true }).click()
     const dialog = page.getByRole('alertdialog', { name: 'Unsaved changes' })
     await dialog.waitFor()
     await dialog.getByRole('button', { name: 'Discard', exact: true }).click()
@@ -454,9 +452,8 @@ describe('editor overlay', () => {
     const title = page.locator('[data-section-id="hero"] [data-field="sections.0.props.heading"]')
     await title.click()
     await title.fill(heading)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Pages' }).click()
-    await page.getByRole('tabpanel').getByRole('link', { name: 'About' }).click()
+    await openScreen(page, 'Pages')
+    await page.getByRole('main', { name: 'Pages' }).getByRole('button', { name: 'About', exact: true }).click()
     const dialog = page.getByRole('alertdialog', { name: 'Unsaved changes' })
     await dialog.getByRole('button', { name: 'Cancel' }).click()
     await dialog.waitFor({ state: 'hidden' })
@@ -724,11 +721,16 @@ describe('editor overlay', () => {
     await page.evaluate(() => {
       const section = document.querySelector('[data-section-id="hero"]')
       if (!(section instanceof HTMLElement)) return
-      window.scrollTo(0, section.getBoundingClientRect().bottom + window.scrollY + 8)
+      // In the editor shell the page scrolls inside <body>.
+      const scroller = document.documentElement.hasAttribute('data-bearminion-shell') ? document.body : document.documentElement
+      scroller.scrollTop += section.getBoundingClientRect().bottom + 8
     })
     await toolbar.waitFor({ state: 'hidden' })
 
-    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.evaluate(() => {
+      document.body.scrollTop = 0
+      document.documentElement.scrollTop = 0
+    })
     await toolbar.waitFor()
     const restored = await read()
     if (!restored) throw new Error('restored toolbar metrics missing')
@@ -752,27 +754,35 @@ describe('editor overlay', () => {
       return name?.textContent?.includes('Features') ?? false
     })
 
-    // An open sidebar pulls the bar's right edge in with the page content.
-    await page.evaluate(() => window.scrollTo(0, 0))
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('separator', { name: 'Resize sidebar' }).waitFor()
+    // The inspector pulls the bar's right edge in with the canvas.
+    await page.evaluate(() => {
+      document.body.scrollTop = 0
+    })
+    await openInspector(page)
+    await page.getByRole('separator', { name: 'Resize inspector' }).waitFor()
     await hero.hover({ position: { x: 24, y: 160 } })
     await toolbar.waitFor()
     const withSidebar = await read()
     if (!withSidebar) throw new Error('sidebar toolbar metrics missing')
-    const width = Number(await page.getByRole('separator', { name: 'Resize sidebar' }).getAttribute('aria-valuenow'))
+    const width = Number(await page.getByRole('separator', { name: 'Resize inspector' }).getAttribute('aria-valuenow'))
     expect(withSidebar.right).toBeLessThanOrEqual(1280 - width + 1)
     expect(Math.abs(withSidebar.left - (withSidebar.sectionLeft + inset))).toBeLessThan(2)
-    await page.getByRole('separator', { name: 'Resize sidebar' }).focus()
+    await page.getByRole('separator', { name: 'Resize inspector' }).focus()
     await page.keyboard.press('ArrowLeft')
     await page.waitForFunction(
-      () =>
+      (next) =>
         document.getElementById('bearminion-editor-host')?.shadowRoot?.querySelector('[role=separator]')?.getAttribute('aria-valuenow') ===
-        '456',
+        String(next),
+      width + 16,
     )
-    const resized = await read()
-    if (!resized) throw new Error('resized toolbar metrics missing')
-    expect(resized.right).toBeLessThanOrEqual(1280 - 456 + 1)
+    await hero.hover({ position: { x: 24, y: 160 } })
+    await page.waitForFunction(
+      (edge) => {
+        const bar = document.getElementById('bearminion-editor-host')?.shadowRoot?.querySelector('[role="toolbar"][aria-label="Section"]')
+        return bar instanceof HTMLElement && bar.getBoundingClientRect().right <= edge
+      },
+      1280 - (width + 16) + 1,
+    )
     await page.close()
   }, 90_000)
 
@@ -855,8 +865,8 @@ describe('editor overlay', () => {
   it('previews the Design tab palette live on the page', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await openClean(page)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Design' }).click()
+    await openInspector(page)
+    await openScreen(page, 'Design')
     const hex = page.getByLabel('Brand hex')
     await hex.fill('#1d4ed8')
     await page.waitForFunction(() => document.getElementById('bm-theme')?.textContent?.includes('--t-base-accent'))
@@ -872,7 +882,7 @@ describe('editor overlay', () => {
     await openClean(page)
     await page.locator('[data-organism="footer"]').scrollIntoViewIfNeeded()
     await page.getByRole('toolbar', { name: 'Footer' }).getByRole('button', { name: 'Footer settings' }).click()
-    expect(await page.getByRole('tab', { name: 'Footer' }).getAttribute('aria-selected')).toBe('true')
+    await page.getByRole('main', { name: 'Footer' }).waitFor()
     await page.close()
   }, 60_000)
 
@@ -895,8 +905,8 @@ describe('editor overlay', () => {
   it('offers a name or logo image for the brand, with a height slider', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await openClean(page)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Navigation' }).click()
+    await openInspector(page)
+    await openScreen(page, 'Navigation')
     await page.getByRole('radio', { name: 'Logo image' }).click()
     await page.locator('[data-editor-field="brandLogo"]').waitFor()
     const slider = page.getByRole('slider', { name: 'Logo height' })
@@ -907,17 +917,18 @@ describe('editor overlay', () => {
     await page.close()
   }, 60_000)
 
-  it('hides all editor chrome in preview and returns with the bubble or Esc', async () => {
+  it('hides all editor chrome in preview and returns with Exit preview or Esc', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await openClean(page)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
+    await openInspector(page)
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     const exit = page.getByRole('button', { name: 'Exit preview' })
     await exit.waitFor()
     expect(await page.getByRole('toolbar').count()).toBe(0)
-    expect(await page.getByRole('complementary', { name: 'BearMinion editor' }).count()).toBe(0)
+    expect(await page.getByRole('complementary', { name: 'Inspector' }).count()).toBe(0)
+    expect(await editorNav(page).count()).toBe(0)
     await exit.click()
-    await page.getByRole('tab', { name: 'Pages' }).waitFor()
+    await page.getByRole('tab', { name: 'Page', exact: true }).waitFor()
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     await exit.waitFor()
     await page.keyboard.press('Escape')
@@ -925,53 +936,87 @@ describe('editor overlay', () => {
     await page.close()
   }, 60_000)
 
-  it('remembers a clamped sidebar width', async () => {
+  it('remembers the inspector width, between 280 and 560px', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await openClean(page)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    const handle = page.getByRole('separator', { name: 'Resize sidebar' })
+    await openInspector(page)
+    const handle = page.getByRole('separator', { name: 'Resize inspector' })
     await handle.focus()
-    await page.keyboard.press('ArrowLeft')
-    expect(await handle.getAttribute('aria-valuenow')).toBe('456')
-    await page.keyboard.press('End')
-    expect(Number(await handle.getAttribute('aria-valuenow'))).toBeLessThanOrEqual(512)
     await handle.dblclick()
-    expect(await handle.getAttribute('aria-valuenow')).toBe('440')
+    expect(await handle.getAttribute('aria-valuenow')).toBe('352')
+    await page.keyboard.press('ArrowLeft')
+    expect(await handle.getAttribute('aria-valuenow')).toBe('368')
+    await page.keyboard.press('End')
+    expect(await handle.getAttribute('aria-valuenow')).toBe('560')
+    await page.keyboard.press('Home')
+    expect(await handle.getAttribute('aria-valuenow')).toBe('280')
+    await handle.dblclick()
     await page.keyboard.press('ArrowLeft')
     await page.waitForFunction(
       () =>
         document.getElementById('bearminion-editor-host')?.shadowRoot?.querySelector('[role=separator]')?.getAttribute('aria-valuenow') ===
-        '456',
+        '368',
     )
-    await shot(page, 'sidebar_resized.png')
+    await shot(page, 'inspector_resized.png')
     await page.reload({ waitUntil: 'networkidle' })
-    // The sidebar was open before the reload, so it comes back open.
-    await page.getByRole('separator', { name: 'Resize sidebar' }).waitFor()
-    expect(await page.getByRole('separator', { name: 'Resize sidebar' }).getAttribute('aria-valuenow')).toBe('456')
-    await page.setViewportSize({ width: 700, height: 800 })
-    await page.reload({ waitUntil: 'networkidle' })
-    await page.getByRole('separator', { name: 'Resize sidebar' }).waitFor()
-    expect(await page.getByRole('separator', { name: 'Resize sidebar' }).getAttribute('aria-valuenow')).toBe('280')
+    // The inspector was open before the reload, so it comes back open, at the same width.
+    await page.getByRole('separator', { name: 'Resize inspector' }).waitFor()
+    expect(await page.getByRole('separator', { name: 'Resize inspector' }).getAttribute('aria-valuenow')).toBe('368')
     await page.close()
   }, 90_000)
 
-  it('keeps the sidebar open on its last tab across a reload, and starts on Pages after a close', async () => {
+  it('comes back to the same view and inspector after a reload', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await openClean(page)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    expect(await page.getByRole('tab', { name: 'Pages' }).getAttribute('aria-selected')).toBe('true')
-    await page.getByRole('tab', { name: 'Site' }).click()
+    await openInspector(page)
+    expect(await page.getByRole('tab', { name: 'Page', exact: true }).getAttribute('aria-selected')).toBe('true')
+    await openScreen(page, 'Site')
     await page.reload({ waitUntil: 'networkidle' })
-    await page.getByRole('separator', { name: 'Resize sidebar' }).waitFor()
-    expect(await page.getByRole('tab', { name: 'Site' }).getAttribute('aria-selected')).toBe('true')
-    await page.getByRole('button', { name: 'Close sidebar' }).click()
+    await page.getByRole('main', { name: 'Site' }).waitFor()
+    await page.getByRole('button', { name: /^Back to / }).click()
+    await page.getByRole('button', { name: 'Hide inspector' }).click()
     await page.reload({ waitUntil: 'networkidle' })
-    await page.getByRole('button', { name: 'Editor', exact: true }).waitFor()
-    expect(await page.getByRole('separator', { name: 'Resize sidebar' }).count()).toBe(0)
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    expect(await page.getByRole('tab', { name: 'Pages' }).getAttribute('aria-selected')).toBe('true')
+    await editorNav(page).waitFor()
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
+    expect(await page.getByRole('separator', { name: 'Resize inspector' }).count()).toBe(0)
+    expect(await page.getByRole('main', { name: 'Site' }).count()).toBe(0)
+    await openInspector(page)
+    expect(await page.getByRole('tab', { name: 'Page', exact: true }).getAttribute('aria-selected')).toBe('true')
     await page.close()
   }, 90_000)
+
+  it('collapses the navigation to a rail and keeps it that way', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    await openClean(page)
+    const collapse = page.getByRole('button', { name: 'Collapse sidebar' })
+    await collapse.click()
+    await page.getByRole('button', { name: 'Expand sidebar' }).waitFor()
+    // The page moves with the navigation: its left edge follows the rail.
+    await page.waitForFunction(() => Math.round(document.body.getBoundingClientRect().left) === 64)
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'Expand sidebar' }).waitFor()
+    await page.keyboard.press('Control+Backslash')
+    await page.getByRole('button', { name: 'Collapse sidebar' }).waitFor()
+    await page.waitForFunction(() => Math.round(document.body.getBoundingClientRect().left) === 248)
+    await page.close()
+  }, 60_000)
+
+  it('lists the pages with their status, and opens one from the table', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    await openClean(page)
+    await openScreen(page, 'Pages')
+    const listing = page.getByRole('main', { name: 'Pages' })
+    const table = listing.getByRole('table', { name: 'Pages' })
+    await table.waitFor()
+    await shot(page, 'pages_listing.png')
+    await listing.getByRole('searchbox', { name: 'Search pages' }).fill('abo')
+    expect(await table.locator('tbody tr').count()).toBe(1)
+    await listing.getByRole('button', { name: 'About', exact: true }).click()
+    await page.waitForURL(/\/about\/?$/)
+    await page.getByRole('tab', { name: 'Page', exact: true }).waitFor()
+    expect(await page.getByRole('main', { name: 'Pages' }).count()).toBe(0)
+    await page.close()
+  }, 60_000)
 
   it('paints stats labels with the section tone', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
@@ -1215,8 +1260,8 @@ describe('editor overlay', () => {
   it('renames a page and saves its edits in one request', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await page.goto(`http://127.0.0.1:${port}/preview`, { waitUntil: 'networkidle' })
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Pages' }).click()
+    await openInspector(page)
+    await page.getByRole('tab', { name: 'Page', exact: true }).click()
     const saves: string[] = []
     page.on('request', (request) => {
       if (request.method() !== 'GET' && request.url().includes('/__bearminion/api/')) saves.push(new URL(request.url()).pathname)
@@ -1244,14 +1289,14 @@ describe('editor overlay', () => {
     expect(restored.status).toBe(200)
   }, 60_000)
 
-  it('edits SEO and JSON-LD in a dialog and saves analytics from the Site tab', async () => {
+  it('edits SEO and JSON-LD in a dialog and saves analytics from the Site screen', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Pages' }).click()
+    await openInspector(page)
+    await page.getByRole('tab', { name: 'Page', exact: true }).click()
     await page.getByRole('button', { name: 'Edit SEO' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit SEO' })
     await dialog.locator('label', { hasText: 'Description' }).locator('textarea').fill('A custom description.')
@@ -1276,7 +1321,7 @@ describe('editor overlay', () => {
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
     await dialog.waitFor({ state: 'detached' })
 
-    await page.getByRole('tab', { name: 'Site' }).click()
+    await openScreen(page, 'Site')
     const snippet = '<script async src="https://stats.example/a.js"></script>'
     await page.locator('label', { hasText: /^Head/ }).locator('textarea').fill(snippet)
     await page.keyboard.press('Control+s')
@@ -1293,7 +1338,7 @@ describe('editor overlay', () => {
     await page.close()
   }, 60_000)
 
-  it('generates sitewide JSON-LD in a dialog, saves it to site.json and emits it on the page', async () => {
+  it('generates sitewide JSON-LD on the SEO screen, saves it to site.json and emits it on the page', async () => {
     // Seed About's own JSON-LD here, so this test does not depend on the SEO test having run first.
     const aboutFile = path.join(contentDir, 'pages', 'about.json')
     const about = JSON.parse(fs.readFileSync(aboutFile, 'utf8')) as { seo?: Record<string, unknown> }
@@ -1307,53 +1352,42 @@ describe('editor overlay', () => {
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Site' }).click()
+    await openScreen(page, 'SEO')
+    const screen = page.getByRole('main', { name: 'SEO' })
     const sitePath = path.join(contentDir, 'site.json')
     // Earlier tests save their own address into the shared content, so the ids follow whatever it is now.
     const siteUrl = (JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { url: string }).url.replace(/\/+$/, '')
+    await screen.getByText('0 / 10', { exact: false }).waitFor()
 
-    await page.getByText(/^None\. Add an Organization and a WebSite/).waitFor()
-    await page.getByRole('button', { name: 'Edit JSON-LD' }).click()
-    const dialog = page.getByRole('dialog', { name: 'Edit site JSON-LD' })
-    const json = dialog.locator('textarea.bm-seo-json')
-
-    // Invalid JSON blocks both Generate and Apply.
-    await json.fill('{"@type": "Organization",}')
-    await dialog.getByRole('alert').first().waitFor()
-    expect(await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).isDisabled()).toBe(true)
-    expect(await dialog.getByRole('button', { name: 'Apply', exact: true }).isDisabled()).toBe(true)
-
-    // Generate keeps a block of the person's own and adds the two site blocks. The placeholder address is called out.
+    // A block of the person's own: added as a card, then filled in.
+    await screen.getByRole('button', { name: 'Add JSON-LD block' }).click()
+    // Its label follows the @type typed into it, so find the box by what it is.
+    const card = screen.locator('textarea.bm-jsonld-text').first()
     const event = { '@context': 'https://schema.org', '@type': 'Event', name: 'Launch' }
-    await json.fill(JSON.stringify(event))
-    await dialog.getByText(`The site address is still ${siteUrl}.`, { exact: false }).waitFor()
-    await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
-    const generated = JSON.parse(await json.inputValue()) as Record<string, unknown>[]
-    expect(generated.map((block) => block['@type'])).toEqual(['Event', 'Organization', 'WebSite'])
-    expect(generated[1]?.['@id']).toBe(`${siteUrl}/#organization`)
-    expect(generated[2]?.['@id']).toBe(`${siteUrl}/#website`)
 
+    // Broken JSON is flagged on its card and blocks Generate and Format.
+    await card.fill('{"@type": "Event",}')
+    await screen.getByRole('alert').first().waitFor()
+    expect(await screen.getByRole('button', { name: 'Generate Organization and WebSite' }).isDisabled()).toBe(true)
+    expect(await screen.getByRole('button', { name: 'Format', exact: true }).isDisabled()).toBe(true)
+    await card.fill(JSON.stringify(event))
+    await screen.getByText('valid', { exact: true }).waitFor()
+
+    // Generate keeps the person's block and adds the two site blocks. The placeholder address is called out.
+    await screen.getByText(`The site address is still ${siteUrl}.`, { exact: false }).waitFor()
+    await screen.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
+    await screen.getByText('3 / 10', { exact: false }).waitFor()
+    await screen.getByText(`${siteUrl}/#organization`, { exact: true }).waitFor()
+    await screen.getByText(`${siteUrl}/#website`, { exact: true }).waitFor()
     // Running it again replaces the generated blocks instead of repeating them.
-    await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
-    expect(JSON.parse(await json.inputValue())).toHaveLength(3)
-
-    // Cancel drops the edit.
-    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
-    await dialog.waitFor({ state: 'detached' })
-    await page.getByText(/^None\. Add an Organization and a WebSite/).waitFor()
-
-    await page.getByRole('button', { name: 'Edit JSON-LD' }).click()
-    await dialog.locator('textarea.bm-seo-json').fill(JSON.stringify(event))
-    await dialog.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
-    await dialog.getByRole('button', { name: 'Apply', exact: true }).click()
-    await dialog.waitFor({ state: 'detached' })
-    await page.getByText('On every page: Event, Organization, WebSite.').waitFor()
+    await screen.getByRole('button', { name: 'Generate Organization and WebSite' }).click()
+    await screen.getByText('3 / 10', { exact: false }).waitFor()
     await page.keyboard.press('Control+s')
 
     await waitFor(() => fs.readFileSync(sitePath, 'utf8').includes('"jsonLd"'), 'jsonLd missing from site.json')
     const saved = JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { seo: { jsonLd: Record<string, unknown>[] } }
     expect(saved.seo.jsonLd.map((block) => block['@type'])).toEqual(['Event', 'Organization', 'WebSite'])
+    expect(saved.seo.jsonLd[1]?.['@id']).toBe(`${siteUrl}/#organization`)
 
     // The dev server picks the saved files up a moment later, so poll instead of fetching once.
     const emitted = async (route: string) => {
@@ -1376,14 +1410,14 @@ describe('editor overlay', () => {
     await page.close()
   }, 60_000)
 
-  it('switches the cookie banner from the sidebar and edits its text in a dialog', async () => {
+  it('switches the cookie banner from the Site screen and edits its text in a dialog', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Site' }).click()
+    await openInspector(page)
+    await openScreen(page, 'Site')
     const sitePath = path.join(contentDir, 'site.json')
     const saved = () => JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { consent?: Record<string, unknown> }
 
@@ -1418,18 +1452,16 @@ describe('editor overlay', () => {
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
     await dialog.waitFor({ state: 'detached' })
 
+    const reloaded = page.waitForEvent('load')
     await page.keyboard.press('Control+s')
     await waitFor(() => saved().consent?.title === 'Ciasteczka', 'consent missing from site.json')
     // Only what differs from the default is stored, and an off switch is stored as `false`.
     expect(saved().consent).toEqual({ enabled: false, policyHref: '/polityka', reopen: 'icon', title: 'Ciasteczka' })
 
-    // Switching back on drops `enabled`; the texts stay.
+    // Switching back on drops `enabled`; the texts stay. The save reloads the page back onto the Site screen.
+    await reloaded
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
-    await page
-      .getByRole('button', { name: 'Editor', exact: true })
-      .click()
-      .catch(() => undefined)
-    await page.getByRole('tab', { name: 'Site' }).click()
+    await page.getByRole('main', { name: 'Site' }).waitFor()
     await row.getByRole('switch').check()
     await page.keyboard.press('Control+s')
     await waitFor(() => saved().consent?.enabled === undefined, 'enabled still in site.json')
@@ -1442,10 +1474,10 @@ describe('editor overlay', () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     await page.goto(`http://127.0.0.1:${port}/about`, { waitUntil: 'networkidle' })
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
-    await page.getByRole('button', { name: 'Editor', exact: true }).click()
-    await page.getByRole('tab', { name: 'Pages' }).click()
-    const lockState = () =>
-      page.evaluate(() => ({ overflow: document.documentElement.style.overflow, gutter: document.documentElement.style.scrollbarGutter }))
+    await openInspector(page)
+    await page.getByRole('tab', { name: 'Page', exact: true }).click()
+    // In the editor shell the page scrolls inside <body>, so that is what the lock stops.
+    const lockState = () => page.evaluate(() => ({ overflow: document.body.style.overflow, gutter: document.body.style.scrollbarGutter }))
     expect(await lockState()).toEqual({ overflow: '', gutter: '' })
     await page.getByRole('button', { name: 'Edit SEO' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit SEO' })
@@ -1474,8 +1506,27 @@ async function openClean(page: Page): Promise<void> {
     }
   }
   await page.reload({ waitUntil: 'networkidle' })
-  await page.getByRole('button', { name: 'Editor', exact: true }).waitFor()
+  await editorNav(page).waitFor()
   await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
+}
+
+/** The editor's navigation: it is there once the overlay has mounted. */
+function editorNav(page: Page) {
+  return page.getByRole('navigation', { name: 'Editor' })
+}
+
+/** Back on the page with the inspector open. It starts open in a wide window, and stays as it was across a reload. */
+async function openInspector(page: Page): Promise<void> {
+  const back = page.getByRole('button', { name: /^Back to / })
+  if (await back.isVisible()) await back.click()
+  const show = page.getByRole('button', { name: 'Show inspector' })
+  if (await show.isVisible()) await show.click()
+  await page.getByRole('tab', { name: 'Page', exact: true }).waitFor()
+}
+
+/** Opens a full-screen view from the navigation: Pages, Media, Navigation, Footer, Site, Design or SEO. */
+async function openScreen(page: Page, name: string): Promise<void> {
+  await editorNav(page).getByRole('button', { name, exact: true }).click()
 }
 
 /** The Advanced row opens by itself when the link has an ID or a non-default style; open it only if it is still shut. */
