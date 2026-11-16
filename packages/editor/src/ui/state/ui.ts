@@ -80,7 +80,6 @@ export function createUiState() {
       inspectorTab.value = 'section'
       open.value = true
       view.value = 'canvas'
-      viewport.value = 'desktop'
     })
   }
 

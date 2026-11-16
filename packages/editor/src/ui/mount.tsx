@@ -1,11 +1,17 @@
 import { render } from 'preact'
 import { EditorApp } from './app.js'
+import { inDeviceFrame, mountDeviceMirror } from './device-mirror.js'
 import { EDITOR_HOST_ID } from './dom.js'
 import { editorCss } from './styles.js'
 
 /** Mount the overlay once. The host does not take clicks; controls inside the shadow root do. */
 export function mountEditor(): void {
   if (document.getElementById(EDITOR_HOST_ID)) return
+  // Inside the editor's own tablet or phone frame there is no editor: the page only mirrors the draft.
+  if (inDeviceFrame()) {
+    mountDeviceMirror()
+    return
+  }
   const host = document.createElement('div')
   host.id = EDITOR_HOST_ID
   host.style.cssText = 'position:fixed;inset:0;z-index:2147483000;pointer-events:none;'

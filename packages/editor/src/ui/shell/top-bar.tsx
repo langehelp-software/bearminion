@@ -1,5 +1,5 @@
 import { useComputed } from '@preact/signals'
-import { listingView } from '../../shell.js'
+import { DEVICE_WIDTHS, listingView, type Viewport } from '../../shell.js'
 import { CommitButton, SaveButton, SavePill } from '../chrome/save.js'
 import { unsavedFiles } from '../dialogs/editor-dialogs.js'
 import { Icon, type IconName } from '../icons.js'
@@ -67,6 +67,38 @@ function Breadcrumb() {
   )
 }
 
+const VIEWPORTS: readonly { id: Viewport; label: string; icon: IconName }[] = [
+  { id: 'desktop', label: 'Desktop', icon: 'monitor' },
+  { id: 'tablet', label: `Tablet · ${DEVICE_WIDTHS.tablet}px`, icon: 'tablet' },
+  { id: 'mobile', label: `Mobile · ${DEVICE_WIDTHS.mobile}px`, icon: 'smartphone' },
+]
+
+/** Desktop edits the page; tablet and mobile show it in a device frame. */
+function ViewportSwitch() {
+  const { ui } = useEditor()
+  const current = ui.viewport.value
+  return (
+    <div class="bm-viewport" role="radiogroup" aria-label="Viewport">
+      {VIEWPORTS.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          role="radio"
+          aria-checked={current === item.id}
+          aria-label={item.label}
+          title={item.label}
+          class={current === item.id ? 'bm-viewport-on' : undefined}
+          onClick={() => {
+            ui.viewport.value = item.id
+          }}
+        >
+          <Icon name={item.icon} size={17} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /** The bar over the canvas: where you are, undo and redo, history, the inspector, preview, the save state and Save. */
 export function TopBar({ groups }: { groups: NavGroup[] }) {
   const editor = useEditor()
@@ -120,6 +152,7 @@ export function TopBar({ groups }: { groups: NavGroup[] }) {
           </>
         )}
       </div>
+      {view === 'canvas' && <ViewportSwitch />}
       <div class="bm-topbar-right">
         <IconButton
           icon="history"

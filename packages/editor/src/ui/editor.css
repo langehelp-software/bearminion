@@ -3614,7 +3614,7 @@ details[open] > summary .bm-chevron {
   transition: left 0.18s ease;
 }
 .bm-topbar-left {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -3622,9 +3622,11 @@ details[open] > summary .bm-chevron {
   overflow: hidden;
 }
 .bm-topbar-right {
-  flex: none;
+  flex: 1 0 0;
+  min-width: max-content;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 .bm-topbar-divider {
@@ -4569,4 +4571,63 @@ tbody .bm-tr-on:hover {
   border-color: var(--accent);
   background: var(--accent-tint);
   color: var(--bm-shell-on-fg);
+}
+
+/* ---------- viewport switch and device frames ---------- */
+.bm-viewport {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: oklch(0.955 0.003 250);
+}
+.bm-viewport button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--bm-help);
+}
+.bm-viewport button:hover {
+  color: var(--ink);
+}
+.bm-viewport button.bm-viewport-on {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.1);
+}
+.bm-device {
+  position: fixed;
+  z-index: 4;
+  top: 56px;
+  left: var(--bm-nav-w);
+  right: var(--bm-insp-w);
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  background: oklch(0.93 0.005 250);
+}
+.bm-device-frame {
+  flex: none;
+  max-width: calc(100% - 32px);
+  height: calc(100% - 64px);
+  margin: 24px 0 8px;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px oklch(0.86 0.005 250),
+    0 24px 48px -24px oklch(0.2 0.02 255 / 0.3);
+}
+.bm-device-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--muted);
 }

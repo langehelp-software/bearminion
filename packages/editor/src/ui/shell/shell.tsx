@@ -1,6 +1,7 @@
 import { NAV_OPEN_WIDTH, NAV_RAIL_WIDTH } from '../../shell.js'
 import { useEditor } from '../state/editor.js'
 import type { Catalog } from '../types.js'
+import { DeviceFrame } from './device-frame.js'
 import { Inspector } from './inspector.js'
 import { navGroups } from './nav-items.js'
 import { NavSidebar } from './nav-sidebar.js'
@@ -17,11 +18,14 @@ export function Shell({ catalog }: { catalog: Catalog | null }) {
   const view = ui.view.value
   const groups = navGroups(doc.types.value, doc.pages.value, true)
   const navWidth = previewing ? 0 : ui.navOpen.value ? NAV_OPEN_WIDTH : NAV_RAIL_WIDTH
+  const inspector = Boolean(catalog) && !previewing && view === 'canvas' && ui.open.value
+  const viewport = ui.viewport.value
   return (
-    <div class="bm-shell" style={`--bm-nav-w:${navWidth}px;`}>
+    <div class="bm-shell" style={`--bm-nav-w:${navWidth}px;--bm-insp-w:${inspector ? ui.inspectorWidth.value : 0}px;`}>
       {!previewing && <NavSidebar groups={groups} />}
       <TopBar groups={groups} />
-      {catalog && !previewing && view === 'canvas' && ui.viewport.value === 'desktop' && ui.open.value && <Inspector catalog={catalog} />}
+      {!previewing && view === 'canvas' && viewport !== 'desktop' && <DeviceFrame key={viewport} viewport={viewport} />}
+      {catalog && inspector && <Inspector catalog={catalog} />}
       {catalog && !previewing && view !== 'canvas' && <FullView view={view} catalog={catalog} />}
     </div>
   )

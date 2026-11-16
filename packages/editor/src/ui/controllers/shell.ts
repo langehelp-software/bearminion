@@ -39,7 +39,7 @@ export function attachShell({ ui, chrome }: Editor): Dispose {
   let restored = false
   const stop = effect(() => {
     const previewing = ui.previewing.value
-    const inspector = !previewing && ui.view.value === 'canvas' && ui.viewport.value === 'desktop' && ui.open.value
+    const inspector = !previewing && ui.view.value === 'canvas' && ui.open.value
     framePage(
       canvasRect({
         windowWidth: size.value.width,
