@@ -208,7 +208,7 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
   }
 
   if (parts.length === 1 && parts[0] === 'images') {
-    if (method === 'GET') return getImages(scoped(context, 'uploads'))
+    if (method === 'GET') return getImages(scoped(context, 'uploads'), new URL(request.url).searchParams.get('usage') === '1')
     if (method === 'POST') return postImage(request, scoped(context, 'uploads'))
     return methodNotAllowed(['GET', 'POST'])
   }
@@ -1223,9 +1223,13 @@ async function postSitePreview(request: Request, context: EditorContext, meta: H
   }
 }
 
-async function getImages(context: EditorContext): Promise<Response> {
+/** The uploaded images and the upload rules. With `?usage=1`, each image also says where the saved content uses it. */
+async function getImages(context: EditorContext, withUsage = false): Promise<Response> {
   const limits: UploadRules = { maxBytes: context.maxImageBytes, convert: context.imageConvert }
-  return json(200, { images: await context.store.uploads.list(), limits })
+  const images = await context.store.uploads.list()
+  if (!withUsage) return json(200, { images, limits })
+  const usages = await allImageUsages(context)
+  return json(200, { images: images.map((image) => ({ ...image, usages: usages.get(image.path) ?? [] })), limits })
 }
 
 function decodeSegment(segment: string): string {
@@ -1270,14 +1274,20 @@ async function storedDocuments(context: EditorContext): Promise<{ name: string; 
  * drafts before it asks to delete, and saving a draft that still points at a deleted image fails validation.
  */
 async function imageUsages(context: EditorContext, src: string): Promise<string[]> {
+  return (await allImageUsages(context)).get(src) ?? []
+}
+
+/** Every image the saved content uses, with where: one pass over the files instead of one per image. */
+async function allImageUsages(context: EditorContext): Promise<Map<string, string[]>> {
   const labels = Object.fromEntries(Object.values(context.sections).map((definition) => [definition.type, definition.label]))
-  const usages: string[] = []
+  const usages = new Map<string, string[]>()
+  const add = (src: string, where: string) => usages.set(src, [...(usages.get(src) ?? []), where])
   const site = await readStoredJson(context, SITE_KEY, 'site')
-  for (const ref of assetRefs(site)) if (ref.src === src) usages.push(describeSiteRef(ref))
+  for (const ref of assetRefs(site)) add(ref.src, describeSiteRef(ref))
   for (const { name, document: page } of await storedDocuments(context)) {
     const title = 'title' in page && typeof page.title === 'string' ? page.title : name
     const sections = 'sections' in page && Array.isArray(page.sections) ? (page.sections as { type: string }[]) : []
-    for (const ref of assetRefs(page)) if (ref.src === src) usages.push(describePageRef(ref, { title, sections }, labels))
+    for (const ref of assetRefs(page)) add(ref.src, describePageRef(ref, { title, sections }, labels))
   }
   return usages
 }

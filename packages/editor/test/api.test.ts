@@ -988,6 +988,14 @@ describe('missing images', () => {
     expect(body.message).toContain(logo.filename)
     expect(fs.existsSync(path.join(context.root, logo.path))).toBe(true)
 
+    // The Media screen asks for every image with its uses in one request. The plain list stays as it was.
+    const listed = (await (await call(context, 'GET', `${API_PREFIX}/images?usage=1`)).json()) as {
+      images: { filename: string; usages?: string[] }[]
+    }
+    expect(listed.images.find((image) => image.filename === logo.filename)?.usages).toEqual(body.usages)
+    const plain = (await (await call(context, 'GET', `${API_PREFIX}/images`)).json()) as { images: Record<string, unknown>[] }
+    expect(plain.images[0]).not.toHaveProperty('usages')
+
     page.sections[0]!.props.image = undefined
     page.seo = { ...(page.seo as object), ogImage: undefined }
     expect((await call(context, 'PUT', `${API_PREFIX}/pages/index`, { json: JSON.parse(JSON.stringify(page)) })).status).toBe(200)

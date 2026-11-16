@@ -15,7 +15,7 @@ export function Shell({ catalog }: { catalog: Catalog | null }) {
   const { doc, ui } = useEditor()
   const previewing = ui.previewing.value
   const view = ui.view.value
-  const groups = navGroups(doc.types.value, doc.pages.value, false)
+  const groups = navGroups(doc.types.value, doc.pages.value, true)
   const navWidth = previewing ? 0 : ui.navOpen.value ? NAV_OPEN_WIDTH : NAV_RAIL_WIDTH
   return (
     <div class="bm-shell" style={`--bm-nav-w:${navWidth}px;`}>

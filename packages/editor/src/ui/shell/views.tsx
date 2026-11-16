@@ -4,6 +4,7 @@ import { IssueContext, LinksContext } from '../context.js'
 import { useEditor } from '../state/editor.js'
 import type { Catalog } from '../types.js'
 import { ListingView } from './listing.js'
+import { MediaView } from './media.js'
 import { DesignPanel, FooterPanel, NavigationPanel, SaveIssues, SitePanel } from './panels.js'
 
 /** Title and the file a settings screen writes. */
@@ -61,6 +62,8 @@ export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; cat
         >
           {type !== null ? (
             <ListingView key={type} catalog={catalog} type={type} />
+          ) : view === 'media' ? (
+            <MediaView />
           ) : settings ? (
             <SettingsScreen view={settings}>
               <SettingsBody view={settings} catalog={catalog} />

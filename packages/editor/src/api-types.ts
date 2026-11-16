@@ -97,6 +97,8 @@ export interface UploadedImage {
   /** Project-relative path, the value image fields store. */
   path: string
   bytes?: number
+  /** With `GET /images?usage=1`: where the saved content uses the image ("Home page › Hero"). */
+  usages?: string[]
 }
 
 /** `GET /videos` entries and the body of a successful `POST /videos`. */

@@ -77,7 +77,8 @@ export const previewPage = (page: PageDraft, motion: boolean, type?: string) =>
 export const previewSite = (site: SiteDraft, pathname: string) =>
   request<SitePreview>('/preview/site', sendJson('POST', { site, pathname }))
 
-export const getImages = () => request<{ images: UploadedImage[]; limits?: UploadRules }>('/images')
+export const getImages = (usage = false) =>
+  request<{ images: UploadedImage[]; limits?: UploadRules }>(usage ? '/images?usage=1' : '/images')
 export const deleteImage = (filename: string) =>
   request<{ deleted: true; filename: string }>(`/images/${segment(filename)}`, { method: 'DELETE' })
 export function uploadImage(file: File) {
