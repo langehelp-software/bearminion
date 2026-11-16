@@ -291,74 +291,78 @@ export function NavForm({
   return (
     <div class="bm-stack">
       {layout}
-      <p class="bm-group">Header links</p>
-      <p class="bm-note">
-        Navigation nests up to {MAX_NAV_DEPTH} levels. Indent nests under the previous link. Drag a row: the top or bottom edge of another
-        row places it above or below, the middle nests it. Desktop menus fly out; the mobile menu is an accordion.
-      </p>
-      <NavTree
-        root={links}
-        links={links}
-        path={[]}
-        pages={pages}
-        currentSlug={currentSlug}
-        currentAnchors={currentAnchors}
-        onChange={onLinks}
-      />
-      <button type="button" class="bm-add" onClick={() => onLinks([...links, { label: 'New link', href: '/' }])}>
-        Add link
-      </button>
-      <p class="bm-group bm-group-split">
-        <span>Header actions</span>
-        <span class="bm-small">
-          {actions.length} / {maxActions}
-        </span>
-      </p>
-      <p class="bm-note">Buttons at the right of the header, shown in this order. The last one is the primary button.</p>
-      {actions.map((action, index) => (
-        <div class="bm-card" key={index}>
-          <div class="bm-card-head">
-            <span class="bm-label">Button {index + 1}</span>
-            <button
-              type="button"
-              class="bm-icon-btn bm-danger"
-              aria-label={`Remove button ${index + 1}`}
-              title="Remove button"
-              onClick={() => onActions(actions.filter((_, at) => at !== index))}
-            >
-              <Icon name="trash" size={14} />
-            </button>
-          </div>
-          <label class="bm-label">
-            <span class="bm-label-row">
-              <span>Label</span>
-            </span>
-            <input
-              aria-label={`Button ${index + 1} label`}
-              value={action.label}
-              onInput={(event) =>
-                onActions(actions.map((item, at) => (at === index ? { ...item, label: event.currentTarget.value } : item)))
-              }
+      <div class="bm-stack">
+        <p class="bm-group">Header links</p>
+        <p class="bm-note">
+          Navigation nests up to {MAX_NAV_DEPTH} levels. Indent nests under the previous link. Drag a row: the top or bottom edge of another
+          row places it above or below, the middle nests it. Desktop menus fly out; the mobile menu is an accordion.
+        </p>
+        <NavTree
+          root={links}
+          links={links}
+          path={[]}
+          pages={pages}
+          currentSlug={currentSlug}
+          currentAnchors={currentAnchors}
+          onChange={onLinks}
+        />
+        <button type="button" class="bm-add" onClick={() => onLinks([...links, { label: 'New link', href: '/' }])}>
+          Add link
+        </button>
+      </div>
+      <div class="bm-stack">
+        <p class="bm-group bm-group-split">
+          <span>Header actions</span>
+          <span class="bm-small">
+            {actions.length} / {maxActions}
+          </span>
+        </p>
+        <p class="bm-note">Buttons at the right of the header, shown in this order. The last one is the primary button.</p>
+        {actions.map((action, index) => (
+          <div class="bm-card" key={index}>
+            <div class="bm-card-head">
+              <span class="bm-label">Button {index + 1}</span>
+              <button
+                type="button"
+                class="bm-icon-btn bm-danger"
+                aria-label={`Remove button ${index + 1}`}
+                title="Remove button"
+                onClick={() => onActions(actions.filter((_, at) => at !== index))}
+              >
+                <Icon name="trash" size={14} />
+              </button>
+            </div>
+            <label class="bm-label">
+              <span class="bm-label-row">
+                <span>Label</span>
+              </span>
+              <input
+                aria-label={`Button ${index + 1} label`}
+                value={action.label}
+                onInput={(event) =>
+                  onActions(actions.map((item, at) => (at === index ? { ...item, label: event.currentTarget.value } : item)))
+                }
+              />
+            </label>
+            <LinkControl
+              href={action.href}
+              pages={pages}
+              currentSlug={currentSlug}
+              currentAnchors={currentAnchors}
+              onChange={(href) => onActions(actions.map((item, at) => (at === index ? { ...item, href } : item)))}
             />
-          </label>
-          <LinkControl
-            href={action.href}
-            pages={pages}
-            currentSlug={currentSlug}
-            currentAnchors={currentAnchors}
-            onChange={(href) => onActions(actions.map((item, at) => (at === index ? { ...item, href } : item)))}
-          />
-        </div>
-      ))}
-      <button
-        type="button"
-        class="bm-add"
-        disabled={actions.length >= maxActions}
-        title={actions.length >= maxActions ? `Up to ${maxActions} buttons` : undefined}
-        onClick={() => onActions([...actions, { label: 'Button', href: '/' }])}
-      >
-        Add button
-      </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          class="bm-add"
+          disabled={actions.length >= maxActions}
+          title={actions.length >= maxActions ? `Up to ${maxActions} buttons` : undefined}
+          onClick={() => onActions([...actions, { label: 'Button', href: '/' }])}
+        >
+          Add button
+        </button>
+      </div>
     </div>
   )
 }

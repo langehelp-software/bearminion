@@ -3958,13 +3958,15 @@ details[open] > summary .bm-chevron {
   gap: 24px;
 }
 /* Each group of a settings form is a card. A group inside a card stays a plain group. */
-.bm-screen-cards .bm-stack:has(> .bm-group:first-child) {
+.bm-screen-cards .bm-stack:is(:has(> .bm-group:first-child), :has(> .bm-group-split:first-child)) {
   padding: 20px 24px 24px;
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 0 0 1px var(--bm-shell-line, oklch(0.9 0.005 250));
 }
-.bm-screen-cards .bm-stack:has(> .bm-group:first-child) .bm-stack:has(> .bm-group:first-child) {
+.bm-screen-cards
+  .bm-stack:is(:has(> .bm-group:first-child), :has(> .bm-group-split:first-child))
+  .bm-stack:is(:has(> .bm-group:first-child), :has(> .bm-group-split:first-child)) {
   padding: 0;
   border-radius: 0;
   background: none;
