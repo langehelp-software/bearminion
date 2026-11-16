@@ -247,7 +247,7 @@ describe('the Pages tab on a site with content types', () => {
     const buttons = [...container.querySelectorAll('button')]
     buttons.find((button) => button.textContent?.trim() === 'New entry')?.click()
     await Promise.resolve()
-    const card = container.querySelector('.bm-card') as HTMLElement
+    const card = container.querySelector('.bm-new-document') as HTMLElement
     expect([...card.querySelectorAll('option')].map((option) => option.value)).toEqual(['hero', 'cta'])
     const title = card.querySelector('input') as HTMLInputElement
     title.value = 'Third post'

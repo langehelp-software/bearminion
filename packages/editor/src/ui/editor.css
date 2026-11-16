@@ -4047,8 +4047,16 @@ details[open] > summary .bm-chevron {
   color: var(--ink);
   font-size: 14px;
 }
-.bm-listing-create {
-  max-width: 520px;
+.bm-new-document .bm-modal-body {
+  padding-top: 4px;
+}
+.bm-new-document-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.bm-new-document-form > .bm-primary {
+  align-self: flex-start;
 }
 .bm-listing-filters {
   display: flex;

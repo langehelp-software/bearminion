@@ -40,9 +40,9 @@ export function NewDocumentForm({
   const [template, setTemplate] = useState(() => (labels.hero !== undefined ? 'hero' : (templates[0]?.[0] ?? '')))
   const [draft, setDraft] = useState(true)
   return (
-    <div class="bm-card">
+    <div class="bm-new-document-form">
       <Field
-        label="New title"
+        label="Title"
         value={title}
         onChange={(value) => {
           setTitle(value)
@@ -50,7 +50,7 @@ export function NewDocumentForm({
         }}
       />
       <Field
-        label="New slug"
+        label="Slug"
         value={slug}
         mono
         hint={`The ${noun} address. Made from the title until you change it, and the title never changes it afterwards.`}

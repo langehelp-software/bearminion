@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'preact/hooks'
+import type { ComponentChildren } from 'preact'
+import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
 import {
   canDeleteRow,
   copySlug,
@@ -14,7 +15,7 @@ import {
   statusCounts,
 } from '../../shell.js'
 import { createEntry, deleteEntry } from '../api-client.js'
-import { ConfirmDialog } from '../dialogs/dialog.js'
+import { ConfirmDialog, DialogClose } from '../dialogs/dialog.js'
 import { documentHref, NewDocumentForm } from '../forms/pages-form.js'
 import { Icon } from '../icons.js'
 import { ScrollLock } from '../scroll-lock.js'
@@ -171,7 +172,7 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
         <div class="bm-listing-heading">
           <div class="bm-listing-title-row">
             <h1 class="bm-screen-title">{label}</h1>
-            <button type="button" class="bm-primary bm-listing-new" aria-expanded={creating} onClick={() => setCreating((value) => !value)}>
+            <button type="button" class="bm-primary bm-listing-new" aria-haspopup="dialog" onClick={() => setCreating(true)}>
               <Icon name="plus" size={16} />
               New {noun}
             </button>
@@ -194,7 +195,7 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
       </header>
       <SaveIssues />
       {creating && (
-        <div class="bm-listing-create">
+        <NewDocumentDialog noun={noun} storage={storage} onClose={() => setCreating(false)}>
           <NewDocumentForm
             type={type}
             path={pagesType ? undefined : info?.path}
@@ -204,7 +205,7 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
             canDraft={!draftField}
             onNavigate={open}
           />
-        </div>
+        </NewDocumentDialog>
       )}
       {error && (
         <p class="bm-error" role="alert">
@@ -432,6 +433,60 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
           />
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * The New page and New entry form, as a modal over the listing. Escape, the X and a click on the backdrop close it, and
+ * focus goes back to the button that opened it.
+ */
+function NewDocumentDialog({
+  noun,
+  storage,
+  onClose,
+  children,
+}: {
+  noun: 'page' | 'entry'
+  storage: string
+  onClose: () => void
+  children: ComponentChildren
+}) {
+  const dialog = useRef<HTMLDivElement>(null)
+  // Before paint, so a key pressed the moment the dialog appears already reaches it.
+  useLayoutEffect(() => {
+    const node = dialog.current
+    const rootNode = node?.getRootNode()
+    const opener = rootNode instanceof ShadowRoot || rootNode instanceof Document ? rootNode.activeElement : null
+    node?.querySelector<HTMLInputElement>('input')?.select()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      onClose()
+    }
+    node?.addEventListener('keydown', onKey)
+    return () => {
+      node?.removeEventListener('keydown', onKey)
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus()
+    }
+  }, [])
+  return (
+    <div
+      class="bm-scrim"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <ScrollLock />
+      <div class="bm-modal bm-new-document" role="dialog" aria-modal="true" aria-label={`New ${noun}`} ref={dialog}>
+        <div class="bm-modal-head">
+          <h2 class="bm-dialog-title">New {noun}</h2>
+          <span class="bm-meta-tag">{storage}</span>
+          <DialogClose onClose={onClose} />
+        </div>
+        <div class="bm-modal-body">{children}</div>
+      </div>
     </div>
   )
 }
