@@ -7,7 +7,7 @@ export function DraftBanner() {
   const offer = ui.draftOffer.value
   if (!offer) return null
   return (
-    <div class="bm-banner bm-banner-ink" role="status" aria-label="Unsaved draft" style="top:16px;left:50%;transform:translateX(-50%);">
+    <div class="bm-banner bm-banner-ink" role="status" aria-label="Unsaved draft" style="top:72px;left:50%;transform:translateX(-50%);">
       <span class={offer.conflict ? 'bm-dot bm-dot-stale' : 'bm-dot bm-dot-dirty'} />
       <div class="bm-banner-text">
         <p class="bm-banner-title">{draftBannerText(offer.savedAt, Date.now())}</p>
@@ -36,7 +36,7 @@ export function TabNotice() {
       class="bm-banner bm-banner-light"
       role="status"
       aria-label="Saved in another tab"
-      style="top:16px;right:16px;left:auto;transform:none;"
+      style="top:72px;right:16px;left:auto;transform:none;"
     >
       <span class="bm-dot bm-dot-info" />
       <div class="bm-banner-text">

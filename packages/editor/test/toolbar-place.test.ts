@@ -77,4 +77,9 @@ describe('stickyHeaderPin', () => {
     expect(stickyHeaderPin({ position: 'sticky', top: 24, bottom: 96 })).toBe(0)
     expect(stickyHeaderPin({ position: 'sticky', top: -80, bottom: -8 })).toBe(0)
   })
+
+  it('measures from the top of the canvas when the shell frames the page', () => {
+    expect(stickyHeaderPin({ position: 'sticky', top: 56, bottom: 128 }, 56)).toBe(128)
+    expect(stickyHeaderPin({ position: 'sticky', top: 80, bottom: 152 }, 56)).toBe(0)
+  })
 })

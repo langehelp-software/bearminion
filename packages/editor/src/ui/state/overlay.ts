@@ -63,8 +63,8 @@ export function placeBar(rect: DOMRect, size: Size, metrics: OverlayMetrics, con
 export function findSeams(sections: readonly SectionDraft[], metrics: OverlayMetrics, contentRight: number): Seam[] {
   const found: Seam[] = []
   const add = (y: number, rect: DOMRect, id: string, where: InsertWhere) => {
-    if (y < 8 || y > metrics.viewportHeight - 8) return
-    found.push({ y, left: Math.max(rect.left, 0), right: Math.min(rect.right, contentRight), id, where })
+    if (y < metrics.area.top + 8 || y > metrics.viewportHeight - 8) return
+    found.push({ y, left: Math.max(rect.left, metrics.area.left), right: Math.min(rect.right, contentRight), id, where })
   }
   sections.forEach((section, index) => {
     const rect = metrics.sections.get(section.id)
@@ -104,8 +104,8 @@ export function seamName(sections: readonly SectionDraft[], labels: Record<strin
 /** Where every overlay element goes, derived from the measured page and the editor state. Nothing here reads the DOM. */
 export function createOverlayModel(doc: DocumentStore, ui: UiState, layout: Layout) {
   const { metrics } = layout
-  /** Right edge of the page area the sidebar leaves uncovered. */
-  const contentRight = computed(() => metrics.value.viewportWidth - (ui.open.value ? ui.sidebarWidth.value : 0))
+  /** Right edge of the page area: the canvas, between the navigation and the inspector. */
+  const contentRight = computed(() => metrics.value.area.right)
 
   const known = (id: string | null) => (id && doc.page.value?.sections.some((section) => section.id === id) ? id : null)
   const activeHover = computed(() => known(ui.hoverId.value))
@@ -169,14 +169,14 @@ export function createOverlayModel(doc: DocumentStore, ui: UiState, layout: Layo
 
   /** The field under the pointer, and its fit and position bar when it is a large enough section image. */
   const field = computed(() => {
-    const { field: node, fieldRect: rect, viewportHeight, viewportWidth, pinTop, dockBottom } = metrics.value
+    const { field: node, fieldRect: rect, viewportHeight, viewportWidth, pinTop, area } = metrics.value
     if (!node || !rect) return null
     const attr = node.getAttribute('data-field') ?? ''
     const image = isImageField(attr)
     const path = image ? imageObjectPath(resolvePath(node, attr, doc.page.value)) : ''
     // Logos sit in their own frame, so fit and position do not apply to them.
     const value = path.startsWith('sections.') && !/(^|\.)logos\./.test(path) ? getAt(doc.page.value, path) : undefined
-    const barTop = imageBarTop(rect, Math.max(8, pinTop + 8, dockBottom + 8))
+    const barTop = imageBarTop(rect, Math.max(area.top + 8, pinTop + 8))
     const bar: ImageBarModel | null =
       barTop !== null &&
       isImageRecord(value) &&
@@ -184,7 +184,7 @@ export function createOverlayModel(doc: DocumentStore, ui: UiState, layout: Layo
       value.src !== 'placeholder' &&
       rect.width >= IMAGE_BAR_MIN_WIDTH &&
       rect.height >= IMAGE_BAR_MIN_HEIGHT &&
-      rect.bottom > IMAGE_BAR_EDGE &&
+      rect.bottom > area.top + IMAGE_BAR_EDGE &&
       rect.top < viewportHeight - IMAGE_BAR_EDGE
         ? {
             field: node,

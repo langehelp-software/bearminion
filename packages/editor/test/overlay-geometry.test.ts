@@ -15,7 +15,7 @@ function metrics(sections: Record<string, DOMRect>, viewportHeight = 800): Overl
     viewportWidth: 1200,
     viewportHeight,
     pinTop: 0,
-    dockBottom: 0,
+    area: { top: 0, left: 0, right: 1200, bottom: viewportHeight },
     sections: new Map(Object.entries(sections)),
     footer: null,
     field: null,

@@ -11,7 +11,6 @@ export type Dispose = () => void
 export function attachReactions({ doc, ui, layout, undo, drafts, session, chrome }: Editor): Dispose {
   const siteMode = computed(() => (doc.site.value ? getAt(doc.site.value, 'theme.mode') : undefined))
   const paletteCss = computed(() => (doc.site.value ? themeCss(themeColorsOf(doc.site.value)) : null))
-  let wasOpen = false
 
   const stops = [
     // Color mode is an attribute on <html>, so it previews live.
@@ -58,23 +57,21 @@ export function attachReactions({ doc, ui, layout, undo, drafts, session, chrome
       doc.dirty.value
       void session.loadGit()
     }),
-    // Re-measure the overlay when the page or the sidebar changes. The sidebar overlays the page, so nothing reflows,
-    // but the bars must clear its edge.
+    // Re-measure the overlay when the page or the shell around it changes: the canvas moves, so every bar moves too.
     effect(() => {
       doc.page.value
       doc.site.value
       ui.open.value
-      ui.sidebarWidth.value
+      ui.inspectorWidth.value
+      ui.navOpen.value
+      ui.view.value
+      ui.viewport.value
       ui.previewing.value
       layout.schedule()
     }),
-    // Reopen after a reload on the tab that was showing. A closed sidebar forgets the tab, so the next open starts on Pages.
+    // Come back to the same view, with the inspector as it was, after a reload (a save, another document).
     effect(() => {
-      const open = ui.open.value
-      const tab = ui.tab.value
-      chrome.rememberOpen(open, tab)
-      if (!open && wasOpen) ui.tab.value = 'pages'
-      wasOpen = open
+      chrome.remember(ui.view.value, ui.open.value)
     }),
   ]
   return () => {

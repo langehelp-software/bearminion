@@ -14,7 +14,9 @@ export function mountEditor(): void {
   style.textContent = editorCss
   const root = document.createElement('div')
   shadow.append(style, root)
-  document.body.append(host)
+  // A child of <html>, not <body>: the shell turns <body> into the canvas, and a fixed element inside it would be
+  // positioned (and clipped) by the canvas instead of the window.
+  document.documentElement.append(host)
   // The overlay draws one rectangle around the hovered field. A native focus ring on an inline field that wraps
   // lines follows each line box instead, which gives a second, stepped outline.
   const page = document.createElement('style')
@@ -25,6 +27,8 @@ export function mountEditor(): void {
     '[data-field][contenteditable]:focus, [data-field][contenteditable]:focus-visible { outline: none !important; }',
     '[data-field].ProseMirror { white-space: break-spaces; word-wrap: break-word; font-variant-ligatures: none; }',
     '[data-field].ProseMirror li > p { margin: 0; }',
+    // While the inspector's edge is dragged, the page must not take the pointer.
+    'html[data-bearminion-resizing] body { pointer-events: none; user-select: none; }',
   ].join('\n')
   document.head.append(page)
   render(<EditorApp />, root)

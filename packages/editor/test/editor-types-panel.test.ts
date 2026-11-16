@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ContentTypeInfo } from '../src/api-types.js'
 import type { PageDraft } from '../src/draft.js'
 import { SectionPicker } from '../src/ui/overlay/section-picker.js'
-import { PagesPanel } from '../src/ui/sidebar/panels.js'
+import { PagePanel, TypeDocuments } from '../src/ui/shell/panels.js'
 import { EditorContext, createEditor, type Editor } from '../src/ui/state/editor.js'
 import type { Catalog, SiteDraft } from '../src/ui/types.js'
 
@@ -127,7 +127,14 @@ describe('the Pages tab on a site with content types', () => {
     window.history.replaceState(null, '', pathname)
     editor = createEditor()
     await editor.session.load()
-    render(h(EditorContext.Provider, { value: editor }, h(PagesPanel, { catalog })), container)
+    render(
+      h(
+        EditorContext.Provider,
+        { value: editor },
+        h('div', null, ...['pages', 'blog', 'notes'].map((type) => h(TypeDocuments, { catalog, type })), h(PagePanel, { catalog })),
+      ),
+      container,
+    )
   }
 
   beforeEach(() => {

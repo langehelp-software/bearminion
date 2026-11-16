@@ -57,9 +57,8 @@ export interface Issue {
   file?: 'page' | 'site'
 }
 
-export type Tab = 'pages' | 'section' | 'navigation' | 'footer' | 'design' | 'site'
-
-export const TABS: readonly Tab[] = ['pages', 'section', 'navigation', 'footer', 'design', 'site']
+/** The inspector's tabs: the open document, and the selected section. */
+export type InspectorTab = 'page' | 'section'
 
 export type SiteDraft = Record<string, unknown>
 

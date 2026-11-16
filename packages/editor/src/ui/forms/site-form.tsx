@@ -51,7 +51,10 @@ export function SiteForm({
   onMarks,
   onUploaded,
   onDeleted,
+  part = 'site',
 }: {
+  /** The Site screen (identity, scripts, consent, theme) or the SEO screen (search defaults, structured data). */
+  part?: 'site' | 'seo'
   site: SiteDraft
   options: readonly Option[]
   images: LibraryImage[]
@@ -75,6 +78,43 @@ export function SiteForm({
   )
   const ungrouped = shown.filter((option) => !groupOf(option))
   const control = (option: Option) => siteOptionControl(site, option, onField)
+  if (part === 'seo') {
+    return (
+      <div class="bm-stack">
+        <div class="bm-stack">
+          <p class="bm-group">Search defaults</p>
+          <Field
+            label="Title template"
+            path="seo.titleTemplate"
+            value={text(getAt(site, 'seo.titleTemplate'))}
+            onChange={(value) => onOptional('seo.titleTemplate', value)}
+            hint="%s becomes the page SEO title."
+            mono
+          />
+          <Field
+            label="Description"
+            path="seo.description"
+            value={text(getAt(site, 'seo.description'))}
+            onChange={(value) => onOptional('seo.description', value)}
+            hint="Used by pages that don't set their own."
+            multiline
+            meta={`${text(getAt(site, 'seo.description')).length} / 160`}
+          />
+          <ImageField
+            label="OG image"
+            path="seo.ogImage"
+            withAlt={false}
+            value={{ src: text(getAt(site, 'seo.ogImage')) }}
+            images={images}
+            onChange={(next) => onOptional('seo.ogImage', next.src)}
+            onUploaded={onUploaded}
+            onDeleted={onDeleted}
+          />
+        </div>
+        <JsonLdGroup site={site} onEdit={onEditJsonLd} />
+      </div>
+    )
+  }
   return (
     <div class="bm-stack">
       <div class="bm-stack">
@@ -101,37 +141,7 @@ export function SiteForm({
           onDeleted={onDeleted}
         />
       </div>
-      <div class="bm-stack">
-        <p class="bm-group">Search defaults</p>
-        <Field
-          label="Title template"
-          path="seo.titleTemplate"
-          value={text(getAt(site, 'seo.titleTemplate'))}
-          onChange={(value) => onOptional('seo.titleTemplate', value)}
-          hint="%s becomes the page SEO title."
-          mono
-        />
-        <Field
-          label="Description"
-          path="seo.description"
-          value={text(getAt(site, 'seo.description'))}
-          onChange={(value) => onOptional('seo.description', value)}
-          hint="Used by pages that don't set their own."
-          multiline
-          meta={`${text(getAt(site, 'seo.description')).length} / 160`}
-        />
-        <ImageField
-          label="OG image"
-          path="seo.ogImage"
-          withAlt={false}
-          value={{ src: text(getAt(site, 'seo.ogImage')) }}
-          images={images}
-          onChange={(next) => onOptional('seo.ogImage', next.src)}
-          onUploaded={onUploaded}
-          onDeleted={onDeleted}
-        />
-      </div>
-      <JsonLdGroup site={site} onEdit={onEditJsonLd} />
+
       <div class="bm-stack">
         <p class="bm-group">Analytics &amp; scripts</p>
         <Field
