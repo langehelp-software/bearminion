@@ -19,7 +19,17 @@ export interface ApiIssue {
 }
 
 /** `GET /pages`. */
-export interface PageListItem {
+/** What the editor's listings show beside a document's title. All optional: older servers leave them out. */
+export interface ListMeta {
+  /** True when the document is a draft: left out of the build, the listings and the sitemap. */
+  draft?: boolean
+  /** True when the document is marked `noindex`. */
+  noindex?: boolean
+  /** When the file last changed (ISO 8601), when the content store can tell. */
+  updatedAt?: string
+}
+
+export interface PageListItem extends ListMeta {
   slug: string
   title: string
   /** File name inside the pages directory. */
@@ -70,7 +80,7 @@ export interface CreateEntryRequest {
 }
 
 /** `GET /types/:id/entries`. */
-export interface EntryListItem {
+export interface EntryListItem extends ListMeta {
   slug: string
   title: string
   file: string

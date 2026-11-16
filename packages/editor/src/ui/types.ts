@@ -1,3 +1,4 @@
+import type { ListMeta } from '../api-types.js'
 import type { ThemeDefinition } from '../theme.js'
 import type { CountRule } from '../draft.js'
 import type { OptionalContent } from '../section-optional.js'
@@ -62,7 +63,7 @@ export type InspectorTab = 'page' | 'section'
 
 export type SiteDraft = Record<string, unknown>
 
-export interface PageSummary {
+export interface PageSummary extends ListMeta {
   slug: string
   title: string
   file: string

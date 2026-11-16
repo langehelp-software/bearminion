@@ -152,7 +152,7 @@ export function statusCounts(rows: readonly ListingRow[]): Record<ListingFilter,
 }
 
 /** Rows whose title or slug holds the query (case and accents ignored), with the given status. */
-export function filterRows(rows: readonly ListingRow[], query: string, filter: ListingFilter): ListingRow[] {
+export function filterRows<T extends ListingRow>(rows: readonly T[], query: string, filter: ListingFilter): T[] {
   const fold = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
   const needle = fold(query.trim())
   return rows.filter(
@@ -164,7 +164,7 @@ export function filterRows(rows: readonly ListingRow[], query: string, filter: L
 const STATUS_ORDER: Record<RowStatus, number> = { unsaved: 0, draft: 1, published: 2 }
 
 /** A stable sort: rows that compare equal keep their order. A row with no update time sorts last either way. */
-export function sortRows(rows: readonly ListingRow[], sort: ListingSort, locale = 'en'): ListingRow[] {
+export function sortRows<T extends ListingRow>(rows: readonly T[], sort: ListingSort, locale = 'en'): T[] {
   const collator = new Intl.Collator(locale, { sensitivity: 'base', numeric: true })
   const sign = sort.dir === 'asc' ? 1 : -1
   return rows

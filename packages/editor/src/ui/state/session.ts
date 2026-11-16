@@ -75,6 +75,9 @@ export function typeDocuments(
         type: type.id,
         path: entry.path,
         ...(sortValue === undefined ? {} : { sortValue }),
+        ...(entry.draft ? { draft: true } : {}),
+        ...(entry.noindex ? { noindex: true } : {}),
+        ...(entry.updatedAt ? { updatedAt: entry.updatedAt } : {}),
       })
     }
   }

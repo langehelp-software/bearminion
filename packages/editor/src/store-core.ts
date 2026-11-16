@@ -22,6 +22,11 @@ export interface ContentStore {
   /** The text at `key`, or `undefined` when there is none. */
   read(key: string): Promise<string | undefined>
   exists(key: string): Promise<boolean>
+  /**
+   * When the file at `key` last changed, in milliseconds since the epoch, or `undefined` when there is no such file or
+   * the store cannot tell. Optional: the editor's listings show no time without it.
+   */
+  modified?(key: string): Promise<number | undefined>
   /** Names of the files directly inside the directory `dir`, sorted, or `undefined` when it does not exist. */
   list(dir: string): Promise<string[] | undefined>
   /**

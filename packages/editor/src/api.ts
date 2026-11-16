@@ -33,11 +33,12 @@ import {
   type SingleType,
 } from './content-types.js'
 import type { BlockEdit } from './entry-blocks.js'
-import { matchPath } from './routing.js'
+import { isDraft, matchPath } from './routing.js'
 import { ContentReadError, ContentValidationError, type ContentIssue } from './errors.js'
 import { imageBodyLimit, imageTooLarge, kindFromMime, sniffImage } from './image-sniff.js'
 import { sniffVideo, videoBodyLimit, videoKindFromMime } from './video-sniff.js'
 import type { EditorContext } from './editor-context.js'
+import type { ListMeta } from './api-types.js'
 import { API_PREFIX, type SectionRegistry } from './model.js'
 import type { CountRule, Option } from './section-options.js'
 import type { OptionalContent } from './section-optional.js'
@@ -707,17 +708,30 @@ const sectionAnchors = (sections: readonly unknown[]): string[] =>
       : [],
   )
 
+/** Draft, noindex and the time of the last change: what the listings show beside each document. */
+async function listMeta(context: EditorContext, stored: StoredPage): Promise<ListMeta> {
+  const time = await context.store.modified?.(stored.key).catch(() => undefined)
+  return {
+    ...(isDraft(stored.page) ? { draft: true } : {}),
+    ...(stored.page.seo.noindex === true ? { noindex: true } : {}),
+    ...(time === undefined ? {} : { updatedAt: new Date(time).toISOString() }),
+  }
+}
+
 async function getPages(context: EditorContext): Promise<Response> {
   const loaded = await loadStoredPages(context)
   if (loaded.response) return loaded.response
   return json(200, {
-    pages: loaded.pages.map((entry) => ({
-      slug: entry.page.slug,
-      title: entry.page.title,
-      file: entry.fileName,
-      system: isSystemPage(entry.page.slug),
-      anchors: sectionAnchors(entry.page.sections),
-    })),
+    pages: await Promise.all(
+      loaded.pages.map(async (entry) => ({
+        slug: entry.page.slug,
+        title: entry.page.title,
+        file: entry.fileName,
+        system: isSystemPage(entry.page.slug),
+        anchors: sectionAnchors(entry.page.sections),
+        ...(await listMeta(context, entry)),
+      })),
+    ),
   })
 }
 
@@ -737,6 +751,7 @@ async function getEntries(context: EditorContext, type: MultiType): Promise<Resp
   if (loaded.response) return loaded.response
   const own = loaded.pages.filter((entry) => documentType(context, type, entry.page.slug) === type)
   const files = new Map(own.map((entry) => [entry.page.slug, entry.fileName]))
+  const metas = new Map(await Promise.all(own.map(async (entry) => [entry.page.slug, await listMeta(context, entry)] as const)))
   const sorted = sortEntries(
     type,
     own.map((entry) => entry.page),
@@ -751,6 +766,7 @@ async function getEntries(context: EditorContext, type: MultiType): Promise<Resp
       path: entryPath(type, entry.slug),
       ...(by === null ? {} : { sortValue: entry.fields?.[by] }),
       anchors: sectionAnchors(entry.sections),
+      ...metas.get(entry.slug),
     })),
   })
 }

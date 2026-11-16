@@ -203,7 +203,15 @@ describe('entries of a declared type', () => {
     await call(context, 'PUT', '/types/blog/listing', { title: 'Blog', seo: seo('Blog'), sections: [] })
     const { entries } = await data<{ entries: Record<string, unknown>[] }>(await call(context, 'GET', '/types/blog/entries'))
     expect(entries.map((entry) => entry.slug)).toEqual(['new', 'a', 'b', 'old'])
-    expect(entries[0]).toEqual({ slug: 'new', title: 'new', file: 'new.json', path: '/blog/new', sortValue: '2026-02-01', anchors: [] })
+    expect(entries[0]).toEqual({
+      slug: 'new',
+      title: 'new',
+      file: 'new.json',
+      path: '/blog/new',
+      sortValue: '2026-02-01',
+      anchors: [],
+      updatedAt: expect.any(String),
+    })
   })
 
   it('orders titles in the language of the site', async () => {

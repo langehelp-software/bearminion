@@ -117,6 +117,21 @@ async function call(
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
 
 describe('editor API', () => {
+  it('lists each page with what the listings show beside it: noindex and when its file last changed', async () => {
+    const context = withRegistry(seed())
+    const file = path.join(context.contentDir, 'pages', 'index.json')
+    const page = JSON.parse(fs.readFileSync(file, 'utf8')) as { seo: Record<string, unknown> }
+    page.seo.noindex = true
+    fs.writeFileSync(file, JSON.stringify(page))
+    const when = new Date('2026-11-10T08:00:00Z')
+    fs.utimesSync(file, when, when)
+    const response = await call(context, 'GET', `${API_PREFIX}/pages`)
+    const body = (await response.json()) as { pages: { slug: string; noindex?: boolean; draft?: boolean; updatedAt?: string }[] }
+    const home = body.pages.find((item) => item.slug === 'index')
+    expect(home).toMatchObject({ noindex: true, updatedAt: when.toISOString() })
+    expect(home).not.toHaveProperty('draft')
+  })
+
   it('ignores URLs outside the editor prefix', async () => {
     const context = withRegistry(seed())
     const response = await handleEditorRequest(

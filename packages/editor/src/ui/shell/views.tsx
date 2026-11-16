@@ -3,7 +3,8 @@ import { listingType, SETTINGS_VIEWS, type SettingsView, type View } from '../..
 import { IssueContext, LinksContext } from '../context.js'
 import { useEditor } from '../state/editor.js'
 import type { Catalog } from '../types.js'
-import { DesignPanel, FooterPanel, NavigationPanel, SaveIssues, SitePanel, TypeDocuments } from './panels.js'
+import { ListingView } from './listing.js'
+import { DesignPanel, FooterPanel, NavigationPanel, SaveIssues, SitePanel } from './panels.js'
 
 /** Title and the file a settings screen writes. */
 const SETTINGS: Record<SettingsView, { title: string; file: string }> = {
@@ -59,10 +60,7 @@ export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; cat
           value={{ pages: doc.pages.value, currentSlug: doc.linkKey.value, anchors: doc.anchors.value, editLink: links.open }}
         >
           {type !== null ? (
-            <div class="bm-screen">
-              <SaveIssues />
-              <TypeDocuments key={type} catalog={catalog} type={type} />
-            </div>
+            <ListingView key={type} catalog={catalog} type={type} />
           ) : settings ? (
             <SettingsScreen view={settings}>
               <SettingsBody view={settings} catalog={catalog} />

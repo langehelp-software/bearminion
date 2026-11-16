@@ -3,7 +3,6 @@ import { DesignForm } from '../design-form.js'
 import { BrandLogoForm } from '../forms/brand-logo-form.js'
 import { FooterForm } from '../forms/footer-form.js'
 import { PageForm } from '../forms/page-form.js'
-import { PagesForm } from '../forms/pages-form.js'
 import { SectionForm } from '../forms/section-form.js'
 import { Segmented } from '../forms/segmented.js'
 import { SiteForm, SiteGroup, siteOptionControl } from '../forms/site-form.js'
@@ -12,7 +11,7 @@ import { NavForm } from '../nav.js'
 import { text } from '../shared.js'
 import { headerActions, navLinks, themeColorsOf } from '../site-draft.js'
 import { useEditor } from '../state/editor.js'
-import type { Catalog, PageSummary, SiteDraft } from '../types.js'
+import type { Catalog, SiteDraft } from '../types.js'
 
 /** The inspector adds a section from its outline: the picker opens beside the inspector, at the button's height. */
 const PICKER_HEIGHT = 440
@@ -112,49 +111,6 @@ export function PagePanel({ catalog }: { catalog: Catalog }) {
       onReorderSections={sections.reorder}
       onDuplicateSection={sections.askDuplicate}
       onRemoveSection={sections.askDelete}
-    />
-  )
-}
-
-/** Every document of one content type, to open, create or delete. `pages` also lists the home and 404 pages and the singles. */
-export function TypeDocuments({ catalog, type }: { catalog: Catalog; type: string }) {
-  const { doc, session } = useEditor()
-  const savedSlug = doc.savedSlug.value
-  const ref = doc.ref.value
-  const all = doc.pages.value
-  /** The row of the document that is open, in whichever list it is. */
-  const isCurrent = (item: PageSummary) =>
-    (item.type ?? 'pages') === ref.type &&
-    (ref.kind === 'entry' ? item.fixed === undefined && item.slug === savedSlug : item.fixed === ref.kind)
-  const templatesFor = (allowed: readonly string[] | null | undefined) =>
-    allowed ? Object.fromEntries(Object.entries(catalog.sectionLabels).filter(([id]) => allowed.includes(id))) : catalog.sectionLabels
-  const info = doc.types.value.find((item) => item.id === type)
-  if (type === 'pages') {
-    return (
-      <PagesForm
-        // Pages, the home and 404 pages, and the singles the site declares: everything that is one page at one address.
-        pages={all.filter((item) => item.type === undefined || item.fixed === 'single')}
-        labels={templatesFor(info?.sections)}
-        isCurrent={isCurrent}
-        canDelete={catalog.pageRules?.delete !== false}
-        onCreated={() => void session.load()}
-        onNavigate={session.requestLeave}
-      />
-    )
-  }
-  if (!info) return <p class="bm-note">This content type is not in the site's content model.</p>
-  return (
-    <PagesForm
-      type={info.id}
-      path={info.path}
-      heading={info.label}
-      noun="entry"
-      pages={all.filter((item) => item.type === info.id)}
-      labels={templatesFor(info.sections)}
-      isCurrent={isCurrent}
-      canDelete={info.delete !== false}
-      onCreated={() => void session.load()}
-      onNavigate={session.requestLeave}
     />
   )
 }
