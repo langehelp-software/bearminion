@@ -38,7 +38,7 @@
           "label": "View on GitHub",
           "style": "tertiary"
         },
-        "sub": "Inline website editing that doesn't insult your wallet. Hit Ctrl+E, click any text to change it, and let the minion dump clean JSON into your repo. Ships as pure static HTML for $0/month! *Sorry, enterprise CMS sales teams.*"
+        "sub": "Inline website editing that doesn't insult your wallet. Click any text to change it, and let the minion dump clean JSON into your repo. Ships as pure static HTML for $0/month! *Sorry, enterprise CMS sales teams.*"
       },
       "tone": "base",
       "type": "hero",
@@ -71,7 +71,7 @@
       "anchor": "how",
       "id": "how",
       "props": {
-        "body": "No admin panel, no forms to learn, nothing to train your client on. Three moves, and the third one is optional if you like living dangerously.",
+        "body": "No admin panel, no forms to learn, nothing to train your client on. Two moves, and the second one is optional if you like living dangerously.",
         "caption": "One minute. No sales call.",
         "duration": "0:25",
         "eyebrow": "How it works",
@@ -90,12 +90,6 @@
           "src": "src/assets/uploads/editor-demo-poster.png"
         },
         "steps": [
-          {
-            "description": "On your site in `astro dev`, or in the browser with the online editor. The page becomes editable.",
-            "icon": "bolt",
-            "keys": "Ctrl+E",
-            "title": "Wake it"
-          },
           {
             "description": "Headings, paragraphs, buttons, images. Change them where they are, with the page around them.",
             "icon": "cursor",
