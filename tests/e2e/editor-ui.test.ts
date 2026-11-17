@@ -320,7 +320,7 @@ describe('editor overlay', () => {
     await title.fill(heading)
     await openInspector(page)
     await openScreen(page, 'Site')
-    await page.getByRole('main', { name: 'Site' }).getByLabel('URL').fill(siteUrl)
+    await settingsPanel(page, 'Site').getByLabel('URL').fill(siteUrl)
     await page.getByRole('button', { name: 'Unsaved' }).click()
     const dialog = page.getByRole('dialog', { name: 'Unsaved changes' })
     await dialog.waitFor()
@@ -378,7 +378,7 @@ describe('editor overlay', () => {
     await openClean(page)
     await openInspector(page)
     await openScreen(page, 'Site')
-    await page.getByRole('main', { name: 'Site' }).getByLabel('URL').fill('not a url')
+    await settingsPanel(page, 'Site').getByLabel('URL').fill('not a url')
     await page.getByRole('button', { name: 'Unsaved' }).click()
     await page.getByRole('dialog', { name: 'Unsaved changes' }).getByRole('button', { name: 'Save', exact: true }).click()
     await page.getByText('url: Invalid URL').waitFor()
@@ -579,7 +579,7 @@ describe('editor overlay', () => {
     await title.fill(heading)
     await page.keyboard.press('Control+s')
     await waitFor(() => fs.readFileSync(path.join(contentDir, 'pages', 'index.json'), 'utf8').includes(heading), 'other tab save missing')
-    await other.getByRole('status', { name: 'Saved in another tab' }).getByText('Another tab saved this page.').waitFor()
+    await other.getByRole('region', { name: 'Notifications' }).getByText('Another tab saved this page.').waitFor()
     await context.close()
   }, 90_000)
 
@@ -882,7 +882,7 @@ describe('editor overlay', () => {
     await openClean(page)
     await page.locator('[data-organism="footer"]').scrollIntoViewIfNeeded()
     await page.getByRole('toolbar', { name: 'Footer' }).getByRole('button', { name: 'Footer settings' }).click()
-    await page.getByRole('main', { name: 'Footer' }).waitFor()
+    await settingsPanel(page, 'Footer').waitFor()
     await page.close()
   }, 60_000)
 
@@ -972,14 +972,14 @@ describe('editor overlay', () => {
     expect(await page.getByRole('tab', { name: 'Page', exact: true }).getAttribute('aria-selected')).toBe('true')
     await openScreen(page, 'Site')
     await page.reload({ waitUntil: 'networkidle' })
-    await page.getByRole('main', { name: 'Site' }).waitFor()
+    await settingsPanel(page, 'Site').waitFor()
     await page.getByRole('button', { name: /^Back to / }).click()
     await page.getByRole('button', { name: 'Hide inspector' }).click()
     await page.reload({ waitUntil: 'networkidle' })
     await editorNav(page).waitFor()
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
     expect(await page.getByRole('separator', { name: 'Resize inspector' }).count()).toBe(0)
-    expect(await page.getByRole('main', { name: 'Site' }).count()).toBe(0)
+    expect(await settingsPanel(page, 'Site').count()).toBe(0)
     await openInspector(page)
     expect(await page.getByRole('tab', { name: 'Page', exact: true }).getAttribute('aria-selected')).toBe('true')
     await page.close()
@@ -1461,7 +1461,7 @@ describe('editor overlay', () => {
     // Switching back on drops `enabled`; the texts stay. The save reloads the page back onto the Site screen.
     await reloaded
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
-    await page.getByRole('main', { name: 'Site' }).waitFor()
+    await settingsPanel(page, 'Site').waitFor()
     await row.getByRole('switch').check()
     await page.keyboard.press('Control+s')
     await waitFor(() => saved().consent?.enabled === undefined, 'enabled still in site.json')
@@ -1524,7 +1524,15 @@ async function openInspector(page: Page): Promise<void> {
   await page.getByRole('tab', { name: 'Page', exact: true }).waitFor()
 }
 
-/** Opens a full-screen view from the navigation: Pages, Media, Navigation, Footer, Site, Design or SEO. */
+/** Navigation, Footer, Site and Design open in the right-hand sidebar beside the page, not as a full-screen view. */
+function settingsPanel(page: Page, name: 'Navigation' | 'Footer' | 'Site' | 'Design') {
+  return page.getByRole('complementary', { name, exact: true })
+}
+
+/**
+ * Opens a view from the navigation: Pages, Media and SEO cover the page; Navigation, Footer, Site and Design open in
+ * the sidebar beside it.
+ */
 async function openScreen(page: Page, name: string): Promise<void> {
   await editorNav(page).getByRole('button', { name, exact: true }).click()
 }

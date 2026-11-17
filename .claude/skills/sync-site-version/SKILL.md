@@ -26,7 +26,7 @@ grep -rnE "BearMinion v?[0-9]+\.[0-9]+|bearminion@[0-9^~]|create-bearminion@[0-9
 
 Ignore: `0.0.0` placeholders, tarball example file names (`bearminion-1.0.0.tgz`), dependency ranges in `package.json` and changelogs. Everything else must match the version this pull request releases or be rewritten without a number ("latest").
 
-Known places: the hero badge in `apps/web/content/pages/index.json` (`tag`, for example "BearMinion 1.4 · Available now"; its `href` points at the GitHub releases page), and the latest release in the Changelog section of the same file.
+Known places: the hero badge in `apps/web/content/pages/index.json` (`tag`, for example "BearMinion 1.4 · Available now"; its `href` points at the GitHub releases page), the latest release in the Changelog section of the same file, and `softwareVersion` in the `SoftwareApplication` block of that file's `seo.jsonLd`. `softwareVersion` is the full version the pull request releases (`1.23.1`, not `1.23`), so crawlers read the exact release. The homepage's `seo.jsonLd` replaces the generated `WebPage` block, so it carries its own `WebPage` too: keep it, and keep its `name` and `description` in step with the page's SEO title and description.
 
 ## What to update when code changes
 
