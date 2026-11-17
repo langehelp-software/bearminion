@@ -3,9 +3,9 @@ import { defineSection, imageSchema, linkSchema, richTextSchema, textSchema, wit
 import { accent, eyebrow, heading } from '../shared'
 import { featuresWireframe } from './wireframe'
 
-export const featuresVariants = ['cards', 'list', 'bento'] as const
+export const featuresVariants = ['cards', 'list', 'bento', 'screens'] as const
 
-/** Three to six cards. In the bento grid, four keeps a wide fourth card; any other count fills rows of three. */
+/** Three to six cards. `screens` is made for six: two rows of three. In the bento grid, four keeps a wide fourth card; any other count fills rows of three. */
 export const featuresCounts = {
   items: { recommended: '3–6; 4 or 6 fill the bento grid best', min: 3, max: 6 },
 } as const satisfies Record<string, CountRule>

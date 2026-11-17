@@ -20,11 +20,15 @@ Cards with a title, a description and an optional picture.
 
 ![Features, bento layout: one large card with a picture and smaller cards beside it.](../images/sections/features-bento.webp)
 
+**`screens`**: a picture on top of every card at the same 16:10, made for screenshots. Six items fill two rows of three.
+
+![Features, screens layout: heading on the left and intro on the right, over cards with a wide picture each.](../images/sections/features-screens.webp)
+
 Content: 3 to 6 `items`, each with a `title`, an optional `description` and an optional `image`. Optional: `eyebrow`, `heading`, `intro` and `link`.
 
 ## Add it to your site
 
-A new site has it. A site made before this section existed gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
+A new site has it. A site made before this section existed, or before the `screens` layout, gets it with one command. It copies the section and the files it needs, and never overwrites a file you changed.
 
 ```sh
 npx bearminion add features

@@ -143,4 +143,49 @@ const spanLast = (itemIndex: number) => !wideFourth && itemIndex === props.items
       </div>
     )
   }
+  {
+    section.variant === 'screens' && (
+      <div class="section-container">
+        {
+          (props.eyebrow || props.heading || props.intro) && (
+            <div class="flex flex-wrap items-end justify-between gap-x-12 gap-y-5">
+              <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} headingClass="max-w-[16ch]" class="flex-[1_1_30rem]" />
+              {props.intro && <Typography as="p" size="lead" color="muted" class="flex-[0_1_24rem]" data-field={field('intro')} markdown={props.intro} />}
+            </div>
+          )
+        }
+        {/* A screenshot per card, at the same 16:10 so the rows line up. */}
+        <ul class="mt-[clamp(2.5rem,4cqi,4rem)] grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
+          {props.items.map((item, itemIndex) => (
+            <li class="flex flex-col gap-3 rounded-card-lg bg-surface p-2 ring-line">
+              {!item.image?.hidden && (
+                <MediaFrame
+                  src={item.image?.src}
+                  alt={item.image?.alt ?? item.title}
+                  aspectClass="aspect-[16/10]"
+                  roundedClass="rounded-2xl"
+                  fit={item.image?.fit}
+                  position={item.image?.position}
+                  data-field={field(`items.${itemIndex}.image.alt`)}
+                />
+              )}
+              <div class="flex flex-col gap-1.5 px-3 pt-1 pb-3">
+                <h3 class="text-[1.1875rem] leading-[1.25] font-semibold tracking-[-0.02em]" data-field={field(`items.${itemIndex}.title`)}>
+                  {item.title}
+                </h3>
+                {item.description && <Typography as="p" size="body" color="muted" data-field={field(`items.${itemIndex}.description`)} markdown={item.description} />}
+              </div>
+            </li>
+          ))}
+        </ul>
+        {props.link && (
+          <div class="mt-8">
+            <Button {...buttonLinkProps(props.link)} variant={buttonVariant(props.link, 'secondary')} arrow data-field={field('link.label')}>
+              {props.link.label}
+            </Button>
+          </div>
+        )}
+      </div>
+    )
+  }
 </SectionShell>
