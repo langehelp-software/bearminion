@@ -2,7 +2,7 @@
 title: FAQ
 description: "Questions that open to show their answers."
 sidebar:
-  order: 12
+  order: 15
   label: FAQ
 ---
 

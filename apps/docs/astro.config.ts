@@ -90,6 +90,7 @@ export default defineConfig({
             'sections/testimonials',
             'sections/pricing',
             'sections/media',
+            'sections/code-tabs',
             'sections/faq',
             'sections/cta',
             'sections/contact',

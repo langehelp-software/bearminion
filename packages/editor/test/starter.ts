@@ -12,6 +12,7 @@ import {
   type Section,
 } from '../../../templates/default/src/components/sections/definitions'
 import { siteDefinition } from '../../../templates/default/src/components/organisms/site-definition'
+import { codeTabsCounts } from '../../../templates/default/src/components/sections/code-tabs/definition'
 import { faqCounts } from '../../../templates/default/src/components/sections/faq/definition'
 import { featuresCounts } from '../../../templates/default/src/components/sections/features/definition'
 import { heroSchema } from '../../../templates/default/src/components/sections/hero/definition'
@@ -29,6 +30,6 @@ export const siteSchema = siteDefinition.schema
 export const siteOptions = siteDefinition.options
 
 /** Item-count rules the starter's schemas enforce. */
-export const contentCounts = { features: featuresCounts, faq: faqCounts, steps: stepsCounts } as const
+export const contentCounts = { codeTabs: codeTabsCounts, features: featuresCounts, faq: faqCounts, steps: stepsCounts } as const
 
 export const optionalContent = Object.fromEntries(sectionTypes.map((type) => [type, sectionDefinitions[type].optional]))

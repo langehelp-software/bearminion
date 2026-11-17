@@ -17,6 +17,7 @@ const order = [
   'testimonials',
   'pricing',
   'media',
+  'codeTabs',
   'faq',
   'cta',
   'contact',

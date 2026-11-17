@@ -1,0 +1,166 @@
+---
+import type { Section } from '../definitions'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+import { codeLines } from './code'
+
+interface Props {
+  section: Extract<Section, { type: 'codeTabs' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const side = section.variant === 'side'
+const points = props.points ?? []
+/** Unique per section on the page, for the tab and panel ids. */
+const key = `code-tabs-${section.id}`
+const tabs = props.tabs.map((tab, tabIndex) => ({ ...tab, lines: codeLines(tab.code), id: `${key}-tab-${tabIndex}`, panel: `${key}-panel-${tabIndex}` }))
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  <div class="section-container" data-code-tabs>
+    <SectionHeader
+      eyebrow={props.eyebrow}
+      heading={props.heading}
+      marks={props.marks}
+      size="h2-lg"
+      field={field}
+      headingClass="[&_.bm-em]:text-link"
+      class="max-w-[52rem]"
+    />
+    {props.body && <Typography as="p" size="lead" color="muted" class="mt-5 max-w-xl" data-field={field('body')} markdown={props.body} />}
+
+    <div class:list={['mt-[clamp(3rem,5cqi,4.5rem)] flex gap-4', side ? 'flex-wrap items-stretch' : 'flex-col']}>
+      <div
+        role="tablist"
+        aria-label={props.heading ?? 'Code samples'}
+        class:list={[side ? 'flex flex-[1_1_18rem] flex-col' : 'flex gap-2 overflow-x-auto pb-1']}
+      >
+        {tabs.map((tab, tabIndex) => (
+          <button
+            type="button"
+            role="tab"
+            id={tab.id}
+            aria-controls={tab.panel}
+            aria-selected={tabIndex === 0 ? 'true' : 'false'}
+            tabindex={tabIndex === 0 ? 0 : -1}
+            data-code-tab={tabIndex}
+            class:list={[
+              'group text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-link',
+              side
+                ? 'border-t border-line py-5 pe-4 aria-selected:border-[color-mix(in_oklch,var(--fg)_50%,transparent)]'
+                : 'shrink-0 rounded-full px-4 py-2 ring-line aria-selected:bg-fg aria-selected:text-bg',
+            ]}
+          >
+            <span class="flex items-center gap-2.5 text-[1.0625rem] font-semibold tracking-[-0.015em]">
+              {side && <span class="size-2 shrink-0 bg-line transition-colors group-aria-selected:bg-link" aria-hidden="true" />}
+              <span data-field={field(`tabs.${tabIndex}.title`)}>{tab.title}</span>
+            </span>
+            {side && tab.description && (
+              <Typography
+                as="span"
+                size="small"
+                color="muted"
+                class="mt-1.5 block ps-[1.125rem]"
+                data-field={field(`tabs.${tabIndex}.description`)}
+                markdown={tab.description}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Dark in every tone, like an editor window. */}
+      <div class:list={['min-w-0', side && 'flex-[2_1_30rem]']}>
+        {tabs.map((tab, tabIndex) => (
+          <figure
+            role="tabpanel"
+            id={tab.panel}
+            aria-labelledby={tab.id}
+            data-code-panel={tabIndex}
+            hidden={tabIndex !== 0}
+            class="flex h-full flex-col overflow-hidden rounded-[1.25rem] bg-[oklch(0.13_0.008_255)] text-[oklch(0.93_0.006_250)] shadow-[inset_0_0_0_1px_oklch(0.97_0.004_250/0.1)]"
+          >
+            <figcaption class="flex items-center gap-1.5 border-b border-[oklch(0.97_0.004_250/0.08)] px-[1.125rem] py-3.5 font-mono text-[0.75rem] text-[oklch(0.74_0.01_255)]">
+              <span class="size-[0.5625rem] rounded-full bg-[oklch(0.97_0.004_250/0.16)]" aria-hidden="true" />
+              <span class="size-[0.5625rem] rounded-full bg-[oklch(0.97_0.004_250/0.16)]" aria-hidden="true" />
+              <span class="size-[0.5625rem] rounded-full bg-[oklch(0.97_0.004_250/0.16)]" aria-hidden="true" />
+              {tab.file && <span class="ms-2" data-field={field(`tabs.${tabIndex}.file`)}>{tab.file}</span>}
+            </figcaption>
+            {/* tabindex: a panel that scrolls sideways is reachable from the keyboard. */}
+            <pre
+              tabindex="0"
+              class="flex-1 overflow-x-auto overflow-y-hidden px-5 pt-5 pb-6 font-mono text-[clamp(0.75rem,0.72rem+0.15cqi,0.8125rem)] leading-[1.8] [scrollbar-color:oklch(0.97_0.004_250/0.2)_transparent] [color-scheme:dark] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[oklch(0.87_0.2_145)]"
+            ><code>{tab.lines.map((line) => (
+              <span class="block whitespace-pre"><span class="inline-block w-8 text-[oklch(0.97_0.004_250/0.22)] select-none" aria-hidden="true">{line.n}</span>{line.code || ' '}{line.note && <span class="text-[oklch(0.87_0.2_145/0.75)]">{line.note}</span>}</span>
+            ))}</code></pre>
+          </figure>
+        ))}
+      </div>
+    </div>
+
+    {points.length > 0 && (
+      <ul class="mt-[clamp(3rem,5cqi,4.5rem)] grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-x-[clamp(1.5rem,3cqi,3rem)] gap-y-10">
+        {points.map((point, pointIndex) => (
+          <li class="flex flex-col gap-2.5 border-t border-line pt-5">
+            <span class="font-mono text-[0.75rem] text-link">{String(pointIndex + 1).padStart(2, '0')}</span>
+            <h3 class="text-[1.25rem] font-semibold tracking-[-0.02em]" data-field={field(`points.${pointIndex}.title`)}>{point.title}</h3>
+            {point.description && (
+              <Typography as="p" size="body" color="muted" data-field={field(`points.${pointIndex}.description`)} markdown={point.description} />
+            )}
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</SectionShell>
+
+<script>
+  /** Tabs as the ARIA pattern has them: a click or Enter picks one, the arrow keys, Home and End move between them. */
+  function bindCodeTabs() {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-code-tabs]')) {
+      if (root.dataset.bound === 'true') continue
+      root.dataset.bound = 'true'
+      const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-code-tab]')]
+      const panels = [...root.querySelectorAll<HTMLElement>('[data-code-panel]')]
+      const pick = (next: number, focus = false) => {
+        tabs.forEach((tab, tabIndex) => {
+          const on = tabIndex === next
+          tab.setAttribute('aria-selected', String(on))
+          tab.tabIndex = on ? 0 : -1
+          if (on && focus) tab.focus()
+        })
+        panels.forEach((panel, panelIndex) => {
+          panel.hidden = panelIndex !== next
+        })
+      }
+      tabs.forEach((tab, tabIndex) => {
+        tab.addEventListener('click', () => pick(tabIndex))
+        tab.addEventListener('keydown', (event) => {
+          // While the editor edits the tab's title, the keys are the text's.
+          if (event.target instanceof HTMLElement && event.target.isContentEditable) return
+          const last = tabs.length - 1
+          const moves: Record<string, number> = {
+            ArrowDown: tabIndex === last ? 0 : tabIndex + 1,
+            ArrowRight: tabIndex === last ? 0 : tabIndex + 1,
+            ArrowUp: tabIndex === 0 ? last : tabIndex - 1,
+            ArrowLeft: tabIndex === 0 ? last : tabIndex - 1,
+            Home: 0,
+            End: last,
+          }
+          const next = moves[event.key]
+          if (next === undefined) return
+          event.preventDefault()
+          pick(next, true)
+        })
+      })
+    }
+  }
+  bindCodeTabs()
+  document.addEventListener('bearminion:preview', bindCodeTabs)
+</script>
