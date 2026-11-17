@@ -23,7 +23,7 @@ One video or one image under a heading. A video can be a YouTube or Vimeo link o
 Options:
 
 - **Type** (`kind`): `video` (default) or `image`.
-- **Shape** (`aspect`): `16:9` (default), `4:3`, `21:9` or `1:1`.
+- **Shape** (`aspect`): `16:9` (default), `4:3`, `21:9` or `1:1`. It applies to an image and a video file. A YouTube or Vimeo video always takes its own shape, so it shows no bars: Vimeo is asked for the size at build time, and a video it will not describe (private, or Vimeo unreachable) keeps the Shape setting.
 - **Video playback** (`playback`): `controls` (default), or `loop` for a video file. A looping video is muted, plays while it is on screen, and stays paused with reduced motion.
 - **Show heading** (`intro`, on by default).
 

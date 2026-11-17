@@ -24,6 +24,7 @@ export const mediaSchema = withEmphasis({
   body: richTextSchema.optional(),
   /** `video` plays the link in `video`; `image` shows `image`. */
   kind: z.enum(mediaKinds).default('video'),
+  /** The frame's shape for an image or a video file. A YouTube or Vimeo video always takes its own shape, so it shows no bars. */
   aspect: z.enum(mediaAspects).default('16:9'),
   /** Off: no eyebrow, heading or body, and in the centered layout a wider frame with no top padding. */
   intro: z.boolean().default(true),

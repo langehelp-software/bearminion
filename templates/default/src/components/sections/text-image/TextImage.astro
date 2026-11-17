@@ -4,6 +4,7 @@ import Button from '../../atoms/Button.astro'
 import { buttonLinkProps, buttonVariant } from '../../../lib/link-attrs'
 import Typography from '../../atoms/Typography.astro'
 import MediaFrame from '../../molecules/MediaFrame.astro'
+import { showsImage } from '../../../lib/editing'
 import SectionHeader from '../../molecules/SectionHeader.astro'
 import SectionShell from '../../molecules/SectionShell.astro'
 
@@ -18,12 +19,13 @@ const props = section.props
 const field = (path: string) => `sections.${index}.props.${path}`
 const reveal = section.motion ?? motion
 const left = section.variant === 'left'
+const withImage = showsImage(props.image)
 ---
 
 <SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
   {
     section.variant !== 'wide' && (
-      <div class="section-container grid items-center gap-12 @min-[760px]:grid-cols-2">
+      <div class:list={['section-container grid items-center gap-12', withImage && '@min-[760px]:grid-cols-2']}>
         {
           (props.eyebrow || props.heading || props.body || props.points.length > 0 || props.link) && (
           <div class:list={['flex flex-col items-start gap-6', left && '@min-[760px]:order-2']}>
@@ -53,7 +55,7 @@ const left = section.variant === 'left'
           </div>
           )
         }
-        {!props.image?.hidden && (
+        {withImage && (
 <MediaFrame
           src={props.image.src}
           alt={props.image.alt}
@@ -86,7 +88,7 @@ const left = section.variant === 'left'
           </div>
           )
         }
-        {!props.image?.hidden && (
+        {withImage && (
 <MediaFrame src={props.image.src} alt={props.image.alt} aspectClass="mt-12 aspect-[16/7]" fit={props.image?.fit} position={props.image?.position} data-field={field('image.alt')} />
 )}
         {

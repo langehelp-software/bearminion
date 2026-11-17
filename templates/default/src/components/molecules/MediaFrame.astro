@@ -2,7 +2,7 @@
 import Image from '../atoms/Image.astro'
 import { isRemote, resolveLocalAsset } from '../../lib/assets'
 import { cn } from '../../lib/cn'
-import { editing } from '../../lib/editing'
+import { editing, hasImageSrc, placeholders } from '../../lib/editing'
 
 interface Props {
   src?: string
@@ -38,7 +38,9 @@ if (editing && looksLocal && !asset && src) {
 if (looksLocal && !asset && !devSrc) {
   throw new Error(`No file in src/assets for image path "${src}". Restore the file, or choose another image in the editor and save.`)
 }
-const showImage = Boolean(src && src !== 'placeholder' && (isRemote(src) || asset || devSrc))
+const showImage = Boolean(hasImageSrc(src) && (isRemote(src) || asset || devSrc))
+// With no picture, the striped wireframe is an editor hint: a public build draws nothing in its place.
+const drawn = showImage || placeholders
 // Natural size: drop the forced ratio (and its min height) so the frame wraps the image.
 const natural = fit === 'auto' && showImage && /(^|\s)aspect-/.test(aspectClass)
 const frameClass = natural ? aspectClass.split(/\s+/).filter((token) => !/^(aspect-|min-h-)/.test(token)).join(' ') : aspectClass
@@ -47,6 +49,8 @@ const objectFit = fit === 'auto' ? 'contain' : fit
 // (image, padding or placeholder stripes) edits the image.
 ---
 
+{
+  drawn && (
 <div
   class={cn('relative flex items-end overflow-hidden p-4', !showImage && 'placeholder-stripes', frameClass, natural && 'p-0', roundedClass, className)}
   data-field={dataField}
@@ -70,3 +74,5 @@ const objectFit = fit === 'auto' ? 'contain' : fit
     )
   }
 </div>
+  )
+}

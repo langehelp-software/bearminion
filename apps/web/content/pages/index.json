@@ -86,8 +86,8 @@
         ],
         "numbered": false,
         "poster": {
-          "alt": "",
-          "src": "src/assets/uploads/editor-demo-poster.png"
+          "alt": "Image",
+          "src": "src/assets/uploads/bearminion-poster-2ccd5676.png"
         },
         "steps": [
           {
@@ -103,7 +103,7 @@
             "title": "Save"
           }
         ],
-        "video": "/videos/bearminion-editor.mp4"
+        "video": "https://vimeo.com/1247281007"
       },
       "tone": "subtle",
       "type": "steps",
