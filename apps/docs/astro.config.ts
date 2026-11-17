@@ -50,7 +50,8 @@ export default defineConfig({
       editLink: { baseUrl: `${github}/edit/main/apps/docs/` },
       lastUpdated: true,
       customCss: [
-        '@fontsource-variable/bricolage-grotesque',
+        // With the .css on: a bare package name looks like JavaScript to Vite, which then leaves it to Node in dev and fails.
+        '@fontsource-variable/bricolage-grotesque/index.css',
         '@fontsource/instrument-serif/400-italic.css',
         '@fontsource/jetbrains-mono/400.css',
         './src/styles/brand.css',
