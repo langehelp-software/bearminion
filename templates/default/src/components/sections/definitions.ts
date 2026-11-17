@@ -19,6 +19,7 @@ const order = [
   'media',
   'codeTabs',
   'compare',
+  'changelog',
   'faq',
   'cta',
   'contact',

@@ -12,6 +12,7 @@ import {
   type Section,
 } from '../../../templates/default/src/components/sections/definitions'
 import { siteDefinition } from '../../../templates/default/src/components/organisms/site-definition'
+import { changelogCounts } from '../../../templates/default/src/components/sections/changelog/definition'
 import { codeTabsCounts } from '../../../templates/default/src/components/sections/code-tabs/definition'
 import { compareCounts } from '../../../templates/default/src/components/sections/compare/definition'
 import { faqCounts } from '../../../templates/default/src/components/sections/faq/definition'
@@ -34,6 +35,7 @@ export const siteOptions = siteDefinition.options
 export const contentCounts = {
   codeTabs: codeTabsCounts,
   compare: compareCounts,
+  changelog: changelogCounts,
   features: featuresCounts,
   faq: faqCounts,
   steps: stepsCounts,

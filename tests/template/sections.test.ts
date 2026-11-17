@@ -40,6 +40,7 @@ describe('the starter sections', () => {
       'media',
       'codeTabs',
       'compare',
+      'changelog',
       'faq',
       'cta',
       'contact',
