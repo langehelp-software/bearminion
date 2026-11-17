@@ -74,22 +74,27 @@
   "header": {
     "actions": [
       {
+        "href": "https://github.com/langehelp-software/bearminion",
+        "label": "GitHub",
+        "style": "tertiary"
+      },
+      {
         "href": "https://docs.bearminion.com/getting-started/",
         "label": "Get started"
       }
     ],
     "links": [
       {
-        "href": "/#why",
+        "href": "/#how",
         "label": "How it works"
       },
       {
-        "href": "/#features",
-        "label": "Features"
+        "href": "/#developers",
+        "label": "Developers"
       },
       {
-        "href": "/#faq",
-        "label": "FAQ"
+        "href": "/#changelog",
+        "label": "Changelog"
       },
       {
         "href": "https://docs.bearminion.com/",

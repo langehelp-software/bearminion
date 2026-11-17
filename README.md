@@ -48,7 +48,7 @@ From then on: edit, save, commit, push. The site rebuilds by itself.
 ## What you can change
 
 - **Text** right on the page, with bold, italic, code, links and lists
-- **Sections**: fourteen ready-made types, each with two or three layouts. A new site has nine (hero, steps, gallery, features, text, media, FAQ and more); pricing, stats, testimonials, logos and the contact form are one command away
+- **Sections**: seventeen ready-made types, each with two to five layouts. A new site has nine (hero, steps, gallery, features, text, media, FAQ and more); pricing, stats, testimonials, logos, code tabs, a comparison table, a changelog and the contact form are one command away
 - **Pages**: create, rename, set titles and descriptions for search and sharing
 - **Menus and footer**: drag to reorder and nest
 - **Images**: upload, choose how they fill their frame and which part stays in view
