@@ -2,7 +2,7 @@
 title: Contact
 description: "Contact details beside a form."
 sidebar:
-  order: 14
+  order: 17
   label: Contact
 ---
 

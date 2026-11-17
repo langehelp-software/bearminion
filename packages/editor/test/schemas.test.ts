@@ -52,6 +52,9 @@ type SectionTypeName =
   | 'testimonials'
   | 'pricing'
   | 'media'
+  | 'codeTabs'
+  | 'compare'
+  | 'changelog'
   | 'faq'
   | 'cta'
   | 'contact'
@@ -74,6 +77,9 @@ describe('section schemas', () => {
       'testimonials',
       'pricing',
       'media',
+      'codeTabs',
+      'compare',
+      'changelog',
       'faq',
       'cta',
       'contact',

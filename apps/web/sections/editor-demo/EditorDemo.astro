@@ -1,0 +1,1295 @@
+---
+import { editing } from '../../../lib/editing'
+import type { Section } from '../definitions'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'editorDemo' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const trust = props.trust ?? []
+
+/** The demo's heading, before anyone types. */
+const START = 'Fresh bread, before you wake up.'
+/** 24px stroke icons, copied from packages/editor/src/ui/icons.tsx. */
+const icon = {
+  pages: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  blog: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  media: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+  navigation: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  footer: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15h18"/>',
+  site: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/>',
+  seo: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  collapse: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
+  history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
+  inspector: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/>',
+  preview: '<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',
+  chevron: '<path d="m9 18 6-6-6-6"/>',
+}
+const svg = (paths: string, size = 17) =>
+  `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`
+const rail = [['pages', 'blog', 'media'], ['navigation', 'footer'], ['site', 'seo']] as const
+const viewports = [
+  { id: 'desktop', label: 'Desktop', d: 'M4 5h16v11H4zM9 20h6M12 16v4' },
+  { id: 'tablet', label: 'Tablet', d: 'M6 3h12v18H6zM11 18h2' },
+  { id: 'mobile', label: 'Mobile', d: 'M8 3h8v18H8zM11.5 18h1' },
+]
+const weights = [400, 500, 600, 700]
+const fonts = [
+  { id: 'sans', label: 'Sans' },
+  { id: 'serif', label: 'Serif' },
+  { id: 'mono', label: 'Mono' },
+]
+const tones = ['base', 'subtle', 'inverse', 'brand']
+const pageSections = [
+  { label: 'Hero', meta: '#hero · ', tone: 'base', live: true },
+  { label: 'Bakes', meta: '#bakes · cards', tone: 'subtle' },
+  { label: 'Visit', meta: '#visit · split', tone: 'base' },
+]
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} class="ed-section">
+  {/* While BearMinion itself edits this page, the demo is a picture: its shortcuts would fight the real editor's. */}
+  <div class="ed-wrap" data-editor-demo data-inert={editing ? 'true' : undefined}>
+    <p class="ed-hint"><span class="ed-hint-dot" aria-hidden="true"></span><span data-ed-hint aria-live="polite">The real editor. Click the heading and type, or change the layout and background.</span></p>
+
+    <div class="ed-app">
+      <aside class="ed-rail" aria-label="BearMinion editor">
+        <div class="ed-rail-logo"><Fragment set:html={`<svg class="ed-bear" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 19" shape-rendering="crispEdges">    <path fill="#074a08" d="M12 0h1v1h-1zM11 1h2v1h-2zM15 1h1v1h-1zM16 2h1v1h-1zM16 3h1v1h-1zM0 5h1v1h-1zM0 6h2v1h-2zM1 7h2v1h-2zM1 8h2v1h-2zM2 9h1v1h-1zM2 10h2v1h-2zM2 11h2v1h-2zM2 12h3v1h-3zM2 13h3v1h-3zM2 14h4v1h-4zM20 14h1v1h-1zM3 15h4v1h-4zM15 15h2v1h-2zM19 15h1v1h-1zM4 16h5v1h-5zM13 16h6v1h-6zM5 17h12v1h-12zM7 18h7v1h-7z"/>  <path fill="#169717" d="M13 0h3v1h-3zM16 1h1v1h-1zM1 2h4v1h-4zM8 2h6v1h-6zM0 3h2v1h-2zM4 3h12v1h-12zM0 4h1v1h-1zM4 4h14v1h-14zM4 5h15v1h-15zM3 6h12v1h-12zM16 6h4v1h-4zM3 7h6v1h-6zM10 7h3v1h-3zM19 7h2v1h-2zM3 8h9v1h-9zM20 8h1v1h-1zM3 9h9v1h-9zM20 9h1v1h-1zM4 10h8v1h-8zM20 10h1v1h-1zM4 11h8v1h-8zM20 11h1v1h-1zM5 12h8v1h-8zM19 12h2v1h-2zM5 13h10v1h-10zM17 13h4v1h-4zM6 14h14v1h-14zM7 15h8v1h-8zM17 15h2v1h-2zM9 16h4v1h-4z"/>  <path fill="#eeedf5" d="M13 1h2v1h-2zM14 2h2v1h-2zM2 3h2v1h-2zM1 4h3v1h-3zM1 5h3v1h-3zM2 6h1v1h-1zM13 7h6v1h-6zM12 8h4v1h-4zM19 8h1v1h-1zM12 9h4v1h-4zM19 9h1v1h-1zM12 10h5v1h-5zM18 10h2v1h-2zM12 11h8v1h-8zM13 12h6v1h-6zM15 13h2v1h-2z"/>  <path fill="#000000" d="M15 6h1v1h-1zM9 7h1v1h-1zM16 8h3v1h-3zM16 9h3v1h-3zM17 10h1v1h-1z"/>`} /></div>
+        <div class="ed-rail-items">
+          {rail.map((group, groupIndex) => (
+            <>
+              {groupIndex > 0 && <span class="ed-rail-rule" aria-hidden="true" />}
+              {group.map((name) => <span class:list={['ed-rail-item', name === 'pages' && 'is-on']} title={name} set:html={svg(icon[name])} />)}
+            </>
+          ))}
+        </div>
+        <span class="ed-rail-foot" set:html={svg(icon.collapse)} />
+      </aside>
+
+      <div class="ed-main">
+        <header class="ed-top">
+          <nav aria-label="Breadcrumb" class="ed-crumbs">
+            <span class="ed-dim">Pages</span><span class="ed-faint">/</span><strong>Home</strong>
+            <span class="ed-file">content/pages/index.json</span>
+            <span class="ed-vrule" aria-hidden="true" />
+            <button type="button" class="ed-icon" aria-label="Undo" title="Undo (⌘Z)" data-ed-undo disabled set:html={svg(icon.undo, 16)} />
+            <button type="button" class="ed-icon" aria-label="Redo" title="Redo (⇧⌘Z)" data-ed-redo disabled set:html={svg(icon.redo, 16)} />
+          </nav>
+          <div role="radiogroup" aria-label="Viewport" class="ed-seg">
+            {viewports.map((viewport) => (
+              <button type="button" role="radio" aria-checked={viewport.id === 'desktop' ? 'true' : 'false'} aria-label={viewport.label} title={viewport.label} data-ed-vp={viewport.id} set:html={svg(`<path d="${viewport.d}"/>`, 15)} />
+            ))}
+          </div>
+          <div class="ed-actions">
+            <span class="ed-icon" title="Version history" set:html={svg(icon.history, 16)} />
+            <button type="button" class="ed-icon" aria-label="Toggle inspector" aria-pressed="true" data-ed-insp-toggle set:html={svg(icon.inspector, 16)} />
+            <span class="ed-vrule" aria-hidden="true" />
+            <span class="ed-preview"><Fragment set:html={svg(icon.preview, 15)} />Preview</span>
+            <span class="ed-state" data-ed-state data-dirty="false"><span class="ed-state-dot" aria-hidden="true" /><span data-ed-state-label>Saved</span></span>
+            <button type="button" class="ed-save" data-ed-save disabled>Save<kbd>⌘S</kbd></button>
+          </div>
+        </header>
+
+        <div class="ed-body">
+          <div class="ed-canvas">
+            <div class="ed-frame" data-ed-frame data-demo-tone="base" data-vp="desktop" data-layout="split">
+              <div class="ed-site-head">
+                <span class="ed-site-name">Crumb &amp; Co.</span>
+                <span class="ed-site-nav"><span>Bakes</span><span>Visit</span><span>Order</span></span>
+              </div>
+              <div class="ed-hero">
+                <span class="ed-hero-label">Hero · <span data-ed-layout-name>split</span></span>
+                <div class="ed-hero-row">
+                  <div class="ed-hero-text">
+                    <span class="ed-eyebrow"><span class="ed-eyebrow-dot" aria-hidden="true" />Ash Street · since 2009</span>
+                    <div class="ed-heading-wrap">
+                      <div class="ed-fmt" data-ed-fmt hidden>
+                        {weights.map((weight) => (
+                          <button type="button" data-ed-weight={weight}><span style={`font-weight:${weight}`}>Aa</span><span class="ed-fmt-label">{weight}</span></button>
+                        ))}
+                        <span class="ed-fmt-rule" aria-hidden="true" />
+                        {fonts.map((font) => (
+                          <button type="button" data-ed-font={font.id}><span class={`ed-font-${font.id}`}>Aa</span><span class="ed-fmt-label">{font.label}</span></button>
+                        ))}
+                      </div>
+                      <h3 class="ed-heading" contenteditable={editing ? undefined : 'true'} spellcheck="false" data-ed-heading data-font="sans">{START}</h3>
+                    </div>
+                    <p class="ed-sub">Sourdough, rye and one very good cinnamon bun. Baked at four in the morning, gone by noon.</p>
+                    <div class="ed-ctas"><span class="ed-cta">See today's bakes →</span><span class="ed-cta-link">Find us</span></div>
+                  </div>
+                  <div class="ed-image"><span>uploads/loaf.jpg</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="ed-insp" aria-label="Inspector" data-ed-insp>
+            <div role="tablist" class="ed-tabs">
+              <button type="button" role="tab" aria-selected="false" data-ed-tab="page">Page</button>
+              <button type="button" role="tab" aria-selected="true" data-ed-tab="section">Section</button>
+            </div>
+            <div class="ed-panel" data-ed-panel="section">
+              <div class="ed-panel-head"><span class="ed-dot" data-ed-tone-dot data-demo-tone="base" /><span class="ed-panel-title">Hero</span><span class="ed-meta">1 of 3</span></div>
+              <label class="ed-field"><span>Layout</span>
+                <select data-ed-select-layout>
+                  <option value="split">split</option>
+                  <option value="centered">centered</option>
+                  <option value="editorial">editorial</option>
+                </select>
+              </label>
+              <div class="ed-field"><span>Background</span>
+                <div role="radiogroup" aria-label="Background" class="ed-tones">
+                  {tones.map((tone) => (
+                    <button type="button" role="radio" aria-checked={tone === 'base' ? 'true' : 'false'} data-ed-tone={tone}><span class="ed-swatch" data-demo-tone={tone} />{tone[0]?.toUpperCase()}{tone.slice(1)}</button>
+                  ))}
+                </div>
+              </div>
+              <label class="ed-field"><span>Anchor</span><input value="hero" readonly class="ed-mono" /></label>
+              <div class="ed-moves"><span class="is-off">Move up</span><span>Move down</span><span>Duplicate</span></div>
+            </div>
+            <div class="ed-panel" data-ed-panel="page" hidden>
+              <span class="ed-group">Page</span>
+              <label class="ed-field"><span>Title</span><input value="Home" readonly /></label>
+              <div class="ed-field"><span>Status</span>
+                <div class="ed-status"><span class="is-on"><span class="ed-status-dot" aria-hidden="true" />Published</span><span>Draft</span></div>
+              </div>
+              <span class="ed-group">Sections · 3</span>
+              <ol class="ed-sections">
+                {pageSections.map((item) => (
+                  <li>
+                    <button type="button" data-ed-goto-section>
+                      <span class="ed-dot" data-demo-tone={item.tone} data-ed-tone-dot={item.live ? '' : undefined} />
+                      <span class="ed-section-text"><span>{item.label}</span><span class="ed-meta">{item.meta}{item.live && <span data-ed-layout-name>split</span>}</span></span>
+                      <Fragment set:html={svg(icon.chevron, 13)} />
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </aside>
+        </div>
+
+        <div class="ed-diff">
+          <div class="ed-diff-head"><span>git diff content/pages/index.json</span><span data-ed-status data-kind="idle">Nothing changed yet</span></div>
+          <div class="ed-diff-lines" data-ed-diff></div>
+        </div>
+      </div>
+    </div>
+
+    {
+      trust.length > 0 && (
+        <ul class="ed-trust">
+          {trust.map((item, itemIndex) =>
+            item.href ? (
+              <li><a href={item.href} data-field={field(`trust.${itemIndex}.label`)}>{item.label}</a></li>
+            ) : (
+              <li data-field={field(`trust.${itemIndex}.label`)}>{item.label}</li>
+            ),
+          )}
+        </ul>
+      )
+    }
+  </div>
+</SectionShell>
+
+<script>
+  type Layout = 'split' | 'centered' | 'editorial'
+  type Tone = 'base' | 'subtle' | 'inverse' | 'brand'
+  type Font = 'sans' | 'serif' | 'mono'
+  interface Snap {
+    h: string
+    layout: Layout
+    tone: Tone
+    weight: number
+    font: Font
+  }
+
+  const FAMILY: Record<Font, string> = {
+    sans: "'Bricolage Grotesque Variable', 'Bricolage Grotesque', sans-serif",
+    serif: "'Instrument Serif', Georgia, serif",
+    mono: "'JetBrains Mono', monospace",
+  }
+  const HINT = {
+    start: 'The real editor. Click the heading and type, or change the layout and background.',
+    dirty: 'Now press Save, or Ctrl+S. Watch the diff.',
+    saved: 'That’s it. That’s the whole CMS.',
+  }
+  const LIMIT = 50
+
+  function bindEditorDemo(root: HTMLElement) {
+    if (root.dataset.bound === 'true' || root.dataset.inert === 'true') return
+    root.dataset.bound = 'true'
+    const q = <T extends Element>(selector: string) => root.querySelector<T>(selector)
+    const all = <T extends Element>(selector: string) => [...root.querySelectorAll<T>(selector)]
+    const heading = q<HTMLElement>('[data-ed-heading]')
+    const frame = q<HTMLElement>('[data-ed-frame]')
+    const fmt = q<HTMLElement>('[data-ed-fmt]')
+    const diff = q<HTMLElement>('[data-ed-diff]')
+    if (!heading || !frame || !fmt || !diff) return
+
+    const start: Snap = { h: heading.textContent?.trim() ?? '', layout: 'split', tone: 'base', weight: 700, font: 'sans' }
+    let state: Snap = { ...start }
+    let saved: Snap = { ...start }
+    let past: Snap[] = []
+    let future: Snap[] = []
+    let before: Snap | null = null
+    let focused = false
+    let savedOnce = false
+
+    const snap = (): Snap => ({ ...state })
+    const changes = () => {
+      const list: string[] = []
+      if (state.layout !== saved.layout) list.push('Hero · layout')
+      if (state.tone !== saved.tone) list.push('Hero · background')
+      if (state.h !== saved.h) list.push('Hero · heading')
+      if (state.weight !== saved.weight || state.font !== saved.font) list.push('Hero · heading style')
+      return list
+    }
+    const edit = (patch: Partial<Snap>) => {
+      past = [...past, snap()].slice(-LIMIT)
+      future = []
+      state = { ...state, ...patch }
+      render()
+    }
+    const syncHeading = () => {
+      if (heading.textContent !== state.h) heading.textContent = state.h
+    }
+    const undo = () => {
+      const previous = past.at(-1)
+      if (!previous) return
+      future = [snap(), ...future]
+      past = past.slice(0, -1)
+      state = previous
+      syncHeading()
+      render()
+    }
+    const redo = () => {
+      const next = future[0]
+      if (!next) return
+      past = [...past, snap()]
+      future = future.slice(1)
+      state = next
+      syncHeading()
+      render()
+    }
+    const save = () => {
+      if (changes().length === 0) return
+      saved = snap()
+      savedOnce = true
+      render()
+    }
+
+    /** One line of the diff: unchanged, removed or added. */
+    const line = (text: string, kind: 'same' | 'add' | 'del' = 'same') => {
+      const row = document.createElement('div')
+      row.className = 'ed-line'
+      row.dataset.kind = kind
+      const sign = document.createElement('span')
+      sign.className = 'ed-sign'
+      sign.textContent = kind === 'add' ? '+' : kind === 'del' ? '-' : ' '
+      row.append(sign, text)
+      return row
+    }
+    const json = (value: unknown) => JSON.stringify(value)
+    const pair = (key: string, a: string, b: string, indent: string) =>
+      a === b ? [line(`${indent}${json(key)}: ${json(b)},`)] : [line(`${indent}${json(key)}: ${json(a)},`, 'del'), line(`${indent}${json(key)}: ${json(b)},`, 'add')]
+    /** The marks the editor writes for a styled heading, as it writes them. */
+    const marks = (snapshot: Snap) =>
+      snapshot.weight === 700 && snapshot.font === 'sans'
+        ? null
+        : `[{ "start": 0, "end": ${snapshot.h.length}${snapshot.font !== 'sans' ? `, "font": ${json(snapshot.font)}` : ''}${snapshot.weight !== 700 ? `, "weight": ${snapshot.weight}` : ''} }]`
+
+    const render = () => {
+      const list = changes()
+      const dirty = list.length > 0
+      // Hint
+      const hint = q('[data-ed-hint]')
+      if (hint) hint.textContent = dirty ? HINT.dirty : savedOnce ? HINT.saved : HINT.start
+      // Top bar
+      const undoButton = q<HTMLButtonElement>('[data-ed-undo]')
+      const redoButton = q<HTMLButtonElement>('[data-ed-redo]')
+      if (undoButton) undoButton.disabled = past.length === 0
+      if (redoButton) redoButton.disabled = future.length === 0
+      const pill = q<HTMLElement>('[data-ed-state]')
+      if (pill) pill.dataset.dirty = String(dirty)
+      const label = q('[data-ed-state-label]')
+      if (label) label.textContent = dirty ? `Unsaved · ${list.length} ${list.length === 1 ? 'change' : 'changes'}` : 'Saved'
+      const saveButton = q<HTMLButtonElement>('[data-ed-save]')
+      if (saveButton) saveButton.disabled = !dirty
+      // The sample site
+      frame.dataset.layout = state.layout
+      frame.dataset.demoTone = state.tone
+      for (const name of all('[data-ed-layout-name]')) name.textContent = state.layout
+      heading.dataset.font = state.font
+      heading.style.fontFamily = FAMILY[state.font]
+      heading.style.fontWeight = state.font === 'serif' ? '400' : String(state.weight)
+      for (const button of all<HTMLElement>('[data-ed-weight]')) button.dataset.on = String(state.font !== 'serif' && Number(button.dataset.edWeight) === state.weight)
+      for (const button of all<HTMLElement>('[data-ed-font]')) button.dataset.on = String(button.dataset.edFont === state.font)
+      // Inspector
+      const select = q<HTMLSelectElement>('[data-ed-select-layout]')
+      if (select) select.value = state.layout
+      for (const button of all<HTMLElement>('[data-ed-tone]')) button.setAttribute('aria-checked', String(button.dataset.edTone === state.tone))
+      for (const dot of all<HTMLElement>('[data-ed-tone-dot]')) dot.dataset.demoTone = state.tone
+      // The diff of content/pages/index.json
+      const rows = [
+        line('  "type": "hero",'),
+        ...pair('variant', saved.layout, state.layout, '  '),
+        ...pair('tone', saved.tone, state.tone, '  '),
+        line('  "props": {'),
+        ...pair('heading', saved.h, state.h, '    '),
+      ]
+      const was = marks(saved)
+      const now = marks(state)
+      if (was !== now) {
+        if (was) rows.push(line(`    "marks": ${was},`, 'del'))
+        if (now) rows.push(line(`    "marks": ${now},`, 'add'))
+      } else if (now) rows.push(line(`    "marks": ${now},`))
+      rows.push(line('    "sub": "Sourdough, rye and one very good…"'))
+      diff.replaceChildren(...rows)
+      const status = q<HTMLElement>('[data-ed-status]')
+      if (status) {
+        status.dataset.kind = dirty ? 'dirty' : savedOnce ? 'saved' : 'idle'
+        status.textContent = dirty ? list.join(' · ') : savedOnce ? 'Saved. Committed locally, never pushed.' : 'Nothing changed yet'
+      }
+    }
+
+    // The heading: type in place; Enter or Esc ends the edit, which goes into the history as one step.
+    heading.addEventListener('focus', () => {
+      before = snap()
+      focused = true
+      fmt.hidden = false
+    })
+    heading.addEventListener('blur', () => {
+      focused = false
+      fmt.hidden = true
+      if (before && before.h !== state.h) {
+        past = [...past, before].slice(-LIMIT)
+        future = []
+      }
+      before = null
+      render()
+    })
+    heading.addEventListener('input', () => {
+      state = { ...state, h: (heading.textContent ?? '').replace(/\s+/g, ' ').trim() || ' ' }
+      render()
+    })
+    heading.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== 'Escape') return
+      event.preventDefault()
+      heading.blur()
+    })
+    // Plain text only, on one line: a pasted paragraph or styled text would not be a heading.
+    heading.addEventListener('paste', (event) => {
+      event.preventDefault()
+      const text = (event.clipboardData?.getData('text/plain') ?? '').replace(/\s+/g, ' ')
+      const selection = window.getSelection()
+      if (!selection || selection.rangeCount === 0) return
+      const range = selection.getRangeAt(0)
+      range.deleteContents()
+      const node = document.createTextNode(text)
+      range.insertNode(node)
+      range.setStartAfter(node)
+      range.collapse(true)
+      selection.removeAllRanges()
+      selection.addRange(range)
+      heading.dispatchEvent(new InputEvent('input', { bubbles: true }))
+    })
+    // The format bar keeps the heading focused: a mousedown would blur it first.
+    fmt.addEventListener('mousedown', (event) => event.preventDefault())
+    for (const button of all<HTMLElement>('[data-ed-weight]')) {
+      button.addEventListener('click', () => edit({ weight: Number(button.dataset.edWeight), font: state.font === 'serif' ? 'sans' : state.font }))
+    }
+    for (const button of all<HTMLElement>('[data-ed-font]')) button.addEventListener('click', () => edit({ font: button.dataset.edFont as Font }))
+
+    q('[data-ed-undo]')?.addEventListener('click', undo)
+    q('[data-ed-redo]')?.addEventListener('click', redo)
+    q('[data-ed-save]')?.addEventListener('click', save)
+    for (const button of all<HTMLElement>('[data-ed-vp]')) {
+      button.addEventListener('click', () => {
+        frame.dataset.vp = button.dataset.edVp ?? 'desktop'
+        for (const other of all<HTMLElement>('[data-ed-vp]')) other.setAttribute('aria-checked', String(other === button))
+      })
+    }
+    const inspector = q<HTMLElement>('[data-ed-insp]')
+    const toggle = q<HTMLElement>('[data-ed-insp-toggle]')
+    toggle?.addEventListener('click', () => {
+      if (!inspector) return
+      inspector.hidden = !inspector.hidden
+      toggle.setAttribute('aria-pressed', String(!inspector.hidden))
+    })
+    const showTab = (name: string) => {
+      for (const tab of all<HTMLElement>('[data-ed-tab]')) tab.setAttribute('aria-selected', String(tab.dataset.edTab === name))
+      for (const panel of all<HTMLElement>('[data-ed-panel]')) panel.hidden = panel.dataset.edPanel !== name
+    }
+    for (const tab of all<HTMLElement>('[data-ed-tab]')) tab.addEventListener('click', () => showTab(tab.dataset.edTab ?? 'section'))
+    for (const button of all('[data-ed-goto-section]')) button.addEventListener('click', () => showTab('section'))
+    q<HTMLSelectElement>('[data-ed-select-layout]')?.addEventListener('change', (event) => edit({ layout: (event.target as HTMLSelectElement).value as Layout }))
+    for (const button of all<HTMLElement>('[data-ed-tone]')) button.addEventListener('click', () => edit({ tone: button.dataset.edTone as Tone }))
+
+    // ⌘S saves while there is something to save; ⌘Z and ⇧⌘Z undo and redo, unless the heading is being typed in
+    // (it has its own undo) or another field on the page has the focus.
+    window.addEventListener('keydown', (event) => {
+      const key = event.key.toLowerCase()
+      if (!(event.ctrlKey || event.metaKey)) return
+      if (key === 's' && changes().length > 0) {
+        event.preventDefault()
+        save()
+        return
+      }
+      const active = document.activeElement
+      const typing = active instanceof HTMLElement && (active.isContentEditable || active.matches('input, textarea, select'))
+      if (key === 'z' && !focused && !typing && (past.length > 0 || future.length > 0)) {
+        event.preventDefault()
+        if (event.shiftKey) redo()
+        else undo()
+      }
+    })
+
+    render()
+  }
+
+  const bindAll = () => {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-editor-demo]')) bindEditorDemo(root)
+  }
+  bindAll()
+  document.addEventListener('bearminion:preview', bindAll)
+</script>
+
+<style is:global>
+  /* Every class here starts with ed-: global, because the diff lines are made by the script. */
+  .ed-wrap {
+    --ed-ink: oklch(0.21 0.012 255);
+    --ed-line: oklch(0.9 0.005 250);
+    --ed-green: oklch(0.46 0.13 145);
+    --ed-mono: 'JetBrains Mono', ui-monospace, monospace;
+    position: relative;
+    max-width: 76rem;
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 4cqi, 3rem) clamp(4rem, 2rem + 6cqi, 8rem);
+    box-sizing: content-box;
+  }
+  /* Straight after a hero, the demo moves up into the hero's bottom padding, as one block with it. */
+  [data-section-type='hero'] + .ed-section {
+    margin-top: calc(-1 * clamp(2rem, 1rem + 4cqi, 5rem));
+  }
+  .ed-hint {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-family: var(--ed-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  .ed-hint-dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: oklch(0.87 0.2 145);
+    box-shadow: 0 0 0 4px oklch(0.87 0.2 145 / 0.25);
+  }
+  /* The editor itself is light in every tone, as it is in your browser. */
+  .ed-app {
+    display: flex;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    background: oklch(0.955 0.004 250);
+    box-shadow: inset 0 0 0 1px oklch(0.21 0.012 255 / 0.12), 0 60px 80px -50px oklch(0.2 0.02 255 / 0.45);
+    color: var(--ed-ink);
+    font-size: 0.8125rem;
+    text-align: left;
+  }
+  .ed-app button {
+    font: inherit;
+    color: inherit;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .ed-app button:focus-visible,
+  .ed-app select:focus-visible,
+  .ed-heading:focus-visible {
+    outline: 2px solid oklch(0.47 0.13 145);
+    outline-offset: 2px;
+  }
+  .ed-rail {
+    flex: none;
+    width: 3.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #fff;
+    border-right: 1px solid var(--ed-line);
+  }
+  .ed-rail-logo {
+    width: 100%;
+    height: 3rem;
+    display: grid;
+    place-items: center;
+    border-bottom: 1px solid oklch(0.93 0.004 250);
+  }
+  .ed-bear {
+    width: 1.75rem;
+    height: auto;
+  }
+  .ed-rail-items {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0.5rem 0;
+  }
+  .ed-rail-item,
+  .ed-rail-foot {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 8px;
+    color: oklch(0.45 0.01 255);
+  }
+  .ed-rail-item.is-on {
+    background: oklch(0.95 0.04 145);
+    color: oklch(0.38 0.11 145);
+  }
+  .ed-rail-foot {
+    margin-top: auto;
+    margin-bottom: 0.5rem;
+  }
+  .ed-rail-rule {
+    width: 1.5rem;
+    height: 1px;
+    margin: 0.375rem 0;
+    background: oklch(0.92 0.004 250);
+  }
+  .ed-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .ed-top {
+    min-height: 3rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.375rem 0.625rem 0.375rem 0.875rem;
+    background: #fff;
+    border-bottom: 1px solid var(--ed-line);
+  }
+  .ed-crumbs {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .ed-crumbs strong {
+    font-weight: 600;
+  }
+  .ed-dim {
+    color: oklch(0.45 0.01 255);
+  }
+  .ed-faint {
+    color: oklch(0.7 0.01 255);
+  }
+  .ed-file {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0.125rem 0.375rem;
+    border-radius: 5px;
+    background: oklch(0.96 0.003 250);
+    font-family: var(--ed-mono);
+    font-size: 0.6875rem;
+    color: oklch(0.5 0.01 255);
+  }
+  .ed-vrule {
+    flex: none;
+    width: 1px;
+    height: 1.125rem;
+    margin: 0 0.125rem;
+    background: var(--ed-line);
+  }
+  .ed-icon {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 8px;
+    color: oklch(0.3 0.01 255);
+  }
+  .ed-icon:disabled {
+    color: oklch(0.78 0.006 255);
+    cursor: default;
+  }
+  .ed-icon[aria-pressed='true'] {
+    background: oklch(0.95 0.04 145);
+    color: oklch(0.38 0.11 145);
+  }
+  .ed-seg {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 9px;
+    background: oklch(0.955 0.003 250);
+  }
+  .ed-seg button {
+    display: grid;
+    place-items: center;
+    width: 1.875rem;
+    height: 1.625rem;
+    border-radius: 7px;
+    color: oklch(0.5 0.01 255);
+  }
+  .ed-seg button[aria-checked='true'] {
+    background: #fff;
+    color: var(--ed-ink);
+    box-shadow: 0 1px 2px oklch(0.2 0.02 255 / 0.15);
+  }
+  .ed-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    margin-left: auto;
+  }
+  .ed-preview {
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0 0.625rem;
+    border: 1px solid oklch(0.88 0.005 250);
+    border-radius: 8px;
+    background: #fff;
+    font-weight: 500;
+  }
+  .ed-state {
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4375rem;
+    padding: 0 0.625rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    font-weight: 500;
+    background: oklch(0.96 0.03 145);
+    color: oklch(0.4 0.1 145);
+  }
+  .ed-state-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: oklch(0.6 0.14 145);
+  }
+  .ed-state[data-dirty='true'] {
+    background: oklch(0.96 0.05 85);
+    color: oklch(0.45 0.1 65);
+  }
+  .ed-state[data-dirty='true'] .ed-state-dot {
+    background: oklch(0.72 0.15 75);
+  }
+  .ed-app .ed-save {
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+    border-radius: 8px;
+    font-weight: 600;
+    background: var(--ed-green);
+    color: #fff;
+    transition: background 0.2s;
+  }
+  .ed-app .ed-save:disabled {
+    background: oklch(0.92 0.005 250);
+    color: oklch(0.55 0.01 255);
+    cursor: default;
+  }
+  .ed-save kbd {
+    font-family: var(--ed-mono);
+    font-size: 0.625rem;
+    font-weight: 400;
+    opacity: 0.75;
+  }
+  .ed-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .ed-canvas {
+    flex: 999 1 24rem;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    padding: clamp(0.75rem, 2cqi, 1.5rem);
+    background: oklch(0.93 0.005 250);
+  }
+  /* The sample bakery, in the BearMinion palette's four tones. */
+  [data-demo-tone='base'] {
+    --d-bg: #fafbfc;
+    --d-fg: #1e2329;
+    --d-sub: #1e2329b8;
+    --d-accent: #2e7d3a;
+    --d-on: #fff;
+    --d-img: #dcefd9;
+  }
+  [data-demo-tone='subtle'] {
+    --d-bg: #eef1f4;
+    --d-fg: #1e2329;
+    --d-sub: #1e2329b8;
+    --d-accent: #2e7d3a;
+    --d-on: #fff;
+    --d-img: #d2e3cf;
+  }
+  [data-demo-tone='inverse'] {
+    --d-bg: #1e2329;
+    --d-fg: #f6f7f9;
+    --d-sub: #f6f7f9bf;
+    --d-accent: #7fe08a;
+    --d-on: #14301a;
+    --d-img: #2c343c;
+  }
+  [data-demo-tone='brand'] {
+    --d-bg: #7fe08a;
+    --d-fg: #14301a;
+    --d-sub: #14301ad9;
+    --d-accent: #1e2329;
+    --d-on: #f6f7f9;
+    --d-img: #a6ebad;
+  }
+  .ed-frame {
+    align-self: flex-start;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--d-bg);
+    color: var(--d-fg);
+    box-shadow: 0 0 0 1px oklch(0.21 0.012 255 / 0.08), 0 20px 40px -24px oklch(0.2 0.02 255 / 0.35);
+    transition:
+      max-width 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+      background 0.3s,
+      color 0.3s;
+  }
+  .ed-frame[data-vp='tablet'] {
+    max-width: 34rem;
+  }
+  .ed-frame[data-vp='mobile'] {
+    max-width: 22rem;
+  }
+  .ed-site-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem clamp(1rem, 2.5cqi, 2rem);
+  }
+  .ed-site-name {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .ed-site-nav {
+    display: flex;
+    gap: 1rem;
+    opacity: 0.7;
+  }
+  .ed-hero {
+    position: relative;
+    margin: 0 0.5rem 0.5rem;
+    padding: clamp(1.25rem, 3cqi, 2.25rem) clamp(0.75rem, 2cqi, 1.5rem);
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 2px var(--ed-green);
+  }
+  .ed-hero-label {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    padding: 0.125rem 0.5rem;
+    border-radius: 8px 0 8px 0;
+    background: var(--ed-green);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 600;
+  }
+  .ed-hero-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .ed-hero-text {
+    flex: 1 1 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding-top: 3.5rem;
+  }
+  .ed-frame[data-layout='split']:not([data-vp='mobile']) .ed-hero-text {
+    flex: 1 1 16rem;
+  }
+  .ed-frame[data-layout='centered'] .ed-hero-row {
+    justify-content: center;
+  }
+  .ed-frame[data-layout='centered'] .ed-hero-text {
+    align-items: center;
+    max-width: 32rem;
+    text-align: center;
+  }
+  .ed-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3125rem 0.75rem;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--d-fg) 20%, transparent);
+    font-family: var(--ed-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .ed-eyebrow-dot {
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: 999px;
+    background: var(--d-accent);
+  }
+  .ed-heading-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .ed-heading {
+    margin: 0 -0.375rem;
+    padding: 0.25rem 0.375rem;
+    border-radius: 0.375rem;
+    font-weight: 700;
+    font-size: clamp(1.75rem, 1.1rem + 2.2cqi, 2.75rem);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    text-wrap: balance;
+    cursor: text;
+    outline: 1px dashed oklch(0.46 0.13 145 / 0.5);
+    outline-offset: 2px;
+    transition:
+      box-shadow 0.2s,
+      background 0.2s;
+  }
+  .ed-heading[data-font='mono'] {
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+  }
+  .ed-heading:focus {
+    outline-color: transparent;
+    box-shadow: inset 0 0 0 2px var(--ed-green);
+    background: oklch(0.87 0.2 145 / 0.12);
+  }
+  [data-inert='true'] .ed-heading {
+    cursor: default;
+    outline: none;
+  }
+  .ed-frame[data-layout='editorial']:not([data-vp='tablet'], [data-vp='mobile']) .ed-heading {
+    font-size: clamp(2.25rem, 1.2rem + 3cqi, 3.75rem);
+  }
+  .ed-frame:is([data-vp='tablet'], [data-vp='mobile']) .ed-heading {
+    font-size: 2rem;
+  }
+  .ed-fmt {
+    position: absolute;
+    z-index: 2;
+    bottom: calc(100% + 0.5rem);
+    left: 0;
+    display: flex;
+    padding: 0.25rem;
+    border-radius: 0.875rem;
+    background: #fff;
+    box-shadow: 0 14px 30px -12px oklch(0.2 0.02 255 / 0.4), inset 0 0 0 1px oklch(0.21 0.012 255 / 0.08);
+    white-space: nowrap;
+    color: var(--ed-ink);
+  }
+  .ed-fmt[hidden] {
+    display: none;
+  }
+  .ed-frame[data-layout='centered'] .ed-fmt {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .ed-fmt button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.0625rem;
+    padding: 0.3125rem 0.4375rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.1;
+  }
+  .ed-fmt button[data-on='true'] {
+    background: oklch(0.87 0.2 145 / 0.25);
+  }
+  .ed-fmt-label {
+    font-family: var(--ed-mono);
+    font-size: 0.625rem;
+    color: oklch(0.46 0.012 255);
+  }
+  .ed-fmt-rule {
+    width: 1px;
+    margin: 0.375rem 0.25rem;
+    background: oklch(0.21 0.012 255 / 0.12);
+  }
+  .ed-font-serif {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: italic;
+  }
+  .ed-font-mono {
+    font-family: var(--ed-mono);
+  }
+  .ed-sub {
+    max-width: 28rem;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--d-sub);
+  }
+  .ed-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.25rem;
+  }
+  .ed-cta {
+    padding: 0.6875rem 1.125rem;
+    border-radius: 999px;
+    background: var(--d-accent);
+    color: var(--d-on);
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: background 0.3s;
+  }
+  .ed-cta-link {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .ed-image {
+    display: none;
+    flex: 1 1 11rem;
+    align-self: stretch;
+    align-items: flex-end;
+    min-height: 13rem;
+    padding: 0.625rem;
+    border-radius: 1rem;
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--d-fg) 8%, transparent) 0 1px, transparent 1px 12px), var(--d-img);
+    transition: background 0.3s;
+  }
+  .ed-frame[data-layout='split']:not([data-vp='mobile']) .ed-image {
+    display: flex;
+  }
+  .ed-image span {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    background: #ffffffcc;
+    color: #1e2329;
+    font-family: var(--ed-mono);
+    font-size: 0.625rem;
+  }
+  .ed-insp {
+    flex: 1 1 16rem;
+    min-width: min(100%, 15rem);
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-left: 1px solid var(--ed-line);
+  }
+  .ed-insp[hidden] {
+    display: none;
+  }
+  .ed-tabs {
+    display: flex;
+    padding: 0 0.75rem;
+    border-bottom: 1px solid oklch(0.92 0.004 250);
+  }
+  .ed-tabs button {
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    font-weight: 500;
+    color: oklch(0.5 0.01 255);
+  }
+  .ed-tabs button[aria-selected='true'] {
+    font-weight: 600;
+    color: var(--ed-ink);
+    box-shadow: inset 0 -2px 0 var(--ed-green);
+  }
+  .ed-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    padding: 1rem;
+  }
+  .ed-panel[hidden] {
+    display: none;
+  }
+  .ed-panel-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.4375rem;
+    border-bottom: 1px solid oklch(0.93 0.004 250);
+  }
+  .ed-panel-title {
+    flex: 1;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .ed-meta {
+    font-family: var(--ed-mono);
+    font-size: 0.625rem;
+    color: oklch(0.5 0.01 255);
+  }
+  .ed-dot {
+    flex: none;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 3px;
+    background: var(--d-bg);
+    box-shadow: inset 0 0 0 1px oklch(0.21 0.012 255 / 0.2);
+  }
+  .ed-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+  .ed-field > span:first-child {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: oklch(0.3 0.01 255);
+  }
+  .ed-field select,
+  .ed-field input {
+    height: 2.25rem;
+    padding: 0 0.625rem;
+    border: 1px solid oklch(0.88 0.005 250);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ed-ink);
+    font: inherit;
+    font-size: 0.8125rem;
+  }
+  .ed-field input {
+    outline: none;
+  }
+  .ed-field input.ed-mono {
+    font-family: var(--ed-mono);
+    font-size: 0.75rem;
+  }
+  .ed-tones {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.3125rem;
+  }
+  .ed-tones button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3125rem;
+    padding: 0.4375rem 0.125rem;
+    border-radius: 8px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    background: oklch(0.97 0.003 250);
+    box-shadow: inset 0 0 0 1px var(--ed-line);
+    color: oklch(0.25 0.01 255);
+  }
+  .ed-tones button[aria-checked='true'] {
+    font-weight: 600;
+    background: oklch(0.96 0.03 145);
+    box-shadow: inset 0 0 0 1.5px var(--ed-green);
+  }
+  .ed-swatch {
+    width: 100%;
+    max-width: 2.25rem;
+    height: 1.125rem;
+    border-radius: 5px;
+    background: var(--d-bg);
+    box-shadow: inset 0 0 0 1px oklch(0.21 0.012 255 / 0.15);
+  }
+  .ed-moves {
+    display: flex;
+    gap: 0.3125rem;
+    padding-top: 0.625rem;
+    border-top: 1px solid oklch(0.93 0.004 250);
+  }
+  .ed-moves span {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    height: 2rem;
+    border-radius: 8px;
+    background: oklch(0.955 0.003 250);
+    font-size: 0.75rem;
+  }
+  .ed-moves .is-off {
+    color: oklch(0.65 0.01 255);
+  }
+  .ed-group {
+    padding-bottom: 0.4375rem;
+    border-bottom: 1px solid oklch(0.93 0.004 250);
+    font-family: var(--ed-mono);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: oklch(0.42 0.01 255);
+  }
+  .ed-status {
+    display: flex;
+    padding: 3px;
+    border-radius: 9px;
+    background: oklch(0.955 0.003 250);
+  }
+  .ed-status span {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    height: 1.875rem;
+    color: oklch(0.5 0.01 255);
+  }
+  .ed-status .is-on {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: 7px;
+    background: #fff;
+    box-shadow: 0 1px 2px oklch(0.2 0.02 255 / 0.12);
+    font-weight: 600;
+    color: var(--ed-ink);
+  }
+  .ed-status-dot {
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: 50%;
+    background: oklch(0.6 0.14 145);
+  }
+  .ed-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .ed-sections button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.4375rem 0.5rem;
+    border-radius: 8px;
+    text-align: left;
+  }
+  .ed-sections button:hover {
+    background: oklch(0.965 0.003 250);
+  }
+  .ed-section-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    font-weight: 500;
+  }
+  .ed-diff {
+    background: oklch(0.17 0.01 255);
+    color: oklch(0.9 0.006 250);
+    font-family: var(--ed-mono);
+    font-size: 0.75rem;
+    line-height: 1.75;
+  }
+  .ed-diff-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid oklch(0.97 0.004 250 / 0.08);
+    color: oklch(0.74 0.01 255);
+  }
+  [data-ed-status][data-kind='dirty'] {
+    color: oklch(0.85 0.1 80);
+  }
+  [data-ed-status][data-kind='saved'] {
+    color: oklch(0.87 0.2 145);
+  }
+  .ed-diff-lines {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5rem 0 0.75rem;
+    color-scheme: dark;
+    scrollbar-color: oklch(0.97 0.004 250 / 0.2) transparent;
+  }
+  .ed-line {
+    padding: 0 1rem;
+    white-space: pre;
+    color: oklch(0.7 0.01 255);
+  }
+  .ed-line[data-kind='add'] {
+    color: oklch(0.9 0.12 145);
+    background: oklch(0.87 0.2 145 / 0.12);
+  }
+  .ed-line[data-kind='del'] {
+    color: oklch(0.8 0.09 25);
+    background: oklch(0.65 0.18 25 / 0.12);
+  }
+  .ed-sign {
+    display: inline-block;
+    width: 1.25rem;
+    color: transparent;
+  }
+  .ed-line[data-kind='add'] .ed-sign {
+    color: oklch(0.87 0.2 145);
+  }
+  .ed-line[data-kind='del'] .ed-sign {
+    color: oklch(0.7 0.15 25);
+  }
+  .ed-trust {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 2rem;
+    margin-top: clamp(2rem, 3cqi, 3rem);
+    font-family: var(--ed-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .ed-trust a {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: color-mix(in oklch, var(--fg) 25%, transparent);
+  }
+  .ed-trust a:hover {
+    color: var(--fg);
+  }
+  /* A phone is too narrow for the editor and the page beside it: the whole section is left out. */
+  @media (width < 48rem) {
+    .ed-section {
+      display: none;
+    }
+  }
+</style>

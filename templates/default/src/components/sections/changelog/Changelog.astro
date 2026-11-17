@@ -1,0 +1,94 @@
+---
+import { anchorAttrs } from '../../../lib/link-attrs'
+import type { Section } from '../definitions'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'changelog' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const cards = section.variant === 'cards'
+const linkClass = 'inline-flex items-center gap-1.5 font-medium text-link underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-link'
+/** The first release is the latest: its version chip takes the accent color. */
+const chip = (latest: boolean) =>
+  latest ? 'rounded-full bg-accent px-2.5 py-1 font-medium text-on' : 'rounded-full bg-[color-mix(in_oklch,var(--fg)_8%,transparent)] px-2.5 py-1 text-fg'
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  <div class="section-container">
+    <div class="flex flex-wrap items-end justify-between gap-x-12 gap-y-5">
+      <div class="flex flex-[1_1_28rem] flex-col gap-5">
+        <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} headingClass="max-w-[16ch]" />
+        {props.body && <Typography as="p" size="lead" color="muted" class="max-w-xl" data-field={field('body')} markdown={props.body} />}
+      </div>
+      {
+        props.link && (
+          <a {...anchorAttrs(props.link)} class={linkClass}>
+            <span data-field={field('link.label')}>{props.link.label}</span> <span aria-hidden="true">→</span>
+          </a>
+        )
+      }
+    </div>
+
+    <ol class:list={['mt-[clamp(2.5rem,4cqi,4rem)]', cards ? 'grid grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-4' : 'flex flex-col']}>
+      {props.releases.map((release, releaseIndex) => {
+        const at = (path: string) => field(`releases.${releaseIndex}.${path}`)
+        const meta = (
+          <div class:list={['flex items-center gap-3 font-mono text-[0.75rem]', cards && 'justify-between']}>
+            <span class={chip(releaseIndex === 0)} data-field={at('version')}>{release.version}</span>
+            {(release.ref || release.date) && (
+              <span class="flex gap-3 text-muted">
+                {release.date && <span data-field={at('date')}>{release.date}</span>}
+                {release.ref && <span data-field={at('ref')}>{release.ref}</span>}
+              </span>
+            )}
+          </div>
+        )
+        const body = (
+          <>
+            <h3 class="text-[1.5rem] leading-[1.1] font-semibold tracking-[-0.03em] text-balance" data-field={at('title')}>{release.title}</h3>
+            <ul class="flex flex-1 flex-col gap-3">
+              {release.items.map((item, itemIndex) => (
+                <li class="grid grid-cols-[1rem_minmax(0,1fr)] gap-2 text-[0.9375rem] leading-[1.5]">
+                  <span class="font-mono text-link" aria-hidden="true">+</span>
+                  <Typography as="span" size="body" color="muted" data-field={at(`items.${itemIndex}`)} markdown={item} />
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+        return cards ? (
+          <li class="flex flex-col gap-5 rounded-card-lg bg-surface p-6 ring-line">
+            {meta}
+            {body}
+            {release.link && (
+              <a {...anchorAttrs(release.link)} class:list={[linkClass, 'border-t border-line pt-4 text-[0.9375rem]']}>
+                <span data-field={at('link.label')}>{release.link.label}</span> <span aria-hidden="true">→</span>
+              </a>
+            )}
+          </li>
+        ) : (
+          <li class="grid gap-x-12 gap-y-4 border-t border-line py-8 @min-[760px]:grid-cols-[12rem_minmax(0,1fr)]">
+            <div class="flex flex-col items-start gap-3">{meta}</div>
+            <div class="flex max-w-2xl flex-col gap-4">
+              {body}
+              {release.link && (
+                <a {...anchorAttrs(release.link)} class:list={[linkClass, 'text-[0.9375rem]']}>
+                  <span data-field={at('link.label')}>{release.link.label}</span> <span aria-hidden="true">→</span>
+                </a>
+              )}
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  </div>
+</SectionShell>

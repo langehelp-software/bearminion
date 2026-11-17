@@ -1,11 +1,14 @@
 // Copies the default template's code into this site, which keeps only its own content, images and package.json.
 // bearminion.com always runs the current template, and there is one copy of every component: change them in
-// templates/default, never here. The copied files are ignored by git (see .gitignore).
+// templates/default, never here. The copied files are ignored by git (see .gitignore). The one exception is `sections/`:
+// section types only this site has, copied in next to the template's (see SITE_SECTIONS).
 //
 //   node scripts/sync-template.mjs             copy the template's code, check that the dependencies match
 //   node scripts/sync-template.mjs --watch     keep copying while you edit the template
 //   node scripts/sync-template.mjs --fix-deps  copy the template's dependency ranges into package.json
+import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, watch, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -24,6 +27,14 @@ const STORYBOOK = ['storybook', '@storybook/builder-vite', '@storybook-astro/fra
  * that bearminion.com is built from templates/default, so a template-only change still redeploys the site.
  */
 const SITE_ONLY = ['bearminion-site']
+
+/**
+ * Section types only bearminion.com has, such as the editor demo: one directory each under `sections/`, copied next to
+ * the template's in `src/components/sections`. They are not in templates/default, so they are not in the registry and
+ * `npx bearminion add` never offers them to another site.
+ */
+const SITE_SECTIONS = path.join(site, 'sections')
+const SECTIONS_DIR = 'src/components/sections'
 
 const posix = (file) => file.split(path.sep).join('/')
 
@@ -50,10 +61,21 @@ function withSources(css, cssFile) {
   )
 }
 
+/**
+ * The site's sections are type-checked where they are copied to, in `src/components/sections`: in `sections/` their
+ * relative imports point nowhere. So the copied tsconfig.json leaves that folder out.
+ */
+function withoutSiteSections(json) {
+  const config = JSON.parse(json)
+  config.exclude = [...new Set([...(config.exclude ?? []), 'sections'])]
+  return `${JSON.stringify(config, null, 2)}\n`
+}
+
 /** Copies one template file, adding the `@source` lines to the stylesheet that imports Tailwind. */
 function copyFile(source, target) {
   mkdirSync(path.dirname(target), { recursive: true })
   if (target.endsWith('.css')) writeFileSync(target, withSources(readFileSync(source, 'utf8'), target))
+  else if (posix(path.relative(site, target)) === 'tsconfig.json') writeFileSync(target, withoutSiteSections(readFileSync(source, 'utf8')))
   else cpSync(source, target)
 }
 
@@ -95,6 +117,29 @@ function copyAll() {
     }
   }
   for (const entry of SYNCED) walk(entry)
+  copySiteSections()
+}
+
+/** Copies this site's own section directories in, then lists every section the way `bearminion sync` does. */
+function copySiteSections() {
+  if (!existsSync(SITE_SECTIONS)) return
+  for (const name of readdirSync(SITE_SECTIONS)) {
+    const source = path.join(SITE_SECTIONS, name)
+    if (!statSync(source).isDirectory()) continue
+    const target = path.join(site, SECTIONS_DIR, name)
+    if (existsSync(path.join(template, SECTIONS_DIR, name))) {
+      throw new Error(`apps/web/sections/${name} has the name of a template section. Rename it, or change the template's instead.`)
+    }
+    rmSync(target, { recursive: true, force: true })
+    cpSync(source, target, { recursive: true })
+  }
+  listSections()
+}
+
+/** Rewrites definitions.gen.ts and components.gen.ts here, which were copied from the template without this site's sections. */
+function listSections() {
+  const cli = path.join(path.dirname(createRequire(path.join(site, 'package.json')).resolve('bearminion/package.json')), 'dist/cli.js')
+  execFileSync(process.execPath, [cli, 'sync'], { cwd: site, stdio: ['ignore', 'ignore', 'inherit'] })
 }
 
 function dependencies(file) {
@@ -133,7 +178,8 @@ function fixDependencies() {
 }
 
 function watchTemplate() {
-  console.log('Watching templates/default for changes (Ctrl+C to stop)')
+  console.log('Watching templates/default and sections/ for changes (Ctrl+C to stop)')
+  if (existsSync(SITE_SECTIONS)) watch(SITE_SECTIONS, { recursive: true }, () => copySiteSections())
   watch(template, { recursive: true }, (_event, filename) => {
     if (!filename || !isSynced(filename)) return
     const source = path.join(template, filename)
@@ -143,6 +189,8 @@ function watchTemplate() {
     } else if (!existsSync(source)) {
       rmSync(target, { recursive: true, force: true })
     }
+    // A copied section list leaves this site's own sections out again.
+    if (posix(filename).startsWith(`${SECTIONS_DIR}/`)) listSections()
   })
 }
 

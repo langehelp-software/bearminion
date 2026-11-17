@@ -75,6 +75,7 @@ describe('field paths', () => {
     expect(imageSrcPath('logo.src')).toBe('logo.src')
     expect(isMultilineField('sections.0.props.body')).toBe(true)
     expect(isMultilineField('sections.0.props.heading')).toBe(false)
+    expect(isMultilineField('sections.0.props.tabs.1.code')).toBe(true)
   })
 })
 

@@ -530,6 +530,9 @@ describe('editor API', () => {
       stats: { items: { recommended: 4 } },
       testimonials: { items: { recommended: 3 } },
       pricing: { plans: { recommended: 3 } },
+      codeTabs: contentCounts.codeTabs,
+      compare: contentCounts.compare,
+      changelog: contentCounts.changelog,
       faq: contentCounts.faq,
       contact: { details: { recommended: 3 }, topics: { recommended: 3 } },
     })

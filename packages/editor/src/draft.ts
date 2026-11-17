@@ -217,7 +217,7 @@ export function imageSrcPath(path: string): string {
   return `${path}.src`
 }
 
-const multiline = /(?:^|\.)(?:body|intro|description|quote|note|thanks|blurb|sub|text|a)$/
+const multiline = /(?:^|\.)(?:body|intro|description|quote|note|thanks|blurb|sub|text|code|a)$/
 
 export function isMultilineField(path: string): boolean {
   return multiline.test(path)

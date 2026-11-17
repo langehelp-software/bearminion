@@ -2,7 +2,7 @@
 title: Call to action
 description: "A closing heading, a short text and one or two buttons."
 sidebar:
-  order: 13
+  order: 16
   label: Call to action
 ---
 

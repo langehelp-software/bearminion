@@ -26,7 +26,7 @@ grep -rnE "BearMinion v?[0-9]+\.[0-9]+|bearminion@[0-9^~]|create-bearminion@[0-9
 
 Ignore: `0.0.0` placeholders, tarball example file names (`bearminion-1.0.0.tgz`), dependency ranges in `package.json` and changelogs. Everything else must match the version this pull request releases or be rewritten without a number ("latest").
 
-Known place: the hero badge in `apps/web/content/pages/index.json` (`tag`, for example "BearMinion 1.4 · Available now"; its `href` points at the GitHub releases page).
+Known places: the hero badge in `apps/web/content/pages/index.json` (`tag`, for example "BearMinion 1.4 · Available now"; its `href` points at the GitHub releases page), and the latest release in the Changelog section of the same file.
 
 ## What to update when code changes
 
@@ -40,6 +40,7 @@ Known place: the hero badge in `apps/web/content/pages/index.json` (`tag`, for e
 | `create-bearminion` flags, prompts, output | `docs/getting-started.md`, `packages/create-bearminion/README.md` |
 | New or changed template section | `docs/sections.md` (layouts, options, content, and the screenshots in `docs/images/sections/`), `templates/default/README.md`, then `apps/web` content if the site should use it |
 | Any user-facing feature | Claims on bearminion.com: features, FAQ, stats, hero, video label |
+| A release, or a pull request that ships one | The Changelog section on bearminion.com (`apps/web/content/pages/index.json`, id `changelog`): the release this pull request ships first, the two before it after, each with a title, three lines and its `CHANGELOG.md` anchor; the hero demo's trust line (`17 sections · 50 layouts`) when the counts change |
 
 Rules:
 
