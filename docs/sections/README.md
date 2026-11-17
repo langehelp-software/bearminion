@@ -6,7 +6,7 @@ sidebar:
   label: Overview
 ---
 
-There are 17 section types and 47 layouts. A new site starts with nine of them, marked **starter** below; the rest are one command away (`npx bearminion add pricing`), and the Contact section comes with its form handler from `npx bearminion add form`. Each one has its own page: what it is for, the layouts you can switch between, and the options and content it takes. On docs.bearminion.com every layout is shown live, with its default content: switch its tone and the screen width, and open the **Content** tab for the section as it sits in a page file. On GitHub the pages show a screenshot of each layout instead.
+There are 17 section types and 49 layouts. A new site starts with nine of them, marked **starter** below; the rest are one command away (`npx bearminion add pricing`), and the Contact section comes with its form handler from `npx bearminion add form`. Each one has its own page: what it is for, the layouts you can switch between, and the options and content it takes. On docs.bearminion.com every layout is shown live, with its default content: switch its tone and the screen width, and open the **Content** tab for the section as it sits in a page file. On GitHub the pages show a screenshot of each layout instead.
 
 Every section shares four controls, in the editor's **Section** tab and in the page JSON:
 
@@ -21,7 +21,7 @@ Optional text, links and images can be left out. The editor shows an empty field
 | --- | --- | --- | --- |
 | [Hero](hero.md) | The opening of a page | `split`, `centered`, `editorial` | starter |
 | [Logo strip](logo-strip.md) | Customer or partner logos | `row`, `grid`, `marquee` | `add logo-strip` |
-| [Steps](steps.md) | A few short points with an icon each | `columns`, `rail`, `list` | starter |
+| [Steps](steps.md) | A few short points with an icon each | `columns`, `rail`, `list`, `keys`, `panel` | starter |
 | [Gallery](gallery.md) | Many pictures, with a lightbox | `grid`, `masonry`, `featured` | starter |
 | [Features](features.md) | Cards of benefits | `cards`, `list`, `bento` | starter |
 | [Text](text.md) | Plain long-form text | `left`, `center` | starter |

@@ -5,6 +5,8 @@ import Typography from '../../atoms/Typography.astro'
 import SectionHeader from '../../molecules/SectionHeader.astro'
 import SectionShell from '../../molecules/SectionShell.astro'
 import { anchorAttrs, buttonLinkProps, buttonVariant } from '../../../lib/link-attrs'
+import { placeholders } from '../../../lib/editing'
+import MediaPlayer from '../media/MediaPlayer.astro'
 import { stepColumns, stepIconPaths } from './icons'
 
 interface Props {
@@ -20,6 +22,16 @@ const reveal = section.motion ?? motion
 const columns = stepColumns[props.steps.length] ?? ''
 const number = (itemIndex: number) => String(itemIndex + 1).padStart(2, '0')
 const textLink = 'inline-flex items-center gap-1.5 text-[0.9375rem] font-medium text-link underline-offset-4 hover:underline'
+
+/**
+ * `keys` layout: `Ctrl+E` becomes keycaps, a single word a word being typed. The last key of the first keyed step takes
+ * the accent color, of the next one the text color, and so on, so a row of shortcuts reads as a sequence.
+ */
+const keyed = props.steps.map((step) => (step.keys ? step.keys.split('+').map((key) => key.trim()).filter(Boolean) : []))
+const keyTone = (itemIndex: number) => keyed.slice(0, itemIndex).filter((keys) => keys.length > 1).length % 2 === 0 ? 'accent' : 'ink'
+const keycap = 'min-w-11 rounded-[0.625rem] px-2.5 py-2 text-center font-mono text-[0.8125rem] leading-none'
+/** The video column; while editing, an empty one shows where the video goes. */
+const hasVideo = Boolean(props.video) || placeholders
 ---
 
 <SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
@@ -133,6 +145,120 @@ const textLink = 'inline-flex items-center gap-1.5 text-[0.9375rem] font-medium 
             </li>
           ))}
         </ol>
+      </div>
+    )
+  }
+  {
+    section.variant === 'keys' && (
+      <div class:list={['section-container grid items-center gap-[clamp(2.5rem,5cqi,5rem)]', hasVideo && 'grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))]']}>
+        <div class="flex flex-col gap-8">
+          <div class="flex flex-col items-start gap-4">
+            <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} />
+            {props.body && <Typography as="p" size="lead" color="muted" class="max-w-[30rem]" data-field={field('body')} markdown={props.body} />}
+            {props.link && (
+              <a {...anchorAttrs(props.link)} class={textLink}>
+                <span data-field={field('link.label')}>{props.link.label}</span>
+                <span aria-hidden="true">→</span>
+              </a>
+            )}
+          </div>
+          <ol class="flex flex-col border-b border-line">
+            {props.steps.map((step, itemIndex) => {
+              const keys = keyed[itemIndex] ?? []
+              return (
+                <li class="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-5 border-t border-line py-5">
+                  {keys.length > 1 ? (
+                    <span class="flex gap-[0.3125rem]" data-field={field(`steps.${itemIndex}.keys`)} aria-label={keys.join(' + ')}>
+                      {keys.map((key, keyIndex) => {
+                        const last = keyIndex === keys.length - 1
+                        const tone = last ? keyTone(itemIndex) : 'plain'
+                        return (
+                          <kbd
+                            class:list={[
+                              keycap,
+                              tone === 'plain' && 'bg-surface text-fg shadow-[inset_0_-2px_0_color-mix(in_oklch,var(--fg)_15%,transparent),inset_0_0_0_1px_var(--line)]',
+                              tone === 'accent' && 'bg-accent text-on shadow-[inset_0_-2px_0_color-mix(in_oklch,var(--on)_25%,transparent)]',
+                              tone === 'ink' && 'bg-fg text-bg shadow-[inset_0_-2px_0_oklch(0_0_0/0.4)]',
+                            ]}
+                            aria-hidden="true"
+                          >
+                            {key}
+                          </kbd>
+                        )
+                      })}
+                    </span>
+                  ) : keys.length === 1 ? (
+                    <span class="inline-flex w-fit items-center rounded-lg px-3 py-1.5 text-[0.9375rem] font-semibold shadow-[inset_0_0_0_2px_var(--link)]">
+                      <span data-field={field(`steps.${itemIndex}.keys`)}>{keys[0]}</span>
+                      <span class="ms-0.5 inline-block h-[1.1em] w-0.5 bg-fg motion-safe:animate-pulse" aria-hidden="true" />
+                    </span>
+                  ) : (
+                    <span class="grid size-12 place-items-center rounded-[0.875rem] bg-accent text-on" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d={stepIconPaths[step.icon]} />
+                      </svg>
+                    </span>
+                  )}
+                  <div class="flex flex-col gap-1">
+                    <div class="flex items-baseline gap-3">
+                      {props.numbered && <span class="font-mono text-[0.75rem] text-muted">{number(itemIndex)}</span>}
+                      <Typography as="h3" size="h3" data-field={field(`steps.${itemIndex}.title`)}>
+                        {step.title}
+                      </Typography>
+                    </div>
+                    {step.description && <Typography as="p" size="body" color="muted" data-field={field(`steps.${itemIndex}.description`)} markdown={step.description} />}
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+        </div>
+        {hasVideo && (
+          <figure class="flex flex-col gap-3.5">
+            <MediaPlayer
+              kind="video"
+              aspect="16:9"
+              video={props.video}
+              poster={props.poster}
+              label={props.caption}
+              imageField={field('poster.alt')}
+              class="aspect-[16/10] rounded-card-lg"
+            />
+            {(props.caption || props.duration) && (
+              <figcaption class="flex justify-between gap-4 text-[0.9375rem]">
+                {props.caption && <strong class="font-semibold" data-field={field('caption')}>{props.caption}</strong>}
+                {props.duration && <span class="font-mono text-[0.75rem] text-muted" data-field={field('duration')}>{props.duration}</span>}
+              </figcaption>
+            )}
+          </figure>
+        )}
+      </div>
+    )
+  }
+  {
+    section.variant === 'panel' && (
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] py-[clamp(2rem,1rem+3cqi,4rem)]">
+        {/* The accent panel: a band that stands out from the sections around it in every tone. */}
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,24rem),1fr))] items-center gap-[clamp(1.5rem,4cqi,4rem)] rounded-panel bg-accent p-[clamp(1.5rem,4cqi,3rem)] text-on [&_.text-muted]:text-[color-mix(in_oklch,var(--on)_78%,transparent)] [&_.text-link]:text-on">
+          <div class="flex flex-col items-start gap-3">
+            <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2" field={field} headingClass="text-[clamp(1.75rem,1.2rem+2cqi,2.75rem)] tracking-[-0.04em]" />
+            {props.body && <Typography as="p" size="md" color="muted" class="leading-[1.55] text-pretty" data-field={field('body')} markdown={props.body} />}
+            {props.link && (
+              <a {...anchorAttrs(props.link)} class="mt-1 font-semibold underline underline-offset-4">
+                <span data-field={field('link.label')}>{props.link.label}</span> <span aria-hidden="true">→</span>
+              </a>
+            )}
+          </div>
+          <ol class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))] gap-2">
+            {props.steps.map((step, itemIndex) => (
+              <li class="rounded-2xl bg-[color-mix(in_oklab,var(--accent)_62%,var(--surface))] px-[1.125rem] py-4 [&_code]:bg-[color-mix(in_oklch,var(--on)_8%,transparent)] [&_code]:shadow-none">
+                {props.numbered && <span class="font-mono text-[0.75rem]">{number(itemIndex)}</span>}
+                <p class="mt-1.5 font-semibold" data-field={field(`steps.${itemIndex}.title`)}>{step.title}</p>
+                {step.description && <Typography as="p" size="small" color="muted" class="mt-1" data-field={field(`steps.${itemIndex}.description`)} markdown={step.description} />}
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     )
   }
