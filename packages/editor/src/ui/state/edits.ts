@@ -70,11 +70,14 @@ export function createEdits(doc: DocumentStore, preview: LivePreview) {
     else doc.setDoc(path, next)
   }
 
-  /** Swap the image at `path`, keeping alt, fit and position of the one being replaced. */
+  /**
+   * Swap the image at `path`, keeping alt, fit and position of the one being replaced. Every image the page and site
+   * schemas hold is an `{ src, alt }` record, so an empty slot (or a bare path left by an older editor) gets one too.
+   */
   function replaceImage(path: string, src: string) {
     const existing = getAt(doc.docFor(path), path)
-    const next = isRecord(existing) ? { ...existing, src, alt: (typeof existing.alt === 'string' && existing.alt) || 'Image' } : src
-    writeField(path, next)
+    const kept = isRecord(existing) ? existing : {}
+    writeField(path, { ...kept, src, alt: (typeof kept.alt === 'string' && kept.alt) || 'Image' })
     if (isPagePath(path)) preview.schedulePage()
   }
 

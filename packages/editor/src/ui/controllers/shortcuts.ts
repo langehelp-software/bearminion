@@ -27,7 +27,7 @@ export function attachShortcuts(editor: Editor): Dispose {
       event.preventDefault()
       return
     }
-    // Last, a full-screen view goes back to the page. The inspector stays as it is: ⌘E opens and closes it.
+    // Last, a full-screen view or a settings sidebar goes back to the page. The inspector stays as it is: ⌘E opens and closes it.
     if (ui.view.peek() !== 'canvas' && !isTyping(event.target)) {
       event.preventDefault()
       ui.openView('canvas')

@@ -49,7 +49,7 @@ export function attachReloadGuard({ doc, ui, session }: Editor): Dispose {
     const id = doc.projectId.peek()
     if (!id || !event.key) return
     if (!savedNoticeFor(event.key, id, doc.draftId.peek())) return
-    if (isForeignSave(event.newValue, tabId(), Date.now())) ui.tabNotice.value = 'Another tab saved this page.'
+    if (isForeignSave(event.newValue, tabId(), Date.now())) ui.toasts.warning('Another tab saved this page.', { key: 'foreign-save' })
   }
   const onBeforeUnload = (event: BeforeUnloadEvent) => {
     if (!doc.dirty.peek() || session.isLeaving()) return

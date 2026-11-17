@@ -177,6 +177,7 @@ button {
 .bm-dialog,
 .bm-rich,
 .bm-banner,
+.bm-toaster,
 .bm-scrim {
   pointer-events: auto;
   font-family: var(--sans);
@@ -3915,6 +3916,48 @@ details[open] > summary .bm-chevron {
   font-size: 14px;
 }
 
+/* A settings sidebar (Navigation, Footer, Site) in the inspector's place: a title row, then the form. */
+.bm-side-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 16px 14px 24px;
+  border-bottom: 1px solid var(--bm-tab-rule);
+}
+.bm-side-heading {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bm-side-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.bm-side-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--bm-icon);
+  cursor: pointer;
+}
+.bm-side-close:hover {
+  background: var(--bm-fill-hover);
+  color: var(--ink);
+}
+
 /* ---------- full-screen views ---------- */
 .bm-view {
   position: fixed;
@@ -4466,6 +4509,42 @@ tbody .bm-tr-on:hover {
   padding: 8px;
 }
 
+/* Loading: placeholder cards, then a shimmer on each thumbnail until its file arrives. */
+.bm-skeleton,
+.bm-media-thumb[data-loading] {
+  background: linear-gradient(100deg, oklch(0.95 0.004 250) 30%, oklch(0.975 0.003 250) 50%, oklch(0.95 0.004 250) 70%) 0 0 / 300% 100%;
+  animation: bm-shimmer 1.4s ease-in-out infinite;
+}
+.bm-skeleton-line {
+  display: block;
+  height: 12px;
+  margin: 3px 4px;
+  border-radius: 4px;
+}
+.bm-skeleton-short {
+  width: 55%;
+}
+.bm-media-thumb img {
+  transition: opacity 0.2s ease;
+}
+.bm-media-thumb[data-loading] img {
+  opacity: 0;
+}
+@keyframes bm-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bm-skeleton,
+  .bm-media-thumb[data-loading] {
+    animation: none;
+  }
+}
+
 /* ---------- SEO › structured data ---------- */
 .bm-meta-over {
   color: var(--danger-ink);
@@ -4654,4 +4733,137 @@ tbody .bm-tr-on:hover {
 }
 .bm-seg-dot-draft {
   background: oklch(0.65 0.01 255);
+}
+
+/*
+ * Toasts: errors and warnings over every screen, bottom right. Newest in front; older ones peek out behind it,
+ * smaller. Hover or focus fans them out. Each stays until dismissed.
+ */
+.bm-toaster {
+  position: fixed;
+  z-index: 20;
+  right: 16px;
+  bottom: 16px;
+  width: min(400px, calc(100vw - 32px));
+  transition: height 0.2s ease;
+}
+.bm-toast-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bm-toast {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 10px 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--bm-shadow-pop);
+  transform-origin: bottom center;
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease;
+}
+.bm-toast::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 12px 0 0 12px;
+  background: var(--bm-info);
+}
+.bm-toast-error::before {
+  background: var(--bm-danger);
+}
+.bm-toast-warning::before {
+  background: var(--bm-unsaved-dot);
+}
+.bm-toast-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--bm-icon);
+}
+.bm-toast-error .bm-toast-icon {
+  color: var(--bm-danger-icon);
+}
+.bm-toast-warning .bm-toast-icon {
+  color: var(--warn-ink);
+}
+.bm-toast-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 1px;
+}
+.bm-toast-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--bm-ink);
+}
+.bm-toast-lines {
+  margin: 0;
+  padding: 0;
+  max-height: 160px;
+  overflow: auto;
+  list-style: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--bm-label);
+  overflow-wrap: anywhere;
+}
+.bm-toast-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bm-icon);
+  cursor: pointer;
+}
+.bm-toast-close:hover {
+  background: var(--bm-fill-hover);
+  color: var(--bm-ink);
+}
+.bm-toast-close:focus-visible,
+.bm-toast-clear:focus-visible {
+  outline: 2px solid var(--bm-primary);
+  outline-offset: 1px;
+}
+.bm-toast-clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: var(--bm-shadow-pop);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bm-label);
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bm-toaster,
+  .bm-toast {
+    transition: none;
+  }
 }

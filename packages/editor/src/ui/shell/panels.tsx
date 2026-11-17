@@ -6,7 +6,6 @@ import { PageForm } from '../forms/page-form.js'
 import { SectionForm } from '../forms/section-form.js'
 import { Segmented } from '../forms/segmented.js'
 import { SiteForm, SiteGroup, siteOptionControl } from '../forms/site-form.js'
-import { Icon } from '../icons.js'
 import { NavForm } from '../nav.js'
 import { text } from '../shared.js'
 import { headerActions, navLinks, themeColorsOf } from '../site-draft.js'
@@ -16,28 +15,6 @@ import type { Catalog, SiteDraft } from '../types.js'
 /** The inspector adds a section from its outline: the picker opens beside the inspector, at the button's height. */
 const PICKER_HEIGHT = 440
 const PICKER_OFFSET = 536
-
-const FILE_LABELS = { page: 'Page', site: 'Site settings' } as const
-
-export function SaveIssues() {
-  const { ui } = useEditor()
-  const issues = ui.issues.value
-  if (issues.length === 0) return null
-  return (
-    <div class="bm-alert" role="alert">
-      <p class="bm-alert-title">
-        <Icon name="alert" />
-        Save failed. Nothing was written.
-      </p>
-      {issues.map((issue) => (
-        <p class="bm-error" key={`${issue.file ?? ''}:${issue.path}:${issue.message}`}>
-          {issue.file ? `${FILE_LABELS[issue.file]} › ` : ''}
-          {issue.path}: {issue.message}
-        </p>
-      ))}
-    </div>
-  )
-}
 
 export function SectionPanel({ catalog }: { catalog: Catalog }) {
   const { doc, ui, edits, sections, preview } = useEditor()

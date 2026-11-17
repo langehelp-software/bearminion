@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'preact/hooks'
+import { showsPage } from '../shell.js'
 import { attachEditor } from './controllers/index.js'
 import { SectionConfirm, SessionDialogs } from './dialogs/editor-dialogs.js'
-import { DraftBanner, TabNotice } from './overlay/banners.js'
+import { DraftBanner } from './overlay/banners.js'
 import { HeadingFormatBar, RichTextBar } from './overlay/format-bars.js'
 import { InsertGap } from './overlay/insert-gap.js'
 import { LinkPopover } from './overlay/link-popover.js'
 import { ImageBarOverlay, Outlines, PageImagePicker } from './overlay/outlines.js'
 import { SectionBars } from './overlay/section-bars.js'
 import { SectionPicker } from './overlay/section-picker.js'
+import { Toaster } from './overlay/toaster.js'
 import { Shell } from './shell/shell.js'
 import { createEditor, EditorContext, useEditor } from './state/editor.js'
 
@@ -40,7 +42,7 @@ function CanvasLayer() {
 /** Order matters: later elements paint over earlier ones, and the active section bar must be the first toolbar. */
 function EditorView() {
   const { doc, ui } = useEditor()
-  const editing = !ui.previewing.value && ui.view.value === 'canvas' && ui.viewport.value === 'desktop'
+  const editing = !ui.previewing.value && showsPage(ui.view.value) && ui.viewport.value === 'desktop'
   return (
     <>
       {editing && (
@@ -56,8 +58,8 @@ function EditorView() {
       )}
       <Shell catalog={doc.catalog.value} />
       <DraftBanner />
-      <TabNotice />
       <SessionDialogs />
+      <Toaster />
     </>
   )
 }

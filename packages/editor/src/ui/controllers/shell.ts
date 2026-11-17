@@ -1,5 +1,5 @@
 import { effect, signal } from '@preact/signals'
-import { canvasRect } from '../../shell.js'
+import { canvasRect, isSideView } from '../../shell.js'
 import { framePage, pageScroller } from '../page-frame.js'
 import type { Editor } from '../state/editor.js'
 import type { Dispose } from './reactions.js'
@@ -25,7 +25,8 @@ function writeScroll(top: number) {
 }
 
 /**
- * Frames the page inside the shell: below the top bar, between the navigation and the inspector. The canvas follows
+ * Frames the page inside the shell: below the top bar, between the navigation and the inspector (or a settings
+ * sidebar). The canvas follows
  * the window size, the navigation (open, rail, or hidden in preview) and the inspector.
  */
 export function attachShell({ ui, chrome }: Editor): Dispose {
@@ -39,7 +40,9 @@ export function attachShell({ ui, chrome }: Editor): Dispose {
   let restored = false
   const stop = effect(() => {
     const previewing = ui.previewing.value
-    const inspector = !previewing && ui.view.value === 'canvas' && ui.open.value
+    const view = ui.view.value
+    // A settings sidebar takes the inspector's place and width; it is up whether or not the inspector is open.
+    const inspector = !previewing && ((view === 'canvas' && ui.open.value) || isSideView(view))
     framePage(
       canvasRect({
         windowWidth: size.value.width,

@@ -8,7 +8,7 @@ import type { PageSummary, SiteDraft } from '../types.js'
 import { type DocumentStore, pruneDraft } from './document.js'
 import type { Edits } from './edits.js'
 import type { LocalDrafts } from './local-drafts.js'
-import type { UiState } from './ui.js'
+import { SAVE_TOAST, type UiState } from './ui.js'
 
 /** How long a save waits for the first load before giving up. */
 const READY_TIMEOUT_MS = 8000
@@ -158,7 +158,7 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
         ui.status.value = 'This route is not a content page. Site settings are still editable.'
       }
       ui.draftOffer.value = queued.length > 0 ? null : drafts.readOffer(doc.draftId.peek(), nextPage ? savedPageJson : '', savedSiteJson)
-      if (drafts.foreignSave(doc.draftId.peek())) ui.tabNotice.value = 'Another tab saved this page.'
+      if (drafts.foreignSave(doc.draftId.peek())) ui.toasts.warning('Another tab saved this page.', { key: 'foreign-save' })
     })
     ready = true
     markReady()
@@ -212,6 +212,7 @@ export function createSession(doc: DocumentStore, ui: UiState, edits: Edits, dra
       ui.draftOffer.value = null
       if (ui.dialog.peek()?.kind === 'changes') ui.dialog.value = null
       ui.status.value = 'Saved. The page reloads from disk.'
+      ui.toasts.dismissKey(SAVE_TOAST)
     })
     return 'saved'
   }
