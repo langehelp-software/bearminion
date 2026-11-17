@@ -60,7 +60,7 @@ export default defineConfig({
         SocialIcons: './src/components/SocialIcons.astro',
       },
       sidebar: [
-        { label: 'Start here', items: ['getting-started'] },
+        { label: 'Start here', items: ['getting-started', 'updating'] },
         { label: 'Using BearMinion', items: ['editor', 'hosted-editor', 'content', 'content-types', 'cli'] },
         {
           label: 'Forms',

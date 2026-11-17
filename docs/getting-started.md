@@ -81,6 +81,17 @@ Under **Site → Cookie banner**, the switch turns the banner on and off, and **
 
 The banner is a tool, not legal advice. Switch it off only when your analytics sets no cookies and you know the rules that apply to you. Cookieless tools (Plausible, Umami, Fathom, Vercel Web Analytics) often need no banner, but that depends on the tool and on where your visitors are. The banner also shows while you edit and on previews, so you see what visitors get; the snippets still load on the live site only.
 
+## 4. Keep it up to date
+
+`npm update` moves the `bearminion` library but not the sections and components your site was created with: those are your files. To bring them up to the new release too:
+
+```bash
+npm install bearminion@latest
+npx bearminion status   # which of your files are behind
+```
+
+`status` ends with the `npx bearminion add …` command that updates them. It never replaces a file you changed. [Update your site](updating.md) has the whole routine.
+
 ## What is in your site
 
 | Path | What it is |
@@ -98,5 +109,6 @@ The editor and its API exist only while `npm run dev` runs. `npm run build` leav
 
 - [The editor](editor.md): everything you can do on the page and in the shell around it
 - [Edit online](hosted-editor.md): let people edit in the browser, signed in with GitHub
+- [Update your site](updating.md): move to a new release without losing your changes
 - [Building a theme](themes.md): add a section type, or change the look
 - [Content files](content.md): the JSON the editor writes, for editing by hand or by script

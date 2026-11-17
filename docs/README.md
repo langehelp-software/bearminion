@@ -8,6 +8,7 @@ BearMinion is three things: the [`bearminion`](https://www.npmjs.com/package/bea
 | Page | Read it to |
 | --- | --- |
 | [Getting started](getting-started.md) | Create a site with `npm create bearminion`, edit it, and deploy it to Vercel, Netlify or Cloudflare |
+| [Update your site](updating.md) | Move to a new release: `npm update` changes the library, and `status` and `add` bring your site's own files up to date without touching the ones you changed |
 | [Edit online](hosted-editor.md) | Give editors a web address: they sign in with GitHub and edit in the browser, access follows the repository, and every save is a commit under their name |
 | [Content files](content.md) | Edit `site.json` and page JSON by hand, understand what the editor writes, migrate content after a schema change |
 | [Sections](sections/README.md) | See every section and layout, which ones a new site starts with, and the options and content each one takes |

@@ -186,7 +186,7 @@ The starter and `bearminion` ship together, in one numbered release, and `create
 - A **patch** release fixes things inside the package. It does not change the files that `add` copies, unless the fix is in one of them.
 - A **major** release can change how sites are built. It comes with its own upgrade notes.
 
-Running `npx bearminion@latest` uses the latest release's files, whatever your site started from. Run `npm update bearminion` as well when you want the library itself to move; the files `add` copies and the library are meant to match.
+[Update your site](updating.md) is the whole routine, step by step. Running `npx bearminion@latest` uses the latest release's files, whatever your site started from. Run `npm update bearminion` as well when you want the library itself to move; the files `add` copies and the library are meant to match.
 
 `add` never edits a file you changed, never edits `definitions.ts`, `astro.config.ts` or a content file, and there is no command that updates everything at once. Sections are copied, not linked: once a file is yours, it stays yours.
 
