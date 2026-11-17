@@ -23,7 +23,7 @@ describe('media sources', () => {
     expect(parseMediaSource('https://vimeo.com/76979871')).toEqual({
       kind: 'vimeo',
       id: '76979871',
-      embed: 'https://player.vimeo.com/video/76979871?autoplay=1&dnt=1',
+      embed: 'https://player.vimeo.com/video/76979871?autoplay=1&dnt=1&transparent=0',
     })
   })
 

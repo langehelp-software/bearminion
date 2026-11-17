@@ -7,6 +7,7 @@ import Typography from '../../atoms/Typography.astro'
 import CommandLine from '../../molecules/CommandLine.astro'
 import HeroBadge from './HeroBadge.astro'
 import MediaFrame from '../../molecules/MediaFrame.astro'
+import { showsImage } from '../../../lib/editing'
 import Pill from '../../molecules/Pill.astro'
 import SectionShell from '../../molecules/SectionShell.astro'
 
@@ -75,7 +76,7 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
           }
           {below && <CommandLine command={below} variant={belowVariant} data-field={field('command')} />}
         </div>
-        {!props.image?.hidden && (
+        {showsImage(props.image) && (
 <MediaFrame src={media.src} alt={media.alt} aspectClass="aspect-[4/3.4]" fit={media?.fit} position={media?.position} data-field={field('image.alt')} priority />
 )}
       </div>
@@ -111,7 +112,7 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
           )
         }
         {below && <CommandLine command={below} variant={belowVariant} data-field={field('command')} class="mt-1" />}
-        {!props.image?.hidden && (
+        {showsImage(props.image) && (
 <MediaFrame
           src={media.src}
           alt={media.alt}
@@ -169,7 +170,7 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
             </div>
           )
         }
-        {!props.image?.hidden && (
+        {showsImage(props.image) && (
 <MediaFrame
           src={media.src}
           alt={media.alt}

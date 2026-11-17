@@ -3,6 +3,7 @@ import type { Image } from 'bearminion'
 import { imageSrcset, imageUrl } from '../../../lib/image-url'
 import { cn } from '../../../lib/cn'
 import { placeholders } from '../../../lib/editing'
+import { videoShape } from '../../../lib/video-shape'
 import MediaFrame from '../../molecules/MediaFrame.astro'
 import type { MediaProps } from './definition'
 import { parseMediaSource } from './source'
@@ -24,12 +25,19 @@ interface Props {
 
 const { kind, aspect, video, poster, image, label, playback = 'controls', imageField, eager = false, class: className } = Astro.props
 const ASPECT = { '16:9': 'aspect-video', '4:3': 'aspect-[4/3]', '21:9': 'aspect-[21/9]', '1:1': 'aspect-square' } as const
+const source = kind === 'video' && video ? parseMediaSource(video) : null
+// A YouTube or Vimeo player takes the video's own shape: it cannot crop, so any other shape shows bars around the video.
+const shape = await videoShape(source)
 const frame = cn(
-  'relative w-full min-h-48 overflow-hidden rounded-[clamp(1rem,2cqi,1.5rem)] bg-surface shadow-[inset_0_0_0_1px_var(--line),0_40px_80px_-48px_oklch(0.2_0.02_255/0.35)]',
-  ASPECT[aspect],
+  'relative w-full overflow-hidden rounded-[clamp(1rem,2cqi,1.5rem)] bg-surface shadow-[inset_0_0_0_1px_var(--line),0_40px_80px_-48px_oklch(0.2_0.02_255/0.35)]',
+  // A minimum height would stretch a narrow frame past the video's shape, so only a frame of a set shape has one.
+  shape ? 'mx-auto' : cn('min-h-48', ASPECT[aspect]),
   className,
 )
-const source = kind === 'video' && video ? parseMediaSource(video) : null
+// Inline, so it wins over an `aspect-*` class a caller passes. A tall video is capped at 80% of the screen's height.
+const frameStyle = shape
+  ? `aspect-ratio:${shape.width}/${shape.height};max-width:min(100%,calc(80svh*${shape.width}/${shape.height}))`
+  : undefined
 const hasImage = kind === 'image' && Boolean(image?.src) && image?.src !== 'placeholder' && !image?.hidden
 const empty = kind === 'video' ? !source : !hasImage
 const cover = source ? ((await imageUrl(poster)) ?? (source.kind === 'youtube' ? source.thumbnail : undefined)) : undefined
@@ -76,6 +84,7 @@ const looping = source?.kind === 'file' && playback === 'loop'
     source && (
       <div
         class={frame}
+        style={frameStyle}
         data-media-player
         data-kind={source.kind}
         data-src={source.kind === 'file' ? source.src : source.embed}

@@ -4,6 +4,7 @@ import Button from '../../atoms/Button.astro'
 import { buttonLinkProps, buttonVariant } from '../../../lib/link-attrs'
 import Typography from '../../atoms/Typography.astro'
 import MediaFrame from '../../molecules/MediaFrame.astro'
+import { showsImage } from '../../../lib/editing'
 import SectionHeader from '../../molecules/SectionHeader.astro'
 import SectionShell from '../../molecules/SectionShell.astro'
 import { cn } from '../../../lib/cn'
@@ -38,7 +39,7 @@ const spanLast = (itemIndex: number) => !wideFourth && itemIndex === props.items
         <ul class="mt-12 grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-4">
           {props.items.map((item, itemIndex) => (
             <li class="flex flex-col gap-4 rounded-card-lg bg-surface p-6 ring-line transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_40px_-28px_oklch(0.2_0.02_255/0.4)]">
-              {!item.image?.hidden && (
+              {showsImage(item.image) && (
 <MediaFrame
                 src={item.image?.src}
                 alt={item.image?.alt ?? item.title}
@@ -107,7 +108,7 @@ const spanLast = (itemIndex: number) => !wideFourth && itemIndex === props.items
                 spanLast(itemIndex) && '@min-[620px]:@max-[959px]:col-span-2 @min-[620px]:@max-[959px]:flex-row-reverse @min-[620px]:@max-[959px]:items-center',
               ]}
             >
-              {!item.image?.hidden && (
+              {showsImage(item.image) && (
                 <MediaFrame
                   src={item.image?.src}
                   alt={item.image?.alt ?? item.title}
@@ -158,7 +159,7 @@ const spanLast = (itemIndex: number) => !wideFourth && itemIndex === props.items
         <ul class="mt-[clamp(2.5rem,4cqi,4rem)] grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
           {props.items.map((item, itemIndex) => (
             <li class="flex flex-col gap-3 rounded-card-lg bg-surface p-2 ring-line">
-              {!item.image?.hidden && (
+              {showsImage(item.image) && (
                 <MediaFrame
                   src={item.image?.src}
                   alt={item.image?.alt ?? item.title}

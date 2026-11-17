@@ -1,6 +1,7 @@
 /**
  * What a Media section's video link points at. YouTube and Vimeo links become privacy-friendly embeds
- * (youtube-nocookie.com, Vimeo with Do Not Track) that load only after the visitor presses play. A link to a video file
+ * (youtube-nocookie.com, Vimeo with Do Not Track) that load only after the visitor presses play. Vimeo draws any bars
+ * in black (`transparent=0`), as YouTube does, rather than in the colour behind the frame. A link to a video file
  * plays in a `<video>` element.
  */
 export type MediaSource =
@@ -27,7 +28,7 @@ export function parseMediaSource(value: string): MediaSource | null {
     }
   }
   const vimeo = VIMEO.exec(src)
-  if (vimeo?.[1]) return { kind: 'vimeo', id: vimeo[1], embed: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&dnt=1` }
+  if (vimeo?.[1]) return { kind: 'vimeo', id: vimeo[1], embed: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&dnt=1&transparent=0` }
   if (VIDEO_FILE.test(src)) return { kind: 'file', src }
   return null
 }
