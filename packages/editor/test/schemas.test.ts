@@ -75,6 +75,7 @@ describe('section schemas', () => {
       'pricing',
       'media',
       'codeTabs',
+      'compare',
       'faq',
       'cta',
       'contact',

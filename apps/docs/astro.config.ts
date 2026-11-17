@@ -91,6 +91,7 @@ export default defineConfig({
             'sections/pricing',
             'sections/media',
             'sections/code-tabs',
+            'sections/compare',
             'sections/faq',
             'sections/cta',
             'sections/contact',

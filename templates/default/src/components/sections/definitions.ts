@@ -18,6 +18,7 @@ const order = [
   'pricing',
   'media',
   'codeTabs',
+  'compare',
   'faq',
   'cta',
   'contact',

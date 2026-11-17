@@ -39,6 +39,7 @@ describe('the starter sections', () => {
       'pricing',
       'media',
       'codeTabs',
+      'compare',
       'faq',
       'cta',
       'contact',

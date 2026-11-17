@@ -1,0 +1,93 @@
+---
+import type { Section } from '../definitions'
+import Typography from '../../atoms/Typography.astro'
+import SectionHeader from '../../molecules/SectionHeader.astro'
+import SectionShell from '../../molecules/SectionShell.astro'
+
+interface Props {
+  section: Extract<Section, { type: 'compare' }>
+  index: number
+  motion?: boolean
+}
+
+const { section, index, motion = true } = Astro.props
+const props = section.props
+const field = (path: string) => `sections.${index}.props.${path}`
+const reveal = section.motion ?? motion
+const centered = section.variant === 'centered'
+const lastColumn = props.columns.length - 1
+/** The tint under a highlighted column's cells. */
+const tint = 'bg-[color-mix(in_oklch,var(--accent)_14%,transparent)]'
+---
+
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+  <div class="section-container">
+    {
+      centered ? (
+        <div class="mx-auto flex max-w-3xl flex-col items-center gap-5 text-center">
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} align="center" size="h2-md" field={field} headingClass="max-w-[18ch]" />
+          {props.body && <Typography as="p" size="lead" color="muted" class="max-w-xl" data-field={field('body')} markdown={props.body} />}
+        </div>
+      ) : (
+        <div class="grid items-end gap-6 @min-[760px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @min-[760px]:gap-12">
+          <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} headingClass="max-w-[18ch]" />
+          {props.body && <Typography as="p" size="lead" color="muted" data-field={field('body')} markdown={props.body} />}
+        </div>
+      )
+    }
+
+    {/* Scrolls sideways on a narrow screen rather than squeezing the cells; tabindex lets the keyboard scroll it. */}
+    <div class="mt-[clamp(2.5rem,4cqi,4rem)] overflow-x-auto rounded-card-lg ring-line" tabindex="0" role="region" aria-label={props.heading ?? 'Comparison'}>
+      <table class="w-full min-w-[46rem] border-collapse text-left text-[0.9375rem]">
+        <thead>
+          <tr>
+            <td class="px-5 py-[1.125rem]" />
+            {props.columns.map((column, columnIndex) => (
+              <th
+                scope="col"
+                class:list={[
+                  'px-5 py-[1.125rem] align-bottom',
+                  column.highlight ? 'bg-accent font-bold text-on' : 'font-semibold',
+                  column.highlight && columnIndex === lastColumn && 'rounded-se-card-lg',
+                ]}
+                data-field={field(`columns.${columnIndex}.label`)}
+              >
+                {column.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {props.rows.map((row, rowIndex) => (
+            <tr class="border-t border-line">
+              <th scope="row" class="px-5 py-4 font-mono text-[0.75rem] font-medium whitespace-nowrap text-muted" data-field={field(`rows.${rowIndex}.label`)}>
+                {row.label}
+              </th>
+              {props.columns.map((column, columnIndex) => (
+                <td
+                  class:list={['px-5 py-4', column.highlight ? ['font-semibold', tint] : 'text-muted']}
+                  data-field={row.values[columnIndex] === undefined ? undefined : field(`rows.${rowIndex}.values.${columnIndex}`)}
+                >
+                  {row.values[columnIndex] ?? ''}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    {
+      props.note && (
+        <Typography
+          as="p"
+          size="body"
+          color="muted"
+          class={centered ? 'mx-auto mt-6 max-w-[40rem] text-center' : 'mt-6 max-w-[40rem]'}
+          data-field={field('note')}
+          markdown={props.note}
+        />
+      )
+    }
+  </div>
+</SectionShell>
