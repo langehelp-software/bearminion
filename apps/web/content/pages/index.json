@@ -7,8 +7,8 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.22",
-          "text": "A new editor shell and three new sections"
+          "tag": "BearMinion 1.23",
+          "text": "Code tabs, Compare and Changelog sections"
         },
         "button": false,
         "code": "action",
@@ -421,14 +421,28 @@
         "releases": [
           {
             "items": [
+              "Three new sections, each one `add` away: code samples in tabs, a comparison table and a changelog.",
+              "Steps gets two layouts: shortcuts with a video beside them, and numbered tiles on an accent panel.",
+              "Features gets screenshot cards, a 16:10 picture on top of each one."
+            ],
+            "link": {
+              "href": "https://github.com/langehelp-software/bearminion/blob/main/packages/editor/CHANGELOG.md#1230",
+              "label": "Read more on GitHub"
+            },
+            "title": "Code tabs, Compare and Changelog",
+            "version": "1.23"
+          },
+          {
+            "items": [
               "A navigation, a top bar and an inspector around the live page. You still edit on the page.",
               "Every page and entry in a list with search, a Draft tab and bulk delete. Drafts stay out of the build.",
-              "Three new sections: Code tabs, Compare and Changelog. Each one is an `add` away."
+              "Two Indexing switches turn search engines and `sitemap.xml` off for the whole site."
             ],
             "link": {
               "href": "https://github.com/langehelp-software/bearminion/blob/main/packages/editor/CHANGELOG.md#1220",
               "label": "Read more on GitHub"
             },
+            "ref": "26ec6a6",
             "title": "An editor shell around the page",
             "version": "1.22"
           },
@@ -445,20 +459,6 @@
             "ref": "4cc33c5",
             "title": "Blogs, news and other content types",
             "version": "1.21"
-          },
-          {
-            "items": [
-              "In the online editor, a new section, a layout switch or a header change shows up right away.",
-              "No longer experimental on Vercel: tested end to end with a real GitHub App.",
-              "A new guide, Edit online, walks through setup in five steps."
-            ],
-            "link": {
-              "href": "https://github.com/langehelp-software/bearminion/blob/main/packages/editor/CHANGELOG.md#1200",
-              "label": "Read more on GitHub"
-            },
-            "ref": "c6dad44",
-            "title": "Live preview, online",
-            "version": "1.20"
           }
         ]
       },
