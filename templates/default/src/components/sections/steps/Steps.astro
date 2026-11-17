@@ -241,7 +241,7 @@ const hasVideo = Boolean(props.video) || placeholders
         {/* The accent panel: a band that stands out from the sections around it in every tone. */}
         <div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,24rem),1fr))] items-center gap-[clamp(1.5rem,4cqi,4rem)] rounded-panel bg-accent p-[clamp(1.5rem,4cqi,3rem)] text-on [&_.text-muted]:text-[color-mix(in_oklch,var(--on)_78%,transparent)] [&_.text-link]:text-on">
           <div class="flex flex-col items-start gap-3">
-            <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2" field={field} headingClass="text-[clamp(1.75rem,1.2rem+2cqi,2.75rem)] tracking-[-0.04em]" />
+            <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2" field={field} headingClass="text-[clamp(1.75rem,1.2rem+2cqi,2.75rem)] leading-none tracking-[-0.04em]" />
             {props.body && <Typography as="p" size="md" color="muted" class="leading-[1.55] text-pretty" data-field={field('body')} markdown={props.body} />}
             {props.link && (
               <a {...anchorAttrs(props.link)} class="mt-1 font-semibold underline underline-offset-4">
