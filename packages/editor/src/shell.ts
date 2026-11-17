@@ -29,9 +29,25 @@ export const INSPECTOR_OPEN_KEY = 'bearminion:inspector-open'
 /** The full-screen view that was up, so a reload after a save (which reloads the page) comes back to it. */
 export const VIEW_KEY = 'bearminion:shell-view'
 
-/** Settings screens, each a full-screen view over the canvas. */
+/** Settings screens. Most cover the canvas; the `SIDE_VIEWS` among them open beside it. */
 export const SETTINGS_VIEWS = ['navigation', 'footer', 'site', 'design', 'seo'] as const
 export type SettingsView = (typeof SETTINGS_VIEWS)[number]
+
+/**
+ * Settings that open in the right-hand sidebar, in place of the inspector, with the page still on the canvas: their
+ * controls change what the header, the footer, the colours and the page show, so the result stays in view while they are edited.
+ */
+export const SIDE_VIEWS = ['navigation', 'footer', 'site', 'design'] as const satisfies readonly SettingsView[]
+export type SideView = (typeof SIDE_VIEWS)[number]
+
+export function isSideView(view: string): view is SideView {
+  return (SIDE_VIEWS as readonly string[]).includes(view)
+}
+
+/** The page is on the canvas: no view, or a settings sidebar beside it. */
+export function showsPage(view: string): boolean {
+  return view === 'canvas' || isSideView(view)
+}
 
 /**
  * What covers the canvas: nothing (`canvas`), the Media library, a settings screen, or the listing of a content type

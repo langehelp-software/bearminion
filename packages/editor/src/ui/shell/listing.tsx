@@ -22,7 +22,6 @@ import { ScrollLock } from '../scroll-lock.js'
 import { useEditor } from '../state/editor.js'
 import type { Catalog, PageSummary } from '../types.js'
 import { isPagesListed } from './nav-items.js'
-import { SaveIssues } from './panels.js'
 
 const FILTERS: readonly { id: ListingFilter; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -62,7 +61,6 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
   const [creating, setCreating] = useState(false)
   const [pending, setPending] = useState<Pending>(null)
-  const [error, setError] = useState('')
 
   const pagesType = type === 'pages'
   const info = doc.types.value.find((item) => item.id === type)
@@ -129,7 +127,6 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
   }
 
   async function duplicate(item: PageSummary) {
-    setError('')
     const slug = copySlug(item.slug, taken)
     const result = await createEntry(item.type ?? 'pages', {
       slug,
@@ -137,20 +134,20 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
       template: item.slug,
       ...(draftField ? {} : { status: 'draft' as const }),
     })
-    if (!result.ok) setError(result.message)
+    if (!result.ok) ui.toasts.error(`Could not duplicate ${item.title}.`, { lines: [result.message] })
     await session.load()
   }
 
   async function remove(list: PageSummary[]) {
     setPending(null)
-    setError('')
     const failed: string[] = []
     for (const item of list) {
       const result = await deleteEntry(item.type ?? 'pages', item.slug)
       if (!result.ok) failed.push(`${item.title}: ${result.message}`)
     }
     setSelected(new Set())
-    if (failed.length > 0) setError(failed.join(' '))
+    if (failed.length > 0)
+      ui.toasts.error(failed.length === 1 ? 'Could not delete one item.' : `Could not delete ${failed.length} items.`, { lines: failed })
     await session.load()
   }
 
@@ -193,7 +190,6 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
           />
         </label>
       </header>
-      <SaveIssues />
       {creating && (
         <NewDocumentDialog noun={noun} storage={storage} onClose={() => setCreating(false)}>
           <NewDocumentForm
@@ -206,11 +202,6 @@ export function ListingView({ catalog, type }: { catalog: Catalog; type: string 
             onNavigate={open}
           />
         </NewDocumentDialog>
-      )}
-      {error && (
-        <p class="bm-error" role="alert">
-          {error}
-        </p>
       )}
       <div class="bm-listing-filters" role="tablist" aria-label="Status">
         {FILTERS.map((item) => (

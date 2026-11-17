@@ -421,6 +421,19 @@
         "releases": [
           {
             "items": [
+              "Navigation, Footer, Site and Design open beside the page, so what you change stays in view.",
+              "Errors and warnings stack as toasts in one corner and stay until you dismiss them.",
+              "A library image picked for an empty slot saves again, and Media shows placeholders while it loads."
+            ],
+            "link": {
+              "href": "https://github.com/langehelp-software/bearminion/blob/main/packages/editor/CHANGELOG.md#1231",
+              "label": "Read more on GitHub"
+            },
+            "title": "Settings beside the page",
+            "version": "1.23.1"
+          },
+          {
+            "items": [
               "Three new sections, each one `add` away: code samples in tabs, a comparison table and a changelog.",
               "Steps gets two layouts: shortcuts with a video beside them, and numbered tiles on an accent panel.",
               "Features gets screenshot cards, a 16:10 picture on top of each one."
@@ -445,20 +458,6 @@
             "ref": "26ec6a6",
             "title": "An editor shell around the page",
             "version": "1.22"
-          },
-          {
-            "items": [
-              "`npx bearminion add blog` gives you dated posts at /blog with a cover, a draft switch and a listing page.",
-              "Each type gets its own list in the editor with a New entry button. A title is enough to start.",
-              "New sites start lean with nine sections. The rest are one `add` away."
-            ],
-            "link": {
-              "href": "https://github.com/langehelp-software/bearminion/blob/main/packages/editor/CHANGELOG.md#1210",
-              "label": "Read more on GitHub"
-            },
-            "ref": "4cc33c5",
-            "title": "Blogs, news and other content types",
-            "version": "1.21"
           }
         ]
       },
@@ -631,6 +630,53 @@
   ],
   "seo": {
     "description": "BearMinion is a git-based CMS for Astro. Click to edit, save as JSON in your repo, ship a static build. No database, no admin panel, no $99 a month.",
+    "jsonLd": [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "about": {
+          "@id": "https://bearminion.com/#software"
+        },
+        "description": "BearMinion is a git-based CMS for Astro. Click to edit, save as JSON in your repo, ship a static build. No database, no admin panel, no $99 a month.",
+        "isPartOf": {
+          "@id": "https://bearminion.com/#website"
+        },
+        "name": "Git-based CMS for Astro · BearMinion",
+        "publisher": {
+          "@id": "https://bearminion.com/#organization"
+        },
+        "url": "https://bearminion.com/"
+      },
+      {
+        "@context": "https://schema.org",
+        "@id": "https://bearminion.com/#software",
+        "@type": "SoftwareApplication",
+        "applicationCategory": "DeveloperApplication",
+        "applicationSubCategory": "Content management system",
+        "description": "Git-based CMS for Astro. Click to edit on the page, save JSON to your repo.",
+        "downloadUrl": "https://www.npmjs.com/package/bearminion",
+        "isAccessibleForFree": true,
+        "license": "https://opensource.org/licenses/MIT",
+        "name": "BearMinion",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "operatingSystem": "Windows, macOS, Linux",
+        "publisher": {
+          "@id": "https://bearminion.com/#organization"
+        },
+        "releaseNotes": "https://github.com/langehelp-software/bearminion/releases",
+        "sameAs": [
+          "https://github.com/langehelp-software/bearminion",
+          "https://www.npmjs.com/package/bearminion"
+        ],
+        "softwareRequirements": "Node.js 22.12 or later, Astro 7.3 or later",
+        "softwareVersion": "1.23.1",
+        "url": "https://bearminion.com/"
+      }
+    ],
     "nofollow": false,
     "noindex": false,
     "ogImage": "src/assets/uploads/og.png",

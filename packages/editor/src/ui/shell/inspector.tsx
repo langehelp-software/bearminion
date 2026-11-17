@@ -3,7 +3,7 @@ import { INSPECTOR_DEFAULT, INSPECTOR_KEY_STEP, INSPECTOR_MAX, INSPECTOR_MIN } f
 import { IssueContext, LinksContext } from '../context.js'
 import { useEditor } from '../state/editor.js'
 import type { Catalog, InspectorTab } from '../types.js'
-import { PagePanel, SaveIssues, SectionPanel } from './panels.js'
+import { PagePanel, SectionPanel } from './panels.js'
 
 const TABS: readonly { id: InspectorTab; label: string }[] = [
   { id: 'page', label: 'Page' },
@@ -16,7 +16,7 @@ const TABS: readonly { id: InspectorTab; label: string }[] = [
  * the control, so the first render after it either has the control or never will (the section was deleted, the tab
  * has no such field). Keeping it would pull focus to an unrelated control that later happens to match.
  */
-function useFocusRequest(root: { current: HTMLElement | null }) {
+export function useFocusRequest(root: { current: HTMLElement | null }) {
   const { ui } = useEditor()
   const request = ui.focusField.value
   useEffect(() => {
@@ -29,8 +29,17 @@ function useFocusRequest(root: { current: HTMLElement | null }) {
   })
 }
 
-/** The inspector's left edge: drag, arrow keys, Home and End resize it; a double click resets it. */
-function InspectorResize({ onDrag }: { onDrag: (dragging: boolean) => void }) {
+/** While a sidebar's edge is dragged the page must not take the pointer, or the drag stops over it. */
+export function setResizing(dragging: boolean) {
+  document.documentElement.toggleAttribute('data-bearminion-resizing', dragging)
+}
+
+/**
+ * The left edge of the right-hand sidebar (the inspector or a settings sidebar): drag, arrow keys, Home and End
+ * resize it; a double click resets it. Both sidebars share one width.
+ */
+export function SidebarResize({ label = 'Resize inspector' }: { label?: string }) {
+  const onDrag = setResizing
   const { ui, chrome } = useEditor()
   const width = ui.inspectorWidth.value
   return (
@@ -38,7 +47,7 @@ function InspectorResize({ onDrag }: { onDrag: (dragging: boolean) => void }) {
       class="bm-inspector-resize"
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize inspector"
+      aria-label={label}
       aria-valuemin={INSPECTOR_MIN}
       aria-valuemax={INSPECTOR_MAX}
       aria-valuenow={width}
@@ -106,13 +115,9 @@ export function Inspector({ catalog }: { catalog: Catalog }) {
   const select = (next: InspectorTab) => {
     ui.inspectorTab.value = next
   }
-  // While the edge is dragged the page must not take the pointer, or the drag stops over it.
-  const setDragging = (dragging: boolean) => {
-    document.documentElement.toggleAttribute('data-bearminion-resizing', dragging)
-  }
   return (
     <aside class="bm-inspector bm-panel bm-chrome" aria-label="Inspector" style={`width:${ui.inspectorWidth.value}px`} ref={root}>
-      <InspectorResize onDrag={setDragging} />
+      <SidebarResize />
       <div class="bm-tabs" role="tablist" aria-label="Inspector" onKeyDown={(event) => onTabArrows(event, select, tab)}>
         {TABS.map((item) => (
           <button
@@ -134,7 +139,6 @@ export function Inspector({ catalog }: { catalog: Catalog }) {
           value={{ pages: doc.pages.value, currentSlug: doc.linkKey.value, anchors: doc.anchors.value, editLink: links.open }}
         >
           <div class="bm-body" role="tabpanel" id={`bm-panel-${tab}`} aria-labelledby={`bm-tab-${tab}`}>
-            <SaveIssues />
             {tab === 'page' ? <PagePanel catalog={catalog} /> : <SectionPanel catalog={catalog} />}
           </div>
         </LinksContext.Provider>

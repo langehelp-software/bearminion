@@ -11,19 +11,51 @@ function folderOf(images: readonly UploadedImage[]): string {
   return first ? `${first.slice(0, first.lastIndexOf('/') + 1)}` : 'src/assets/uploads/'
 }
 
+/** Placeholder cards while the library loads: the grid keeps its shape instead of starting empty. */
+const SKELETON_CARDS = 8
+
+function MediaSkeleton() {
+  return (
+    <>
+      <p class="bm-visually-hidden" role="status">
+        Loading the image library.
+      </p>
+      <ul class="bm-media-grid" aria-hidden="true">
+        {Array.from({ length: SKELETON_CARDS }, (_, index) => (
+          <li key={index} class="bm-media-card bm-media-skeleton">
+            <span class="bm-media-thumb bm-skeleton" />
+            <span class="bm-skeleton bm-skeleton-line" />
+            <span class="bm-skeleton bm-skeleton-line bm-skeleton-short" />
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+/** A thumbnail shimmers until its file has loaded (or failed), then fades in. */
+function settle(event: Event) {
+  const img = event.currentTarget
+  if (img instanceof HTMLElement) img.parentElement?.removeAttribute('data-loading')
+}
+
 /** The image library as a full-screen grid: what is there, where the saved content uses it, upload and delete. */
 export function MediaView() {
-  const { doc } = useEditor()
+  const { doc, ui } = useEditor()
   const [images, setImages] = useState<UploadedImage[] | null>(null)
-  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [dragging, setDragging] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
   async function refresh() {
     const result = await getImages(true)
-    if (result.ok) setImages(result.value.images)
-    else setError(result.message)
+    if (result.ok) {
+      setImages(result.value.images)
+      return
+    }
+    ui.toasts.error('Could not load the image library.', { key: 'media-load', lines: [result.message] })
+    // The toast says why. The grid stops loading and still offers the upload slot.
+    setImages((current) => current ?? [])
   }
 
   useEffect(() => {
@@ -34,7 +66,6 @@ export function MediaView() {
     const list = [...(files ?? [])].filter((file) => file.type.startsWith('image/'))
     if (list.length === 0) return
     setBusy(true)
-    setError('')
     const failed: string[] = []
     for (const file of list) {
       const result = await uploadFile(file)
@@ -42,15 +73,15 @@ export function MediaView() {
       else doc.addImage(result.image)
     }
     setBusy(false)
-    if (failed.length > 0) setError(failed.join(' '))
+    if (failed.length > 0)
+      ui.toasts.error(failed.length === 1 ? 'An upload failed.' : `${failed.length} uploads failed.`, { lines: failed })
     await refresh()
   }
 
   async function remove(image: UploadedImage) {
-    setError('')
     const message = await deleteFile(image)
     if (message) {
-      setError(message)
+      ui.toasts.error('Could not delete the image.', { lines: [message] })
       return
     }
     doc.dropImage(image)
@@ -82,21 +113,16 @@ export function MediaView() {
           <p class="bm-screen-file">{folderOf(images ?? [])}</p>
         </div>
       </header>
-      {error && (
-        <p class="bm-error" role="alert">
-          {error}
-        </p>
-      )}
       {images === null ? (
-        <p class="bm-note">Loading the image library.</p>
+        <MediaSkeleton />
       ) : (
         <ul class="bm-media-grid">
           {images.map((image) => {
             const usages = image.usages ?? []
             return (
               <li key={image.path} class="bm-media-card">
-                <span class="bm-media-thumb">
-                  <img src={previewSrc(image.path)} alt="" loading="lazy" />
+                <span class="bm-media-thumb" data-loading>
+                  <img src={previewSrc(image.path)} alt="" loading="lazy" decoding="async" onLoad={settle} onError={settle} />
                 </span>
                 <span class="bm-media-name" title={image.path}>
                   {image.filename}

@@ -92,6 +92,19 @@ describe('editor state', () => {
     })
   })
 
+  it('writes a picked image as an { src, alt } record, also into an empty slot', () => {
+    editor = loaded()
+    const { doc, edits } = editor
+    edits.replaceImage('sections.0.props.image', '/uploads/new.png')
+    expect(getAt(doc.page.value, 'sections.0.props.image')).toEqual({ src: '/uploads/new.png', alt: 'Image' })
+    edits.writeField('sections.0.props.image', { src: '/uploads/a.png', alt: 'A bear', fit: 'contain' })
+    edits.replaceImage('sections.0.props.image', '/uploads/b.png')
+    expect(getAt(doc.page.value, 'sections.0.props.image')).toEqual({ src: '/uploads/b.png', alt: 'A bear', fit: 'contain' })
+    edits.writeField('sections.0.props.image', '/uploads/legacy.png')
+    edits.replaceImage('sections.0.props.image', '/uploads/c.png')
+    expect(getAt(doc.page.value, 'sections.0.props.image')).toEqual({ src: '/uploads/c.png', alt: 'Image' })
+  })
+
   it('queues edits made before the drafts load', () => {
     editor = createEditor()
     editor.edits.writeField('name', 'Early')

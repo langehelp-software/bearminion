@@ -1,5 +1,5 @@
 import { useComputed } from '@preact/signals'
-import { DEVICE_WIDTHS, listingView, type Viewport } from '../../shell.js'
+import { DEVICE_WIDTHS, listingView, showsPage, type Viewport } from '../../shell.js'
 import { CommitButton, SaveButton, SavePill } from '../chrome/save.js'
 import { unsavedFiles } from '../dialogs/editor-dialogs.js'
 import { Icon, type IconName } from '../icons.js'
@@ -152,7 +152,7 @@ export function TopBar({ groups }: { groups: NavGroup[] }) {
           </>
         )}
       </div>
-      {view === 'canvas' && <ViewportSwitch />}
+      {showsPage(view) && <ViewportSwitch />}
       <div class="bm-topbar-right">
         <IconButton
           icon="history"

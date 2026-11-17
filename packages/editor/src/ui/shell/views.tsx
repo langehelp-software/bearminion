@@ -1,11 +1,14 @@
 import type { ComponentChildren } from 'preact'
-import { listingType, SETTINGS_VIEWS, type SettingsView, type View } from '../../shell.js'
+import { useRef } from 'preact/hooks'
+import { listingType, SETTINGS_VIEWS, type SettingsView, type SideView, type View } from '../../shell.js'
 import { IssueContext, LinksContext } from '../context.js'
+import { Icon } from '../icons.js'
 import { useEditor } from '../state/editor.js'
 import type { Catalog } from '../types.js'
+import { SidebarResize, useFocusRequest } from './inspector.js'
 import { ListingView } from './listing.js'
 import { MediaView } from './media.js'
-import { DesignPanel, FooterPanel, NavigationPanel, SaveIssues, SitePanel } from './panels.js'
+import { DesignPanel, FooterPanel, NavigationPanel, SitePanel } from './panels.js'
 
 /** Title and the file a settings screen writes. */
 const SETTINGS: Record<SettingsView, { title: string; file: string }> = {
@@ -25,7 +28,6 @@ function SettingsScreen({ view, children }: { view: SettingsView; children: Comp
         <h1 class="bm-screen-title">{title}</h1>
         <p class="bm-screen-file">{file}</p>
       </header>
-      <SaveIssues />
       <div class="bm-screen-cards">{children}</div>
     </div>
   )
@@ -49,9 +51,64 @@ function SettingsBody({ view, catalog }: { view: SettingsView; catalog: Catalog 
   }
 }
 
+/** Site links and the open page's anchors for link fields, and the site's issues for the fields they name. */
+function SiteContexts({ children }: { children: ComponentChildren }) {
+  const { doc, ui, links } = useEditor()
+  return (
+    <IssueContext.Provider value={ui.issues.value.filter((issue) => issue.file === undefined || issue.file === 'site')}>
+      <LinksContext.Provider
+        value={{ pages: doc.pages.value, currentSlug: doc.linkKey.value, anchors: doc.anchors.value, editLink: links.open }}
+      >
+        {children}
+      </LinksContext.Provider>
+    </IssueContext.Provider>
+  )
+}
+
+/**
+ * Navigation, Footer or Site in the right-hand sidebar, where the inspector usually is, so the page they change stays
+ * on the canvas beside them. Same width and resize edge as the inspector; Close (or Escape) goes back to it.
+ */
+export function SettingsSidebar({ view, catalog }: { view: SideView; catalog: Catalog }) {
+  const { ui } = useEditor()
+  const root = useRef<HTMLElement>(null)
+  useFocusRequest(root)
+  const { title, file } = SETTINGS[view]
+  return (
+    <aside
+      class="bm-inspector bm-settings-side bm-panel bm-chrome"
+      aria-label={title}
+      style={`width:${ui.inspectorWidth.value}px`}
+      ref={root}
+    >
+      <SidebarResize label={`Resize ${title} settings`} />
+      <header class="bm-side-head">
+        <div class="bm-side-heading">
+          <h2 class="bm-side-title">{title}</h2>
+          <p class="bm-screen-file">{file}</p>
+        </div>
+        <button
+          type="button"
+          class="bm-side-close"
+          aria-label={`Close ${title} settings`}
+          title="Close (Esc)"
+          onClick={() => ui.openView('canvas')}
+        >
+          <Icon name="x" size={16} />
+        </button>
+      </header>
+      <SiteContexts>
+        <div class="bm-body">
+          <SettingsBody view={view} catalog={catalog} />
+        </div>
+      </SiteContexts>
+    </aside>
+  )
+}
+
 /** A full-screen view over the canvas and the inspector: a content listing, Media or a settings screen. */
 export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; catalog: Catalog }) {
-  const { doc, ui, links } = useEditor()
+  const { doc } = useEditor()
   const type = listingType(view)
   const settings = (SETTINGS_VIEWS as readonly string[]).includes(view) ? (view as SettingsView) : null
   const label =
@@ -64,21 +121,17 @@ export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; cat
           : 'Media'
   return (
     <main class="bm-view bm-panel bm-chrome" aria-label={label}>
-      <IssueContext.Provider value={ui.issues.value.filter((issue) => issue.file === undefined || issue.file === 'site')}>
-        <LinksContext.Provider
-          value={{ pages: doc.pages.value, currentSlug: doc.linkKey.value, anchors: doc.anchors.value, editLink: links.open }}
-        >
-          {type !== null ? (
-            <ListingView key={type} catalog={catalog} type={type} />
-          ) : view === 'media' ? (
-            <MediaView />
-          ) : settings ? (
-            <SettingsScreen view={settings}>
-              <SettingsBody view={settings} catalog={catalog} />
-            </SettingsScreen>
-          ) : null}
-        </LinksContext.Provider>
-      </IssueContext.Provider>
+      <SiteContexts>
+        {type !== null ? (
+          <ListingView key={type} catalog={catalog} type={type} />
+        ) : view === 'media' ? (
+          <MediaView />
+        ) : settings ? (
+          <SettingsScreen view={settings}>
+            <SettingsBody view={settings} catalog={catalog} />
+          </SettingsScreen>
+        ) : null}
+      </SiteContexts>
     </main>
   )
 }

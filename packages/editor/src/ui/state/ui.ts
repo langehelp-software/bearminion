@@ -1,7 +1,17 @@
 import { batch, signal } from '@preact/signals'
 import { INSPECTOR_DEFAULT, type View, type Viewport } from '../../shell.js'
 import type { RichActive } from '../rich-editor.js'
+import { createToasts } from './toasts.js'
 import type { ConfirmAction, DraftOffer, GitState, HeadingBar, InspectorTab, Issue, LinkEdit } from '../types.js'
+
+/** Key of the toast a failed save shows. A later failure replaces it; a successful save removes it. */
+export const SAVE_TOAST = 'save'
+
+const FILE_LABELS = { page: 'Page', site: 'Site settings' } as const
+
+function issueLine(issue: Issue): string {
+  return `${issue.file ? `${FILE_LABELS[issue.file]} › ` : ''}${issue.path}: ${issue.message}`
+}
 
 export type InsertWhere = 'above' | 'below'
 
@@ -63,8 +73,9 @@ export function createUiState() {
 
   const dialog = signal<EditorDialog | null>(null)
   const draftOffer = signal<DraftOffer | null>(null)
-  const tabNotice = signal<string | null>(null)
   const gitState = signal<GitState | null>(null)
+  /** Errors and warnings over the editor. They stay until dismissed, on every screen. */
+  const toasts = createToasts()
 
   function selectSection(id: string) {
     batch(() => {
@@ -118,11 +129,18 @@ export function createUiState() {
     return false
   }
 
-  /** Errors from a failed save, shown at the top of the inspector and of every full-screen view. */
+  /**
+   * A failed save: one toast that lists every issue (it replaces the previous save's), and the issues kept for the
+   * fields they name, which mark themselves inline.
+   */
   function fail(message: string, problems: Issue[] = issues.peek()) {
     batch(() => {
       issues.value = problems
       status.value = message
+      toasts.error(problems.length > 0 ? `${message} Nothing was written.` : message, {
+        key: SAVE_TOAST,
+        lines: problems.map(issueLine),
+      })
       open.value = true
       if (view.peek() === 'canvas') inspectorTab.value = 'page'
     })
@@ -153,7 +171,7 @@ export function createUiState() {
     pagePick,
     dialog,
     draftOffer,
-    tabNotice,
+    toasts,
     gitState,
     selectSection,
     showSection,
