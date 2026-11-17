@@ -467,6 +467,43 @@
       "variant": "cards"
     },
     {
+      "anchor": "facts",
+      "id": "facts",
+      "props": {
+        "eyebrow": "In the box",
+        "heading": "Everything you need, out of the box.",
+        "items": [
+          {
+            "label": "section types, nine in every new site",
+            "value": "17"
+          },
+          {
+            "label": "layouts across them, to switch between",
+            "value": "50"
+          },
+          {
+            "label": "color tones, each contrast-checked",
+            "value": "4"
+          },
+          {
+            "label": "licensed: free, and yours to change",
+            "value": "MIT"
+          }
+        ],
+        "marks": [
+          {
+            "end": 36,
+            "font": "serif",
+            "italic": true,
+            "start": 21
+          }
+        ]
+      },
+      "tone": "inverse",
+      "type": "stats",
+      "variant": "row"
+    },
+    {
       "anchor": "faq",
       "id": "faq",
       "props": {
