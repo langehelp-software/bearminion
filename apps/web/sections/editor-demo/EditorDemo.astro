@@ -1286,4 +1286,14 @@ const pageSections = [
   .ed-trust a:hover {
     color: var(--fg);
   }
+  /* A phone is too narrow for the editor and the page beside it: the demo is left out, the facts under it stay. */
+  @media (width < 48rem) {
+    .ed-hint,
+    .ed-app {
+      display: none;
+    }
+    .ed-trust {
+      margin-top: 0;
+    }
+  }
 </style>
