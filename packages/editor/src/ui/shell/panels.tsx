@@ -143,6 +143,12 @@ export function SitePanel({ site, catalog, part = 'site' }: { site: SiteDraft; c
         const node = getAt(doc.site.peek(), 'consent')
         if (typeof node === 'object' && node !== null && Object.keys(node).length === 0) edits.writeOrClear('consent', '')
       }}
+      onConsentMode={(advanced) => {
+        // Only `advanced` is stored, like `enabled: false`: basic is the default.
+        edits.writeField('consent.mode', advanced ? 'advanced' : undefined)
+        const node = getAt(doc.site.peek(), 'consent')
+        if (typeof node === 'object' && node !== null && Object.keys(node).length === 0) edits.writeOrClear('consent', '')
+      }}
       onEditConsent={() => {
         ui.dialog.value = { kind: 'consent' }
       }}

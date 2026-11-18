@@ -7,7 +7,7 @@ import Header from '../components/organisms/Header.astro'
 import Seo from '../components/seo/Seo.astro'
 import { analyticsEnabled } from '../lib/analytics'
 import { resolveLocalAsset } from '../lib/assets'
-import { CONSENT_DEFAULT_SCRIPT, consentCopy, consentRequired } from '../lib/consent'
+import { consentAdvanced, consentCopy, consentDefaultScript, consentDomain, consentRequired } from '../lib/consent'
 import '../styles/global.css'
 
 interface Props {
@@ -31,6 +31,10 @@ const analytics = analyticsOn && chrome ? site.analytics : undefined
 // and previews too, so the owner sees it; only the live build has snippets to hold back. See lib/consent.ts.
 const asks = consentRequired(site)
 const gated = asks && analyticsOn && chrome
+// Advanced Consent Mode: the head snippet (the Google tag or Tag Manager) loads at once with every signal denied,
+// and sends cookieless pings until the visitor accepts. The body snippet still waits.
+const headNow = Boolean(analytics?.head) && (!asks || consentAdvanced(site))
+const sharedDomain = consentDomain(process.env)
 ---
 
 <!doctype html>
@@ -40,9 +44,9 @@ const gated = asks && analyticsOn && chrome
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <Seo site={site} page={page} pathname={Astro.url.pathname} />
     <meta name="theme-color" content={themeColor} />
-    {gated && <script is:inline set:html={CONSENT_DEFAULT_SCRIPT} />}
-    {analytics?.head && !asks && <Fragment set:html={analytics.head} />}
-    {gated && analytics?.head && <template data-consent-snippet="head" set:html={analytics.head} />}
+    {gated && <script is:inline set:html={consentDefaultScript(sharedDomain)} />}
+    {headNow && <Fragment set:html={analytics?.head} />}
+    {gated && !headNow && analytics?.head && <template data-consent-snippet="head" set:html={analytics.head} />}
     {/* Always present so the editor can update the palette live. */}
     <style id="bm-theme" is:inline set:html={paletteCss}></style>
     {/* Without JavaScript the browser posts the contact form itself and comes back to #<id>-sent or #<id>-failed. */}
@@ -82,7 +86,7 @@ const gated = asks && analyticsOn && chrome
     {chrome && <Footer site={site} consentLabel={asks && site.consent?.reopen !== 'icon' ? consentCopy(site.consent).settings : undefined} />}
     {analytics?.bodyEnd && !asks && <Fragment set:html={analytics.bodyEnd} />}
     {gated && analytics?.bodyEnd && <template data-consent-snippet="body" set:html={analytics.bodyEnd} />}
-    {chrome && asks && <ConsentBanner consent={site.consent} />}
+    {chrome && asks && <ConsentBanner consent={site.consent} domain={sharedDomain} />}
     <script>
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const observer =

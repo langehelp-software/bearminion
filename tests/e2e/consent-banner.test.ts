@@ -217,6 +217,127 @@ describe('cookie consent on a built site', () => {
     await page.close()
   }, 120_000)
 
+  /** A browser context where www.example.test and docs.example.test (two origins, one domain) are the preview server. */
+  async function siblingSites() {
+    const context = await browser.newContext()
+    await context.route(/^http:\/\/(www|docs)\.example\.test\//, async (route) => {
+      const url = new URL(route.request().url())
+      try {
+        const response = await route.fetch({ url: `${origin}${url.pathname}${url.search}` })
+        await route.fulfill({ response })
+      } catch {
+        // The test closed the context while a request was still in flight.
+      }
+    })
+    return context
+  }
+
+  it('shares one choice between sibling sites, with nothing configured', async () => {
+    const context = await siblingSites()
+
+    const www = await context.newPage()
+    await www.goto('http://www.example.test/')
+    expect((await state(www)).bannerHidden).toBe(false)
+    await www.locator('[data-consent-banner] [data-consent-accept]').click()
+    const cookie = (await context.cookies('http://docs.example.test/')).find((entry) => entry.name === 'bm-consent')
+    expect(cookie?.domain).toBe('.example.test')
+
+    // The sibling site does not ask, and loads the snippets: the cookie answered, not its own storage.
+    const docs = await context.newPage()
+    await docs.goto('http://docs.example.test/')
+    let s = await state(docs)
+    expect(s.bannerHidden).toBe(true)
+    expect(s.hits).toBe(1)
+    expect(s.stored).toBeNull()
+
+    // Withdrawing on one site reaches the other.
+    await docs.locator('[data-consent-open]').first().click()
+    await Promise.all([docs.waitForEvent('load'), docs.locator('[data-consent-banner] [data-consent-reject]').click()])
+    await www.reload()
+    s = await state(www)
+    expect(s.bannerHidden).toBe(true)
+    expect(s.hits).toBe(0)
+
+    // A choice stored before the domain was shared moves into the cookie, keeping its date.
+    await context.clearCookies()
+    const at = Date.now() - 1000
+    await www.evaluate((time) => localStorage.setItem('bm-consent', JSON.stringify({ v: 1, analytics: true, at: time })), at)
+    await www.reload()
+    const moved = (await context.cookies('http://docs.example.test/')).find((entry) => entry.name === 'bm-consent')
+    expect(JSON.parse(decodeURIComponent(moved?.value ?? '{}'))).toEqual({ v: 1, analytics: true, at })
+
+    // A host outside the domain (here 127.0.0.1) keeps its own choice.
+    const other = await context.newPage()
+    await other.goto(origin)
+    expect((await state(other)).bannerHidden).toBe(false)
+    await context.close()
+  }, 120_000)
+
+  it('keeps the choice to each site with BEARMINION_CONSENT_DOMAIN=off', async () => {
+    execFileSync(process.execPath, [astroBin, 'build'], {
+      cwd: starter,
+      env: { ...buildEnv, BEARMINION_CONSENT_DOMAIN: 'off' },
+      stdio: 'pipe',
+    })
+    const context = await siblingSites()
+    const www = await context.newPage()
+    await www.goto('http://www.example.test/')
+    await www.locator('[data-consent-banner] [data-consent-accept]').click()
+    expect((await context.cookies('http://www.example.test/')).some((entry) => entry.name === 'bm-consent')).toBe(false)
+    const docs = await context.newPage()
+    await docs.goto('http://docs.example.test/')
+    const s = await state(docs)
+    expect(s.bannerHidden).toBe(false)
+    expect(s.hits).toBe(0)
+    await context.close()
+  }, 120_000)
+
+  it('loads the head snippet at once in advanced Consent Mode, and grants a returning visitor before it runs', async () => {
+    const sitePath = path.join(String(buildEnv.BEARMINION_CONTENT_DIR), 'site.json')
+    const site = JSON.parse(fs.readFileSync(sitePath, 'utf8')) as { consent: Record<string, unknown> }
+    site.consent = { mode: 'advanced' }
+    fs.writeFileSync(sitePath, JSON.stringify(site, null, 2))
+    execFileSync(process.execPath, [astroBin, 'build'], { cwd: starter, env: buildEnv, stdio: 'pipe' })
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    await page.goto(origin)
+
+    // Before any choice: the head snippet ran under denied signals; the body snippet waits; the banner asks.
+    let s = await state(page)
+    expect(s.bannerHidden).toBe(false)
+    expect(s.hits).toBe(1)
+    expect(s.bodySnippet).toBe(false)
+    expect(s.queue).toHaveLength(1)
+    expect(s.queue[0]?.slice(0, 2)).toEqual(['consent', 'default'])
+    expect(await page.locator('template[data-consent-snippet="head"]').count()).toBe(0)
+    expect(await page.locator('[data-consent-banner]').textContent()).toMatch(/anonymously, without cookies/)
+
+    // Accept: the update goes out, the body snippet is added, and the head snippet does not run twice.
+    await page.locator('[data-consent-banner] [data-consent-accept]').click()
+    s = await state(page)
+    expect(s.queue.at(-1)).toEqual(['consent', 'update', { analytics_storage: 'granted' }])
+    expect(s.bodySnippet).toBe(true)
+    expect(s.hits).toBe(1)
+
+    // Next page: granted straight after the defaults, before the tag loads.
+    await page.reload()
+    s = await state(page)
+    expect(s.bannerHidden).toBe(true)
+    expect(s.queue[1]).toEqual(['consent', 'update', { analytics_storage: 'granted' }])
+    expect(s.hits).toBe(1)
+
+    // Another visitor rejects: still counted without cookies, nothing else added.
+    const other = await browser.newPage()
+    await other.goto(origin)
+    await other.locator('[data-consent-banner] [data-consent-reject]').click()
+    s = await state(other)
+    expect(s.hits).toBe(1)
+    expect(s.bodySnippet).toBe(false)
+    expect(s.queue.at(-1)).toEqual(['consent', 'update', { analytics_storage: 'denied' }])
+    await other.close()
+    await context.close()
+  }, 120_000)
+
   async function waitForServer(): Promise<void> {
     const deadline = Date.now() + 60_000
     while (Date.now() < deadline) {

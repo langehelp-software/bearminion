@@ -6,7 +6,7 @@ import { type LibraryImage, ImageField } from '../image-field.js'
 import { Info } from '../info.js'
 import { text, isImageRecord } from '../shared.js'
 import type { JsonLdBlock } from '../../json-ld.js'
-import { consentEnabled, hasAnalyticsSnippet, siteJsonLdOf, siteJsonLdSourceOf } from '../site-draft.js'
+import { consentEnabled, consentModeOf, hasAnalyticsSnippet, siteJsonLdOf, siteJsonLdSourceOf } from '../site-draft.js'
 import { JsonLdEditor } from './json-ld-editor.js'
 import type { SiteDraft, Option } from '../types.js'
 import { OptionControl, Field } from './fields.js'
@@ -48,6 +48,7 @@ export function SiteForm({
   onField,
   onOptional,
   onConsentEnabled,
+  onConsentMode,
   onEditConsent,
   onJsonLd,
   onMarks,
@@ -65,6 +66,8 @@ export function SiteForm({
   onOptional: (path: string, value: string) => void
   /** The cookie banner switch. */
   onConsentEnabled: (enabled: boolean) => void
+  /** Advanced Consent Mode on or off. Only `advanced` is stored. */
+  onConsentMode: (advanced: boolean) => void
   /** Opens the dialog with the banner's text. */
   onEditConsent: () => void
   /** The JSON-LD every page carries, as the SEO screen's editor last had it valid. */
@@ -185,8 +188,10 @@ export function SiteForm({
       </div>
       <ConsentGroup
         enabled={consentEnabled(site)}
+        advanced={consentModeOf(site) === 'advanced'}
         snippets={hasAnalyticsSnippet(site)}
         onEnabled={onConsentEnabled}
+        onAdvanced={onConsentMode}
         onEdit={onEditConsent}
       />
       {SITE_GROUPS.map((group) => {
@@ -232,21 +237,28 @@ export function SiteGroup({
 /** The cookie banner: a switch here, its text in a dialog. */
 function ConsentGroup({
   enabled,
+  advanced,
   snippets,
   onEnabled,
+  onAdvanced,
   onEdit,
 }: {
   enabled: boolean
+  /** Advanced Consent Mode: the head snippet loads before the visitor answers, with every signal denied. */
+  advanced: boolean
   /** Whether an analytics snippet is set. Without one the banner has nothing to ask about. */
   snippets: boolean
   onEnabled: (enabled: boolean) => void
+  onAdvanced: (advanced: boolean) => void
   onEdit: () => void
 }) {
   const status = !enabled
     ? 'Off. Your snippets run for every visitor from the first page, EU visitors included.'
-    : snippets
-      ? 'On. Your snippets wait until the visitor accepts. The banner also shows while you edit, with analytics off.'
-      : 'On. It appears once you add an analytics snippet above.'
+    : !snippets
+      ? 'On. It appears once you add an analytics snippet above.'
+      : advanced
+        ? 'On, advanced. The head snippet loads at once with cookies denied; the body snippet waits until the visitor accepts.'
+        : 'On. Your snippets wait until the visitor accepts. The banner also shows while you edit, with analytics off.'
   return (
     <div class="bm-stack">
       <p class="bm-group">Cookie banner</p>
@@ -262,6 +274,20 @@ function ConsentGroup({
         </span>
         <input type="checkbox" role="switch" checked={enabled} onChange={(event) => onEnabled(event.currentTarget.checked)} />
       </label>
+      {enabled && (
+        <label class="bm-switch-row">
+          <span class="bm-switch-text">
+            <span class="bm-switch-title">
+              Count visits without cookies
+              <Info
+                label="About advanced Consent Mode"
+                text="Google's advanced Consent Mode. The head snippet loads before the visitor answers, with every consent signal denied, so Google tags send cookieless pings for visitors who reject or ignore the banner. GA4 shows them only as modelled data, once a site has enough traffic. Put only the Google tag or Google Tag Manager in the head snippet: any other script there runs without consent."
+              />
+            </span>
+          </span>
+          <input type="checkbox" role="switch" checked={advanced} onChange={(event) => onAdvanced(event.currentTarget.checked)} />
+        </label>
+      )}
       <p class="bm-hint">{status}</p>
       <button type="button" class="bm-tertiary bm-consent-edit" onClick={onEdit}>
         <Icon name="settings" size={14} />

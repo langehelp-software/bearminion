@@ -6,6 +6,8 @@ import Typography from '../atoms/Typography.astro'
 
 interface Props {
   consent?: SiteConsent
+  /** Who shares the choice: `off`, a domain, or unset for the site's own domain (`consentDomain()` in lib/consent.ts). */
+  domain?: string
 }
 
 const copy = consentCopy(Astro.props.consent)
@@ -17,6 +19,7 @@ const icon = Astro.props.consent?.reopen === 'icon'
 <div
   data-organism="consent-banner"
   data-consent-banner
+  data-consent-domain={Astro.props.domain}
   data-tone="base"
   role="region"
   aria-label={copy.title}

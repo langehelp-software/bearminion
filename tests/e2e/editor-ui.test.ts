@@ -5,6 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { chromium, type Browser, type Page } from 'playwright'
+import { consentCopy } from '../../templates/default/src/lib/consent'
 
 const starter = path.resolve(import.meta.dirname, '../../templates/default')
 const port = 4477
@@ -1463,9 +1464,26 @@ describe('editor overlay', () => {
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
     await settingsPanel(page, 'Site').waitFor()
     await row.getByRole('switch').check()
+    const reloadedAgain = page.waitForEvent('load')
     await page.keyboard.press('Control+s')
     await waitFor(() => saved().consent?.enabled === undefined, 'enabled still in site.json')
     expect(saved().consent).toEqual({ policyHref: '/polityka', reopen: 'icon', title: 'Ciasteczka' })
+
+    // Advanced Consent Mode: stored as `mode: "advanced"`, its own default message, and the dialog keeps it.
+    await reloadedAgain
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
+    await settingsPanel(page, 'Site').waitFor()
+    const advanced = page.locator('label.bm-switch-row', { hasText: 'Count visits without cookies' }).getByRole('switch')
+    expect(await advanced.isChecked()).toBe(false)
+    await advanced.check()
+    await page.getByRole('button', { name: 'Edit banner' }).click()
+    const message = dialog.locator('label', { hasText: /^Message/ }).locator('textarea')
+    expect(await message.inputValue()).toBe(consentCopy({ mode: 'advanced' }).body)
+    await dialog.getByRole('button', { name: 'Apply', exact: true }).click()
+    await dialog.waitFor({ state: 'detached' })
+    await page.keyboard.press('Control+s')
+    await waitFor(() => saved().consent?.mode === 'advanced', 'mode missing from site.json')
+    expect(saved().consent).toEqual({ mode: 'advanced', policyHref: '/polityka', reopen: 'icon', title: 'Ciasteczka' })
     expect(errors, logs).toEqual([])
     await page.close()
   }, 90_000)

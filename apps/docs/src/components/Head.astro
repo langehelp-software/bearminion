@@ -1,0 +1,10 @@
+---
+// Starlight's head, with bearminion.com's analytics. Consent Mode's defaults come first, before any tag.
+import Default from '@astrojs/starlight/components/Head.astro'
+import { analytics, defaultScript, gated, headNow } from '../consent'
+---
+
+{gated && <script is:inline set:html={defaultScript} />}
+<Default />
+{headNow && <Fragment set:html={analytics?.head} />}
+{gated && !headNow && analytics?.head && <template data-consent-snippet="head" set:html={analytics.head} />}

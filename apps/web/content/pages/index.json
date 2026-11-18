@@ -7,7 +7,7 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.23",
+          "tag": "BearMinion 1.24",
           "text": "Code tabs, Compare and Changelog sections"
         },
         "button": false,
@@ -38,7 +38,7 @@
           "label": "View on GitHub",
           "style": "tertiary"
         },
-        "sub": "Inline website editing that doesn't insult your wallet. Click any text to change it, and let the minion dump clean JSON into your repo. Ships as pure static HTML for $0/month! *Sorry, enterprise CMS sales teams.*"
+        "sub": "Inline website editing that doesn't insult your wallet. Click any text to change it, and let the minion dump clean JSON into your repo. Ships as pure static HTML for $0/month!\n*Sorry, enterprise CMS sales teams.*"
       },
       "tone": "base",
       "type": "hero",
@@ -72,22 +72,22 @@
       "id": "how",
       "props": {
         "body": "No admin panel, no forms to learn, nothing to train your client on. Two moves, and the second one is optional if you like living dangerously.",
-        "caption": "One minute. No sales call.",
+        "caption": "25 seconds showcase. No sales call.",
         "duration": "0:25",
         "eyebrow": "How it works",
-        "heading": "If you can click, you can BearMinion.",
+        "heading": "If you can click, you can BearMinion",
         "marks": [
           {
-            "end": 37,
+            "end": 36,
             "font": "serif",
-            "italic": true,
-            "start": 26
+            "start": 30,
+            "weight": "medium"
           }
         ],
         "numbered": false,
         "poster": {
           "alt": "Image",
-          "src": "src/assets/uploads/bearminion-poster-2ccd5676.png"
+          "src": "src/assets/uploads/bearminion-poster-v2-b1f3111c.png"
         },
         "steps": [
           {
@@ -421,6 +421,19 @@
         "releases": [
           {
             "items": [
+              "One cookie choice for your site and its subdomains: answer on example.com and docs.example.com stops asking. Nothing to set up.",
+              "Count visits without cookies: Google's advanced Consent Mode, one switch under Site → Cookie banner.",
+              "A choice your visitors already made carries over, with its date, so nobody is asked twice."
+            ],
+            "link": {
+              "href": "https://github.com/langehelp-software/bearminion/blob/main/packages/editor/CHANGELOG.md#1240",
+              "label": "Read more on GitHub"
+            },
+            "title": "One cookie choice, and cookieless counts",
+            "version": "1.24"
+          },
+          {
+            "items": [
               "Navigation, Footer, Site and Design open beside the page, so what you change stays in view.",
               "Errors and warnings stack as toasts in one corner and stay until you dismiss them.",
               "A library image picked for an empty slot saves again, and Media shows placeholders while it loads."
@@ -444,20 +457,6 @@
             },
             "title": "Code tabs, Compare and Changelog",
             "version": "1.23"
-          },
-          {
-            "items": [
-              "A navigation, a top bar and an inspector around the live page. You still edit on the page.",
-              "Every page and entry in a list with search, a Draft tab and bulk delete. Drafts stay out of the build.",
-              "Two Indexing switches turn search engines and `sitemap.xml` off for the whole site."
-            ],
-            "link": {
-              "href": "https://github.com/langehelp-software/bearminion/blob/main/packages/editor/CHANGELOG.md#1220",
-              "label": "Read more on GitHub"
-            },
-            "ref": "26ec6a6",
-            "title": "An editor shell around the page",
-            "version": "1.22"
           }
         ]
       },
@@ -595,6 +594,80 @@
       "variant": "terminal"
     },
     {
+      "anchor": "feedback",
+      "id": "feedback",
+      "props": {
+        "body": "Here's where we're heading. If something you need isn't on the list, or you'd order it differently, tell us. The roadmap moves with the people using it.",
+        "bugLink": {
+          "href": "https://github.com/langehelp-software/bearminion/issues/new",
+          "label": "Found a bug? Open an issue instead"
+        },
+        "channels": [
+          {
+            "description": "Public, on GitHub. Best for feature ideas.",
+            "href": "https://github.com/langehelp-software/bearminion/discussions/categories/ideas",
+            "icon": "chat",
+            "title": "Start a discussion",
+            "variant": "primary"
+          },
+          {
+            "description": "Contact form. For anything you'd rather not post.",
+            "href": "#get-in-touch",
+            "icon": "mail",
+            "title": "Write to us privately",
+            "variant": "secondary"
+          }
+        ],
+        "eyebrow": "Feedback & ideas",
+        "heading": "Tell the minion what to build next.",
+        "marks": [
+          {
+            "end": 35,
+            "font": "serif",
+            "italic": true,
+            "start": 16
+          }
+        ],
+        "pitch": {
+          "href": "https://github.com/langehelp-software/bearminion/discussions/new?category=ideas",
+          "label": "Pitch it on GitHub"
+        },
+        "pitchStatus": "Your idea",
+        "roadmap": [
+          {
+            "body": "Edit your site from Claude, Cursor or any MCP client. Changes land as commits, same as the editor.",
+            "parts": [
+              {
+                "body": "Runs next to your dev server.",
+                "title": "Local"
+              },
+              {
+                "body": "Hosted, for live sites.",
+                "title": "Online"
+              }
+            ],
+            "status": "Up next",
+            "title": "MCP server"
+          },
+          {
+            "body": "Build contact and booking forms in the editor, without asking a developer for a new section.",
+            "status": "Then",
+            "title": "Form builder"
+          },
+          {
+            "body": "More of the theme exposed to editors: colours, type, spacing and section variants, within the limits the developer sets.",
+            "status": "Then",
+            "title": "Theme configuration"
+          }
+        ],
+        "roadmapLabel": "after v1.24",
+        "roadmapTitle": "Roadmap"
+      },
+      "tone": "subtle",
+      "type": "feedback",
+      "variant": "split"
+    },
+    {
       "anchor": "get-in-touch",
       "id": "contact",
       "props": {
@@ -673,7 +746,7 @@
           "https://www.npmjs.com/package/bearminion"
         ],
         "softwareRequirements": "Node.js 22.12 or later, Astro 7.3 or later",
-        "softwareVersion": "1.23.1",
+        "softwareVersion": "1.24.0",
         "url": "https://bearminion.com/"
       }
     ],

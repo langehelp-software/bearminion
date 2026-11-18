@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CONSENT_HREF, CONSENT_HREF_MESSAGE, CONSENT_LIMITS, CONSENT_REOPEN } from './consent.js'
+import { CONSENT_HREF, CONSENT_HREF_MESSAGE, CONSENT_LIMITS, CONSENT_MODES, CONSENT_REOPEN } from './consent.js'
 import { jsonLdSchema } from './json-ld.js'
 import { addMarkIssues, imageSchema, linkSchema, textMarkSchema, textSchema, toneSchema } from './fields.js'
 import { walkLinkIds } from './link-ids.js'
@@ -166,6 +166,8 @@ export const siteConsentSchema = z
   .object({
     /** Only `false` turns the banner off. Absent means on. */
     enabled: z.boolean().optional(),
+    /** Google Consent Mode before the visitor accepts. Absent means `basic`: nothing loads. */
+    mode: z.enum(CONSENT_MODES).optional(),
     /** Where visitors reopen the banner. Absent means a link in the footer. */
     reopen: z.enum(CONSENT_REOPEN).optional(),
     title: z.string().min(1).max(CONSENT_LIMITS.title).optional(),
