@@ -111,6 +111,7 @@ export type { Page, PageStatus, Seo } from './page.js'
 export {
   buttonStyles,
   motionOption,
+  sectionSpaces,
   themeModes,
   toneOption,
   tones,
@@ -122,10 +123,11 @@ export type {
   EnumOption,
   NumberOption,
   Option,
+  SectionSpace,
   StringOption,
 } from './section-options.js'
 
-export { anchorSchema, createSectionSchema, sectionIdSchema } from './section-schema.js'
+export { anchorSchema, createSectionSchema, sectionIdSchema, sectionSpaceSchema } from './section-schema.js'
 export type { BaseSection, PropsOf, SectionOf } from './section-schema.js'
 
 export {

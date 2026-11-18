@@ -118,7 +118,7 @@ const props = section.props
 const field = (path: string) => `sections.${index}.props.${path}`
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={section.motion ?? motion}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={section.motion ?? motion} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   <div class="section-container flex flex-col gap-[clamp(2rem,4cqi,3rem)]">
     <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} class="gap-5" />
     <ol class:list={['grid gap-6', section.variant === 'columns' && '@min-[760px]:grid-cols-3']}>
@@ -146,7 +146,8 @@ const field = (path: string) => `sections.${index}.props.${path}`
 
 The parts that matter to the editor:
 
-- **`SectionShell`** draws the section's frame: its `id`, its anchor, the tone's colours and the motion. Every section starts with it, so tones and motion work without you touching them.
+- **`SectionShell`** draws the section's frame: its `id`, its anchor, the tone's colours, the motion and the spacing (`data-space-top` / `data-space-bottom`). Every section starts with it, so tones, motion and spacing work without you touching them.
+- **`section-container`** pads the section top and bottom, scaled by its spacing. A layout that needs other padding adds `section-space` and the same values as `[--section-pt:…]` / `[--section-pb:…]` next to its `pt-*` / `pb-*`, so the editor's None · Half · Full scales them. A `pt-*` or `pb-*` alone ignores the setting.
 - **`data-field`** on every value you want editable on the page. The value is its path in the page file: `sections.2.props.milestones.1.title` is the title of the second milestone in the third section. For list items, put the item's position in the path, as `milestones.${item}.title` does. A value without `data-field` is still edited in the inspector, just not by clicking it on the page.
 - **`markdown={milestone.text}`** on `Typography` renders rich text, so bold and links in the sentence show. Plain text fields (`year`, `title`) go in as children.
 - **`section-container`**, `rounded-card`, `bg-surface`, `ring-line`, `text-muted` and `border-line` are the theme's classes, so the section follows the site's colours and every tone. `@min-[760px]:` is a container query: the columns layout switches at the section's width, not the window's.

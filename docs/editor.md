@@ -157,7 +157,7 @@ Apply is blocked while the JSON is invalid. The dialog edits a copy: Apply write
 The tab has three groups, top to bottom:
 
 1. **Section.** The section picker and the anchor.
-2. **Layout.** Variant, tone, and motion (Site default, On or Off).
+2. **Layout.** Variant, tone, motion (Site default, On or Off), and top and bottom spacing (None, Half or Full of the section's own padding). Spacing shows only when the theme renders it: its sections carry `data-space-top` (see [Custom sections](custom-section.md)).
 3. **Content.** The other options and every prop.
 
 Choices with up to four values are segmented controls, longer lists are selects, and a field with icons (a step's icon) is an icon grid. Props the current options do not use are hidden, such as the poster while a Media section shows an image. Their values stay in the file.
@@ -357,7 +357,7 @@ In dev, a `src/assets/` path that is not in the eager `import.meta.glob` is rend
 Edits stay in an in-memory draft.
 
 - Text you type on the page changes the DOM immediately.
-- Tone and motion update the `data-*` attributes on the section, so tone colors follow the existing CSS.
+- Tone, motion and spacing update the `data-*` attributes on the section, so the existing CSS repaints it.
 - A variant change, a section you add, duplicate, move or delete, any value you type in the inspector, and a value with no text of its own on the page (a video link, a section option, an optional field filled or emptied) go to `POST /__bearminion/api/preview`. The page shows an inspector edit about a fifth of a second after you stop typing.
 
 The dev server validates that JSON, renders the page sections with Astro's container API through the Vite SSR module runner (the theme's `defineThemePreview` module, `/src/lib/render-preview.ts` by default), and returns HTML. The overlay replaces `main#content`, runs any script in the new markup that the page has not loaded yet, and dispatches `bearminion:preview` so scripts already on the page can bind the new nodes. The response is not written to disk.

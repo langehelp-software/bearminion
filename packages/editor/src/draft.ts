@@ -12,6 +12,8 @@ export interface SectionDraft {
   variant?: string
   tone?: string
   motion?: boolean
+  spaceTop?: string
+  spaceBottom?: string
   props: Record<string, unknown>
 }
 

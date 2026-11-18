@@ -22,7 +22,7 @@ const chip = (latest: boolean) =>
   latest ? 'rounded-full bg-accent px-2.5 py-1 font-medium text-on' : 'rounded-full bg-[color-mix(in_oklch,var(--fg)_8%,transparent)] px-2.5 py-1 text-fg'
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   <div class="section-container">
     <div class="flex flex-wrap items-end justify-between gap-x-12 gap-y-5">
       <div class="flex flex-[1_1_28rem] flex-col gap-5">

@@ -176,6 +176,55 @@ describe('Text, Gallery and Media editing', () => {
     await page.close()
   }, 90_000)
 
+  it('scales a section top and bottom spacing from the sidebar and saves only what differs from the design', async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await openClean(page, '/legal')
+    const section = page.locator('[data-section-id="legal"]')
+    const container = section.locator('.section-container')
+    const padding = (side: 'paddingTop' | 'paddingBottom') => container.evaluate((element, key) => getComputedStyle(element)[key], side)
+    expect(await section.getAttribute('data-space-top')).toBe('full')
+    const full = Number.parseFloat(await padding('paddingTop'))
+    expect(full).toBeGreaterThan(0)
+
+    const form = page.locator('[data-editor-field="section:legal"]')
+    const openSettings = async () => {
+      await section.hover()
+      if (!(await form.isVisible())) {
+        await page.getByRole('toolbar', { name: 'Section' }).getByRole('button', { name: 'Settings', exact: true }).click()
+      }
+      await form.waitFor()
+    }
+    await openSettings()
+    // The page repaints at once, before any save.
+    await form.getByRole('radiogroup', { name: 'Top spacing' }).getByRole('radio', { name: 'None', exact: true }).click()
+    await page.waitForFunction(() => document.querySelector('[data-section-id="legal"]')?.getAttribute('data-space-top') === 'none')
+    expect(Number.parseFloat(await padding('paddingTop'))).toBe(0)
+    await form.getByRole('radiogroup', { name: 'Bottom spacing' }).getByRole('radio', { name: 'Half', exact: true }).click()
+    await page.waitForFunction(() => document.querySelector('[data-section-id="legal"]')?.getAttribute('data-space-bottom') === 'half')
+    expect(Number.parseFloat(await padding('paddingBottom'))).toBeCloseTo(full / 2, 1)
+
+    const saved = () => readPage('legal').sections[0] as Record<string, unknown>
+    let reloaded = page.waitForEvent('load')
+    await page.keyboard.press('Control+s')
+    await waitFor(() => saved().spaceTop === 'none' && saved().spaceBottom === 'half', 'spacing missing from legal.json')
+    await reloaded
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
+    expect(await section.getAttribute('data-space-top')).toBe('none')
+
+    // Back to Full: the file drops the key instead of storing the default.
+    await openSettings()
+    await form.getByRole('radiogroup', { name: 'Top spacing' }).getByRole('radio', { name: 'Full', exact: true }).click()
+    reloaded = page.waitForEvent('load')
+    await page.keyboard.press('Control+s')
+    await waitFor(() => !('spaceTop' in saved()), 'spaceTop still in legal.json')
+    await reloaded
+    expect(saved().spaceBottom).toBe('half')
+    expect(errors, logs()).toEqual([])
+    await page.close()
+  }, 90_000)
+
   it('opens a gallery picture large in preview, steps through them, and returns focus', async () => {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
     const errors: string[] = []

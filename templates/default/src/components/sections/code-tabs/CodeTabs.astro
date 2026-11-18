@@ -22,7 +22,7 @@ const key = `code-tabs-${section.id}`
 const tabs = props.tabs.map((tab, tabIndex) => ({ ...tab, lines: codeLines(tab.code), id: `${key}-tab-${tabIndex}`, panel: `${key}-panel-${tabIndex}` }))
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   <div class="section-container" data-code-tabs>
     <SectionHeader
       eyebrow={props.eyebrow}
@@ -78,7 +78,7 @@ const tabs = props.tabs.map((tab, tabIndex) => ({ ...tab, lines: codeLines(tab.c
       {/* Dark in every tone, like an editor window. */}
       <div class:list={['min-w-0', side && 'flex-[2_1_30rem]']}>
         {tabs.map((tab, tabIndex) => (
-          <figure
+          <div
             role="tabpanel"
             id={tab.panel}
             aria-labelledby={tab.id}
@@ -86,12 +86,12 @@ const tabs = props.tabs.map((tab, tabIndex) => ({ ...tab, lines: codeLines(tab.c
             hidden={tabIndex !== 0}
             class="flex h-full flex-col overflow-hidden rounded-[1.25rem] bg-[oklch(0.13_0.008_255)] text-[oklch(0.93_0.006_250)] shadow-[inset_0_0_0_1px_oklch(0.97_0.004_250/0.1)]"
           >
-            <figcaption class="flex items-center gap-1.5 border-b border-[oklch(0.97_0.004_250/0.08)] px-[1.125rem] py-3.5 font-mono text-[0.75rem] text-[oklch(0.74_0.01_255)]">
+            <div class="flex items-center gap-1.5 border-b border-[oklch(0.97_0.004_250/0.08)] px-[1.125rem] py-3.5 font-mono text-[0.75rem] text-[oklch(0.74_0.01_255)]">
               <span class="size-[0.5625rem] rounded-full bg-[oklch(0.97_0.004_250/0.16)]" aria-hidden="true" />
               <span class="size-[0.5625rem] rounded-full bg-[oklch(0.97_0.004_250/0.16)]" aria-hidden="true" />
               <span class="size-[0.5625rem] rounded-full bg-[oklch(0.97_0.004_250/0.16)]" aria-hidden="true" />
               {tab.file && <span class="ms-2" data-field={field(`tabs.${tabIndex}.file`)}>{tab.file}</span>}
-            </figcaption>
+            </div>
             {/* tabindex: a panel that scrolls sideways is reachable from the keyboard. */}
             <pre
               tabindex="0"
@@ -99,7 +99,7 @@ const tabs = props.tabs.map((tab, tabIndex) => ({ ...tab, lines: codeLines(tab.c
             ><code>{tab.lines.map((line) => (
               <span class="block whitespace-pre"><span class="inline-block w-8 text-[oklch(0.97_0.004_250/0.22)] select-none" aria-hidden="true">{line.n}</span>{line.code || ' '}{line.note && <span class="text-[oklch(0.87_0.2_145/0.75)]">{line.note}</span>}</span>
             ))}</code></pre>
-          </figure>
+          </div>
         ))}
       </div>
     </div>

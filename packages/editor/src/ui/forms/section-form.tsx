@@ -13,6 +13,13 @@ import { Segmented } from './segmented.js'
 
 const LAYOUT_OPTIONS = ['variant', 'tone', 'motion']
 
+/** The section's top and bottom spacing, as the sidebar offers it: a share of the theme's own padding. */
+const SPACE_CHOICES = [
+  { value: 'none', label: 'None' },
+  { value: 'half', label: 'Half' },
+  { value: 'full', label: 'Full' },
+]
+
 export function SectionForm({
   section,
   index,
@@ -63,6 +70,11 @@ export function SectionForm({
     if (name === 'motion') return current ?? siteMotion
     return current ?? option?.default
   }
+  const setSpace = (name: 'spaceTop' | 'spaceBottom', value: string) => {
+    onField(`sections.${index}.${name}`, value === 'full' ? undefined : value)
+    paintSpace(section.id, name, value)
+  }
+  const spacing = themeHasSpacing(section)
   const shownProp = (key: string) => isPropShown(catalog.showWhen?.[section.type], key, optionValue)
   const isUnknown = (item: SectionDraft) => !Object.hasOwn(catalog.sectionLabels, item.type)
   const labelOf = (item: SectionDraft) => (isUnknown(item) ? `Unknown (${item.type})` : (catalog.sectionLabels[item.type] ?? item.type))
@@ -181,6 +193,22 @@ export function SectionForm({
             onChange={(value) => set('motion', value === 'default' ? undefined : value === 'on')}
           />
         )}
+        {spacing && (
+          <>
+            <Segmented
+              label="Top spacing"
+              value={section.spaceTop ?? 'full'}
+              options={SPACE_CHOICES}
+              onChange={(value) => setSpace('spaceTop', value)}
+            />
+            <Segmented
+              label="Bottom spacing"
+              value={section.spaceBottom ?? 'full'}
+              options={SPACE_CHOICES}
+              onChange={(value) => setSpace('spaceBottom', value)}
+            />
+          </>
+        )}
       </div>
 
       <p class="bm-group">Content</p>
@@ -275,6 +303,21 @@ function paintSection(id: string, name: string, value: unknown) {
   if (!(element instanceof HTMLElement)) return
   if (name === 'tone' || name === 'variant') element.setAttribute(`data-${name}`, String(value))
   if (name === 'motion') element.setAttribute('data-motion', value === false ? 'false' : 'true')
+}
+
+/**
+ * True when the theme renders section spacing: its sections carry `data-space-top`. An older theme does not, so the
+ * sidebar leaves the control out instead of offering one that changes nothing. A value already in the file still shows.
+ */
+function themeHasSpacing(section: SectionDraft): boolean {
+  if (section.spaceTop !== undefined || section.spaceBottom !== undefined) return true
+  return document.querySelector('[data-section-id][data-space-top]') !== null
+}
+
+function paintSpace(id: string, name: 'spaceTop' | 'spaceBottom', value: string) {
+  const element = document.querySelector(`[data-section-id="${CSS.escape(id)}"]`)
+  if (!(element instanceof HTMLElement)) return
+  element.setAttribute(name === 'spaceTop' ? 'data-space-top' : 'data-space-bottom', value)
 }
 
 function sampleItem(value: unknown): unknown {

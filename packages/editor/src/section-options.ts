@@ -10,6 +10,13 @@
 export const tones = ['base', 'subtle', 'inverse', 'brand'] as const
 export const themeModes = ['light', 'dark'] as const
 
+/**
+ * How much of its own top or bottom padding a section keeps: `none` 0, `half` 0.5, `full` 1 (the theme's design).
+ * Unset means `full`. The theme multiplies each section's padding by it, so a section keeps its own proportions.
+ */
+export const sectionSpaces = ['none', 'half', 'full'] as const
+export type SectionSpace = (typeof sectionSpaces)[number]
+
 /** Link looks the editor offers on a section button. Unset keeps the section's own design. A theme styles each one. */
 export const buttonStyles = ['primary', 'secondary', 'tertiary'] as const
 

@@ -37,7 +37,12 @@ import { consentText as copy, sharedDomain } from '../consent'
   import { initConsent } from 'bearminion-site/src/lib/consent-client'
 
   const banner = document.querySelector<HTMLElement>('[data-consent-banner]')
-  if (banner) initConsent(banner)
+  if (banner) {
+    // The footer sits in Starlight's main pane, which isolates its own stacking context, so no z-index there can lift
+    // the banner over the sidebar. Moved to <body>, it stacks against the page itself.
+    document.body.append(banner)
+    initConsent(banner)
+  }
 </script>
 
 <style>

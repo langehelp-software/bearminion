@@ -2,11 +2,15 @@ import { z } from 'zod'
 import type { SectionDefinition } from './define-section.js'
 import { toneSchema, type Tone } from './fields.js'
 import type { SectionRegistry } from './model.js'
+import { sectionSpaces, type SectionSpace } from './section-options.js'
 
 export const sectionIdSchema = z
   .string()
   .min(1)
   .regex(/^[A-Za-z0-9_-]+$/, 'Section id must contain only letters, numbers, "_" and "-"')
+
+/** A section's top or bottom spacing. Unset means `full`. */
+export const sectionSpaceSchema = z.enum(sectionSpaces)
 
 export const anchorSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Anchor must be a lowercase slug')
 
@@ -18,6 +22,10 @@ export interface BaseSection {
   variant: string
   tone: Tone
   motion?: boolean | undefined
+  /** Share of the section's own top padding: `none`, `half`, or unset for all of it. */
+  spaceTop?: SectionSpace | undefined
+  /** Share of the section's own bottom padding: `none`, `half`, or unset for all of it. */
+  spaceBottom?: SectionSpace | undefined
   props: unknown
 }
 
@@ -30,6 +38,8 @@ type EntryOf<TKey extends string, TDefinition> =
         variant: TVariant
         tone: Tone
         motion?: boolean | undefined
+        spaceTop?: SectionSpace | undefined
+        spaceBottom?: SectionSpace | undefined
         props: z.infer<TSchema>
       }
     : never
@@ -51,6 +61,8 @@ function sectionEntry(definition: SectionDefinition) {
     variant: z.enum(variants).default(definition.defaultVariant),
     tone: toneSchema,
     motion: z.boolean().optional(),
+    spaceTop: sectionSpaceSchema.optional(),
+    spaceBottom: sectionSpaceSchema.optional(),
     props: definition.schema,
   })
 }

@@ -1,5 +1,5 @@
 ---
-import type { Tone } from 'bearminion'
+import type { SectionSpace, Tone } from 'bearminion'
 import { cn } from '../../lib/cn'
 
 interface Props {
@@ -10,12 +10,16 @@ interface Props {
   variant: string
   tone: Tone
   motion: boolean
+  /** Share of the section's own top padding. Unset is all of it. */
+  spaceTop?: SectionSpace | undefined
+  /** Share of the section's own bottom padding. Unset is all of it. */
+  spaceBottom?: SectionSpace | undefined
   /** Logo strip reveals 16px; everything else 28px. */
   reveal?: '16' | '28'
   class?: string
 }
 
-const { id, anchor, type, variant, tone, motion, reveal = '28', class: className } = Astro.props
+const { id, anchor, type, variant, tone, motion, spaceTop, spaceBottom, reveal = '28', class: className } = Astro.props
 ---
 
 <section
@@ -25,9 +29,37 @@ const { id, anchor, type, variant, tone, motion, reveal = '28', class: className
   data-variant={variant}
   data-tone={tone}
   data-motion={motion ? 'true' : 'false'}
+  data-space-top={spaceTop ?? 'full'}
+  data-space-bottom={spaceBottom ?? 'full'}
   class={cn('relative overflow-clip', className)}
 >
   <div data-reveal={reveal}>
     <slot />
   </div>
 </section>
+
+<style is:global>
+  /*
+   * Spacing: the section keeps `--space-top` / `--space-bottom` (0, 0.5 or 1) of its own vertical padding. It lives here,
+   * not in global.css, so a site that updates its sections gets it with them. Unlayered, so it wins over the
+   * `section-container` utility. A layout with other padding keeps its `pt-*` / `pb-*` (the fallback while this CSS is missing), sets the same values
+   * as `--section-pt` / `--section-pb`, and adds `section-space`.
+   */
+  [data-space-top="half"] {
+    --space-top: 0.5;
+  }
+  [data-space-top="none"] {
+    --space-top: 0;
+  }
+  [data-space-bottom="half"] {
+    --space-bottom: 0.5;
+  }
+  [data-space-bottom="none"] {
+    --space-bottom: 0;
+  }
+  [data-section-id] .section-container,
+  [data-section-id] .section-space {
+    padding-top: calc(var(--section-pt, clamp(4rem, 2rem + 6cqi, 8rem)) * var(--space-top, 1));
+    padding-bottom: calc(var(--section-pb, clamp(4rem, 2rem + 6cqi, 8rem)) * var(--space-bottom, 1));
+  }
+</style>

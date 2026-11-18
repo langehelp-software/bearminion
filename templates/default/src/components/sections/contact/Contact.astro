@@ -33,7 +33,7 @@ const formAttrs = {
 }
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   {
     section.variant === 'split' && (
       <div class="section-container grid items-start gap-12 @min-[880px]:grid-cols-[minmax(22rem,0.85fr)_minmax(0,1.15fr)]" data-contact>

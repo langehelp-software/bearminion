@@ -28,10 +28,10 @@ function showImage(src: string) {
 }
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} reveal="16">
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom} reveal="16">
   {
     section.variant === 'row' && (
-      <div class="mx-auto flex max-w-[80rem] flex-wrap items-center gap-8 px-[clamp(1.25rem,4cqi,3rem)] py-10">
+      <div class="mx-auto flex max-w-[80rem] flex-wrap items-center gap-8 px-[clamp(1.25rem,4cqi,3rem)] py-10 section-space [--section-pb:2.5rem] [--section-pt:2.5rem]">
         {props.label && (
           <p class="max-w-[13rem] flex-[0_1_13rem] font-mono text-[0.75rem] tracking-[0.04em] text-muted uppercase" data-field={field('label')}>
             {props.label}
@@ -55,7 +55,7 @@ function showImage(src: string) {
   }
   {
     section.variant === 'grid' && (
-      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] py-12">
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] py-12 section-space [--section-pb:3rem] [--section-pt:3rem]">
         {props.label && (
           <p class="mb-8 text-center font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase" data-field={field('label')}>
             {props.label}
@@ -79,7 +79,7 @@ function showImage(src: string) {
   }
   {
     section.variant === 'marquee' && (
-      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] py-12">
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] py-12 section-space [--section-pb:3rem] [--section-pt:3rem]">
         {props.label && (
           <p class="mb-8 text-center font-mono text-[0.75rem] tracking-[0.08em] text-muted uppercase" data-field={field('label')}>
             {props.label}
