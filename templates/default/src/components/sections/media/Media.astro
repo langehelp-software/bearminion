@@ -36,13 +36,13 @@ const player = {
 }
 ---
 
-{rendered && (<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+{rendered && (<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   {
     section.variant === 'centered' && (
       <div
         class:list={[
-          'mx-auto flex max-w-[80rem] flex-col items-center gap-5 px-[clamp(1.25rem,4cqi,3rem)] pb-[clamp(4rem,2rem+6cqi,8rem)] text-center',
-          intro && 'pt-[clamp(4rem,2rem+6cqi,8rem)]',
+          'mx-auto flex max-w-[80rem] flex-col items-center gap-5 px-[clamp(1.25rem,4cqi,3rem)] pb-[clamp(4rem,2rem+6cqi,8rem)] section-space text-center',
+          intro ? 'pt-[clamp(4rem,2rem+6cqi,8rem)]' : '[--section-pt:0rem]',
         ]}
       >
         {intro && (

@@ -18,7 +18,7 @@ const value =
   'font-sans font-semibold leading-[0.9] tracking-[-0.05em] text-fg'
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   {
     section.variant === 'row' && (
       <div class="section-container">

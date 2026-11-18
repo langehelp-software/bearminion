@@ -24,7 +24,7 @@ const wideFourth = props.items.length === 4
 const spanLast = (itemIndex: number) => !wideFourth && itemIndex === props.items.length - 1 && props.items.length % 2 === 0
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   {
     section.variant === 'cards' && (
       <div class="section-container">

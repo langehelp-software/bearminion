@@ -53,7 +53,7 @@ const larges = await Promise.all(images.map((image) => (props.lightbox && viewab
 const lightbox = props.lightbox && larges.some(Boolean)
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   <div class="section-container flex flex-col gap-[clamp(2rem,4cqi,3.5rem)]">
     <SectionHeader eyebrow={props.eyebrow} heading={props.heading} marks={props.marks} size="h2-md" field={field} class="gap-5" />
     {props.body && <Typography as="div" size="lead" color="muted" class="max-w-[40rem]" data-field={field('body')} markdown={props.body} />}

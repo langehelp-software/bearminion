@@ -34,7 +34,7 @@ const keycap = 'min-w-11 rounded-[0.625rem] px-2.5 py-2 text-center font-mono te
 const hasVideo = Boolean(props.video) || placeholders
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   {
     section.variant === 'columns' && (
       <div class="section-container flex flex-col gap-[clamp(2.5rem,5cqi,4rem)]">
@@ -237,7 +237,7 @@ const hasVideo = Boolean(props.video) || placeholders
   }
   {
     section.variant === 'panel' && (
-      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] py-[clamp(2rem,1rem+3cqi,4rem)]">
+      <div class="mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] py-[clamp(2rem,1rem+3cqi,4rem)] section-space [--section-pb:clamp(2rem,1rem+3cqi,4rem)] [--section-pt:clamp(2rem,1rem+3cqi,4rem)]">
         {/* The accent panel: a band that stands out from the sections around it in every tone. */}
         <div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,24rem),1fr))] items-center gap-[clamp(1.5rem,4cqi,4rem)] rounded-panel bg-accent p-[clamp(1.5rem,4cqi,3rem)] text-on [&_.text-muted]:text-[color-mix(in_oklch,var(--on)_78%,transparent)] [&_.text-link]:text-on">
           <div class="flex flex-col items-start gap-3">

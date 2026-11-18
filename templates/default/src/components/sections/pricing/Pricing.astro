@@ -19,7 +19,7 @@ const discount = props.yearlyDiscount
 const featured = props.plans.find((plan) => plan.featured) ?? props.plans[0]
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   {
     section.variant === 'tiers' && (
       <div class="section-container" data-pricing data-discount={discount}>

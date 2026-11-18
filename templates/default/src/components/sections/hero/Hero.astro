@@ -32,7 +32,7 @@ const hasActions = Boolean(primary || secondary || action)
 const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor beside live page preview' }
 ---
 
-<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal}>
+<SectionShell id={section.id} anchor={section.anchor} type={section.type} variant={section.variant} tone={section.tone} motion={reveal} spaceTop={section.spaceTop} spaceBottom={section.spaceBottom}>
   {
     // Centred on the heading and faded out well before the edges, so it never meets the section above in a seam.
     props.glow && (
@@ -46,7 +46,7 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
   }
   {
     section.variant === 'split' && (
-      <div class="relative mx-auto grid max-w-[80rem] grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] items-center gap-[clamp(2.5rem,5cqi,5rem)] px-[clamp(1.25rem,4cqi,3rem)] py-[clamp(3.5rem,2rem+5cqi,7rem)]">
+      <div class="relative mx-auto grid max-w-[80rem] grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] items-center gap-[clamp(2.5rem,5cqi,5rem)] px-[clamp(1.25rem,4cqi,3rem)] py-[clamp(3.5rem,2rem+5cqi,7rem)] section-space [--section-pb:clamp(3.5rem,2rem+5cqi,7rem)] [--section-pt:clamp(3.5rem,2rem+5cqi,7rem)]">
         <div class="flex flex-col items-start gap-6">
           {props.badge ? <HeroBadge badge={props.badge} field={field} /> : props.eyebrow && <Pill data-field={field('eyebrow')}>{props.eyebrow}</Pill>}
           {
@@ -84,7 +84,7 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
   }
   {
     section.variant === 'centered' && (
-      <div class="relative mx-auto flex max-w-[80rem] flex-col items-center gap-6 px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(4rem,2rem+6cqi,8rem)] pb-[clamp(5rem,3rem+7cqi,10rem)] text-center">
+      <div class="relative mx-auto flex max-w-[80rem] flex-col items-center gap-6 px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(4rem,2rem+6cqi,8rem)] pb-[clamp(5rem,3rem+7cqi,10rem)] section-space [--section-pb:clamp(5rem,3rem+7cqi,10rem)] [--section-pt:clamp(4rem,2rem+6cqi,8rem)] text-center">
         {props.badge ? <HeroBadge badge={props.badge} field={field} /> : props.eyebrow && <Pill data-field={field('eyebrow')}>{props.eyebrow}</Pill>}
         {
           props.heading && (
@@ -128,7 +128,7 @@ const media = props.image ?? { src: 'placeholder', alt: 'hero visual — editor 
   }
   {
     section.variant === 'editorial' && (
-      <div class="relative mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(3.5rem,2rem+5cqi,7rem)] pb-[clamp(2.5rem,2rem+3cqi,5rem)]">
+      <div class="relative mx-auto max-w-[80rem] px-[clamp(1.25rem,4cqi,3rem)] pt-[clamp(3.5rem,2rem+5cqi,7rem)] pb-[clamp(2.5rem,2rem+3cqi,5rem)] section-space [--section-pb:clamp(2.5rem,2rem+3cqi,5rem)] [--section-pt:clamp(3.5rem,2rem+5cqi,7rem)]">
         {
           props.eyebrow && (
             <Typography as="p" size="eyebrow" color="muted" data-field={field('eyebrow')}>
