@@ -594,6 +594,80 @@
       "variant": "terminal"
     },
     {
+      "anchor": "feedback",
+      "id": "feedback",
+      "props": {
+        "body": "Here's where we're heading. If something you need isn't on the list, or you'd order it differently, tell us. The roadmap moves with the people using it.",
+        "bugLink": {
+          "href": "https://github.com/langehelp-software/bearminion/issues/new",
+          "label": "Found a bug? Open an issue instead"
+        },
+        "channels": [
+          {
+            "description": "Public, on GitHub. Best for feature ideas.",
+            "href": "https://github.com/langehelp-software/bearminion/discussions/categories/ideas",
+            "icon": "chat",
+            "title": "Start a discussion",
+            "variant": "primary"
+          },
+          {
+            "description": "Contact form. For anything you'd rather not post.",
+            "href": "#get-in-touch",
+            "icon": "mail",
+            "title": "Write to us privately",
+            "variant": "secondary"
+          }
+        ],
+        "eyebrow": "Feedback & ideas",
+        "heading": "Tell the minion what to build next.",
+        "marks": [
+          {
+            "end": 35,
+            "font": "serif",
+            "italic": true,
+            "start": 16
+          }
+        ],
+        "pitch": {
+          "href": "https://github.com/langehelp-software/bearminion/discussions/new?category=ideas",
+          "label": "Pitch it on GitHub"
+        },
+        "pitchStatus": "Your idea",
+        "roadmap": [
+          {
+            "body": "Edit your site from Claude, Cursor or any MCP client. Changes land as commits, same as the editor.",
+            "parts": [
+              {
+                "body": "Runs next to your dev server.",
+                "title": "Local"
+              },
+              {
+                "body": "Hosted, for live sites.",
+                "title": "Online"
+              }
+            ],
+            "status": "Up next",
+            "title": "MCP server"
+          },
+          {
+            "body": "Build contact and booking forms in the editor, without asking a developer for a new section.",
+            "status": "Then",
+            "title": "Form builder"
+          },
+          {
+            "body": "More of the theme exposed to editors: colours, type, spacing and section variants, within the limits the developer sets.",
+            "status": "Then",
+            "title": "Theme configuration"
+          }
+        ],
+        "roadmapLabel": "after v1.24",
+        "roadmapTitle": "Roadmap"
+      },
+      "tone": "subtle",
+      "type": "feedback",
+      "variant": "split"
+    },
+    {
       "anchor": "get-in-touch",
       "id": "contact",
       "props": {
