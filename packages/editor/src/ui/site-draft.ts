@@ -1,6 +1,6 @@
 import { getAt, type NavLink } from '../draft.js'
 import type { JsonLdBlock, SiteJsonLdSource } from '../json-ld.js'
-import type { ConsentReopen, ConsentText, ConsentTextKey } from '../consent.js'
+import type { ConsentMode, ConsentReopen, ConsentText, ConsentTextKey } from '../consent.js'
 import type { ThemeColors } from '../theme-colors.js'
 import { isRecord } from './shared.js'
 import type { SiteDraft } from './types.js'
@@ -69,6 +69,11 @@ export function hasAnalyticsSnippet(site: SiteDraft): boolean {
     const value = getAt(site, path)
     return typeof value === 'string' && value.trim() !== ''
   })
+}
+
+/** The draft's Consent Mode. Anything but `advanced` is basic. */
+export function consentModeOf(site: SiteDraft): ConsentMode {
+  return getAt(site, 'consent.mode') === 'advanced' ? 'advanced' : 'basic'
 }
 
 /** Where the draft reopens the banner. Anything but `icon` is the footer link. */

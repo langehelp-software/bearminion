@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import {
-  CONSENT_COPY,
   CONSENT_LIMITS,
+  type ConsentMode,
   type ConsentReopen,
   type ConsentText,
   type ConsentTextKey,
   consentCopy,
+  consentDefaults,
   consentTextIssues,
 } from '../../consent.js'
 import { Field } from '../forms/fields.js'
@@ -16,8 +17,8 @@ const KEYS: readonly ConsentTextKey[] = ['title', 'body', 'accept', 'reject', 's
 
 type Draft = Record<ConsentTextKey, string>
 
-function startDraft(consent: ConsentText): Draft {
-  const copy = consentCopy(consent)
+function startDraft(consent: ConsentText, mode: ConsentMode): Draft {
+  const copy = consentCopy({ ...consent, mode })
   return {
     title: copy.title,
     body: copy.body,
@@ -33,11 +34,12 @@ function startDraft(consent: ConsentText): Draft {
  * What the draft saves: only the texts that differ from the theme's own, so a site that never changed a
  * text keeps following the default. An emptied field goes back to the default too.
  */
-export function savedConsentText(draft: Draft): ConsentText {
+export function savedConsentText(draft: Draft, mode: ConsentMode = 'basic'): ConsentText {
+  const defaults = consentDefaults(mode)
   const saved: ConsentText = {}
   for (const key of KEYS) {
     const value = draft[key].trim()
-    const fallback: string = key === 'policyHref' ? '' : CONSENT_COPY[key]
+    const fallback: string = key === 'policyHref' ? '' : defaults[key]
     if (value !== '' && value !== fallback) saved[key] = value
   }
   return saved
@@ -49,22 +51,25 @@ export function savedConsentText(draft: Draft): ConsentText {
  */
 export function ConsentDialog({
   consent,
+  mode = 'basic',
   reopen: startReopen,
   onApply,
   onClose,
 }: {
   consent: ConsentText
+  /** The site's Consent Mode, which picks the default message. The sidebar sets it, not this dialog. */
+  mode?: ConsentMode
   reopen: ConsentReopen
   onApply: (text: ConsentText, reopen: ConsentReopen) => void
   onClose: () => void
 }) {
   const root = useRef<HTMLDivElement>(null)
-  const [draft, setDraft] = useState<Draft>(() => startDraft(consent))
+  const [draft, setDraft] = useState<Draft>(() => startDraft(consent, mode))
   const [reopen, setReopen] = useState<ConsentReopen>(startReopen)
-  const saved = savedConsentText(draft)
+  const saved = savedConsentText(draft, mode)
   const issues = consentTextIssues(saved)
   const valid = Object.keys(issues).length === 0
-  const preview = consentCopy(saved)
+  const preview = consentCopy({ ...saved, mode })
 
   useEffect(() => {
     root.current?.querySelector<HTMLElement>('input, textarea')?.focus()

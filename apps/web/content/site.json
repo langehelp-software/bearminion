@@ -9,6 +9,8 @@
     "src": "src/assets/uploads/logo.png"
   },
   "consent": {
+    "body": "bearminion.com and docs.bearminion.com count visits anonymously, without cookies. If you accept, they also use analytics cookies to recognise returning visitors. Your choice applies to both sites.",
+    "mode": "advanced",
     "reopen": "icon"
   },
   "favicon": {

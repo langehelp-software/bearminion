@@ -129,14 +129,17 @@ export { anchorSchema, createSectionSchema, sectionIdSchema } from './section-sc
 export type { BaseSection, PropsOf, SectionOf } from './section-schema.js'
 
 export {
+  CONSENT_ADVANCED_BODY,
   CONSENT_COPY,
   CONSENT_HREF,
   CONSENT_LIMITS,
+  CONSENT_MODES,
   CONSENT_REOPEN,
   consentCopy,
+  consentDefaults,
   consentTextIssues,
 } from './consent.js'
-export type { ConsentCopy, ConsentReopen, ConsentText, ConsentTextKey } from './consent.js'
+export type { ConsentCopy, ConsentMode, ConsentReopen, ConsentText, ConsentTextKey } from './consent.js'
 
 export {
   BRAND_LOGO_HEIGHT,

@@ -1008,6 +1008,12 @@ describe('site consent schema', () => {
     expect(siteConsentSchema.safeParse({ enabled: 'yes' }).success).toBe(false)
   })
 
+  it('takes basic or advanced Consent Mode, and nothing else', () => {
+    expect(siteConsentSchema.parse({ mode: 'advanced' })).toEqual({ mode: 'advanced' })
+    expect(siteConsentSchema.parse({ mode: 'basic' })).toEqual({ mode: 'basic' })
+    expect(siteConsentSchema.safeParse({ mode: 'full' }).success).toBe(false)
+  })
+
   it('takes a footer link or a corner icon to reopen the banner, and nothing else', () => {
     expect(siteConsentSchema.parse({ reopen: 'icon' })).toEqual({ reopen: 'icon' })
     expect(siteConsentSchema.parse({ reopen: 'footer' })).toEqual({ reopen: 'footer' })

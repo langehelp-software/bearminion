@@ -1,0 +1,39 @@
+---
+// Starlight's footer, with the "Cookie settings" link, the held-back body snippet and the consent banner.
+import Default from '@astrojs/starlight/components/Footer.astro'
+import { analytics, asks, consentText, gated } from '../consent'
+import ConsentBanner from './ConsentBanner.astro'
+---
+
+<Default />
+{
+  asks && (
+    <p class="bm-consent-settings">
+      <button type="button" data-consent-open>{consentText.settings}</button>
+    </p>
+  )
+}
+{analytics?.bodyEnd && !asks && <Fragment set:html={analytics.bodyEnd} />}
+{gated && analytics?.bodyEnd && <template data-consent-snippet="body" set:html={analytics.bodyEnd} />}
+{asks && <ConsentBanner />}
+
+<style>
+  .bm-consent-settings {
+    margin-top: 1rem;
+    text-align: center;
+  }
+  .bm-consent-settings button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+    text-underline-offset: 0.25em;
+  }
+  .bm-consent-settings button:hover {
+    color: var(--sl-color-white);
+    text-decoration: underline;
+  }
+</style>

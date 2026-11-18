@@ -32,22 +32,17 @@ BearMinion is an Astro website you edit by clicking on it. Your content is plain
 
 - [Astro integration and package](integration.md): the `bearminion()` options in `astro.config.ts`, the entry points, content stores and the hosted entry.
 - [Dev API](dev-api.md): the localhost API the editor uses, with curl examples.
-- [Markdown collections](collections.md): edit an existing Astro content collection through the editor API, with your own schema and no reformatting of what you did not touch. Experimental: there is no browser editor for it yet.
+- [Markdown collections](collections.md): edit an Astro content collection through the editor API, checked against your Zod schema, with no reformatting of what you did not touch. Experimental: there is no browser editor for it yet.
 
 ## Already have an Astro site?
 
-BearMinion is built around a site made from its starter: the click-to-edit editor needs your pages built from sections, with a section registry and a site definition passed to `bearminion()`. There is no one-command install into an existing Astro site.
-
-What you can do today:
+BearMinion is built around a site made from its starter: the click-to-edit editor needs your pages built from sections, with a section registry and a site definition passed to `bearminion()`. It does not install into an existing Astro site.
 
 - **Start a new site and move your content in.** Create one with [Getting started](getting-started.md), then rebuild your pages from its sections or [your own](custom-section.md).
-- **Keep your Markdown, edit it through the API.** [Markdown collections](collections.md) edits an existing collection in place with the schema you already have. It still needs `bearminion()` configured with sections and a site definition, and it has no browser editor yet.
-- **Wire it up by hand.** [Building a theme](themes.md) and [Astro integration and package](integration.md) describe everything the editor expects from a site. Nothing about that path is tested beyond the starter.
+- **Bring your Markdown along (experimental).** [Markdown collections](collections.md) edits a collection's Markdown files through the editor API: each save is checked against the collection's Zod schema and changes only the lines you edited. There is no browser editor for it yet, and it needs the starter's setup (sections and a site definition), so it works in a site made from the starter, not in your current one.
 
-## Other ways in
-
-To start from Astro's own CLI, `npm create astro@latest -- --template langehelp-software/bearminion/templates/default my-site` copies the same template as it is in the repository, Storybook and BearMinion branding included.
-
-The template's own guide covers its components, SEO, Storybook and [adding a section type](../templates/default/README.md#add-a-section-type).
+## How BearMinion is put together
 
 BearMinion is made of three parts: [`bearminion`](https://www.npmjs.com/package/bearminion) (the content model, the Astro integration and the editor), the [default template](../templates/default), a complete site you own after creating it, and [`create-bearminion`](../packages/create-bearminion), which copies that template into a new folder.
+
+The template's own guide covers its components, SEO, Storybook and [adding a section type](../templates/default/README.md#add-a-section-type). [Building a theme](themes.md) and [Astro integration and package](integration.md) are the reference for what the editor expects from a site.

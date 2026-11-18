@@ -5,6 +5,14 @@ export const CONSENT_LIMITS = { title: 80, body: 400, button: 30, link: 40 } as 
 export const CONSENT_REOPEN = ['footer', 'icon'] as const
 export type ConsentReopen = (typeof CONSENT_REOPEN)[number]
 
+/**
+ * How Google Consent Mode treats a visitor who has not accepted. `basic` (the default): no tag loads before the
+ * visitor accepts. `advanced`: the head snippet loads at once with every signal denied, so Google tags send
+ * cookieless pings for visitors who reject or do not answer, and set cookies only after they accept.
+ */
+export const CONSENT_MODES = ['basic', 'advanced'] as const
+export type ConsentMode = (typeof CONSENT_MODES)[number]
+
 /** A policy link points to a path on this site, an anchor or an http(s) address, so it cannot run script. */
 export const CONSENT_HREF = /^(\/|#|https?:\/\/)/
 export const CONSENT_HREF_MESSAGE = 'Use a path on this site or an http(s) address'
@@ -43,15 +51,28 @@ export const CONSENT_COPY = {
   policyLabel: 'Privacy policy',
 } as const satisfies Omit<ConsentCopy, 'policyHref'>
 
-/** `site.consent` laid over the defaults. */
-export function consentCopy(consent?: ConsentText): ConsentCopy {
+/**
+ * The default message in advanced mode, where the default one would be wrong: Google tags load before the visitor
+ * answers and count the visit without cookies.
+ */
+export const CONSENT_ADVANCED_BODY =
+  'This site counts visits anonymously, without cookies. If you accept, it also uses analytics cookies to recognise returning visitors.'
+
+/** The default texts for a mode: only the message differs. */
+export function consentDefaults(mode?: ConsentMode): Omit<ConsentCopy, 'policyHref'> {
+  return mode === 'advanced' ? { ...CONSENT_COPY, body: CONSENT_ADVANCED_BODY } : CONSENT_COPY
+}
+
+/** `site.consent` laid over the defaults for its mode. */
+export function consentCopy(consent?: ConsentText & { mode?: ConsentMode }): ConsentCopy {
+  const defaults = consentDefaults(consent?.mode)
   return {
-    title: consent?.title ?? CONSENT_COPY.title,
-    body: consent?.body ?? CONSENT_COPY.body,
-    accept: consent?.accept ?? CONSENT_COPY.accept,
-    reject: consent?.reject ?? CONSENT_COPY.reject,
-    settings: consent?.settings ?? CONSENT_COPY.settings,
-    policyLabel: consent?.policyLabel ?? CONSENT_COPY.policyLabel,
+    title: consent?.title ?? defaults.title,
+    body: consent?.body ?? defaults.body,
+    accept: consent?.accept ?? defaults.accept,
+    reject: consent?.reject ?? defaults.reject,
+    settings: consent?.settings ?? defaults.settings,
+    policyLabel: consent?.policyLabel ?? defaults.policyLabel,
     policyHref: consent?.policyHref,
   }
 }

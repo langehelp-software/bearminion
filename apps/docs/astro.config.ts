@@ -57,6 +57,9 @@ export default defineConfig({
         './src/styles/brand.css',
       ],
       components: {
+        // bearminion.com's analytics and cookie banner (src/consent.ts).
+        Head: './src/components/Head.astro',
+        Footer: './src/components/Footer.astro',
         SiteTitle: './src/components/SiteTitle.astro',
         SocialIcons: './src/components/SocialIcons.astro',
       },

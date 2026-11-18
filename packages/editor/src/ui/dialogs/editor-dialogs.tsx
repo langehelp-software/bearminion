@@ -3,7 +3,7 @@ import { type ChangeEntry, describePageChanges, describeSiteChanges } from '../.
 import { getAt, type PageDraft } from '../../draft.js'
 import { isSystemPage } from '../../page.js'
 import { text } from '../shared.js'
-import { consentReopenOf, consentTextOf } from '../site-draft.js'
+import { consentModeOf, consentReopenOf, consentTextOf } from '../site-draft.js'
 import { type Editor, useEditor } from '../state/editor.js'
 import { ScrollLock } from '../scroll-lock.js'
 import { TopBarPopover } from '../shell/popover.js'
@@ -165,11 +165,18 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
       return (
         <ConsentDialog
           consent={consentTextOf(site)}
+          mode={consentModeOf(site)}
           reopen={consentReopenOf(site)}
           onApply={(consent, reopen) => {
-            // Only the texts go into `consent`; `enabled` stays as the sidebar set it.
+            // Only the texts go into `consent`; `enabled` and `mode` stay as the sidebar set them.
             const enabled = getAt(site, 'consent.enabled')
-            const next = { ...(enabled === undefined ? {} : { enabled }), ...(reopen === 'icon' ? { reopen } : {}), ...consent }
+            const mode = consentModeOf(site)
+            const next = {
+              ...(enabled === undefined ? {} : { enabled }),
+              ...(mode === 'advanced' ? { mode } : {}),
+              ...(reopen === 'icon' ? { reopen } : {}),
+              ...consent,
+            }
             edits.writeField('consent', Object.keys(next).length > 0 ? next : undefined)
             close()
           }}
