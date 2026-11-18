@@ -77,7 +77,13 @@ export const feedback = defineSection({
     body: "Here's where we're heading. If something you need isn't on the list, or you'd order it differently, tell us.",
     channels: [
       { title: 'Start a discussion', description: 'Public, best for feature ideas.', href: '#', variant: 'primary', icon: 'chat' },
-      { title: 'Write to us privately', description: 'For anything you would rather not post.', href: '#contact', variant: 'secondary', icon: 'mail' },
+      {
+        title: 'Write to us privately',
+        description: 'For anything you would rather not post.',
+        href: '#contact',
+        variant: 'secondary',
+        icon: 'mail',
+      },
     ],
     bugLink: { label: 'Found a bug? Open an issue instead', href: '#' },
     roadmapTitle: 'Roadmap',
