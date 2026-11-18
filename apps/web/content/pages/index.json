@@ -7,8 +7,8 @@
       "props": {
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
-          "tag": "BearMinion 1.24",
-          "text": "Code tabs, Compare and Changelog sections"
+          "tag": "BearMinion 1.25",
+          "text": "Section spacing: 0, ½ or 1"
         },
         "button": false,
         "code": "action",
@@ -421,6 +421,19 @@
         "releases": [
           {
             "items": [
+              "Every section gets top and bottom spacing in the editor: 0, ½ or 1 of its own padding, repainted as you click.",
+              "Set both to 0 on two sections of the same tone and they join into one band.",
+              "Pages saved before stay as they were: a section without a setting keeps its full padding."
+            ],
+            "link": {
+              "href": "https://github.com/langehelp-software/bearminion/blob/main/packages/editor/CHANGELOG.md#1250",
+              "label": "Read more on GitHub"
+            },
+            "title": "Section spacing",
+            "version": "1.25"
+          },
+          {
+            "items": [
               "One cookie choice for your site and its subdomains: answer on example.com and docs.example.com stops asking. Nothing to set up.",
               "Count visits without cookies: Google's advanced Consent Mode, one switch under Site → Cookie banner.",
               "A choice your visitors already made carries over, with its date, so nobody is asked twice."
@@ -444,19 +457,6 @@
             },
             "title": "Settings beside the page",
             "version": "1.23.1"
-          },
-          {
-            "items": [
-              "Three new sections, each one `add` away: code samples in tabs, a comparison table and a changelog.",
-              "Steps gets two layouts: shortcuts with a video beside them, and numbered tiles on an accent panel.",
-              "Features gets screenshot cards, a 16:10 picture on top of each one."
-            ],
-            "link": {
-              "href": "https://github.com/langehelp-software/bearminion/blob/main/packages/editor/CHANGELOG.md#1230",
-              "label": "Read more on GitHub"
-            },
-            "title": "Code tabs, Compare and Changelog",
-            "version": "1.23"
           }
         ]
       },
@@ -746,7 +746,7 @@
           "https://www.npmjs.com/package/bearminion"
         ],
         "softwareRequirements": "Node.js 22.12 or later, Astro 7.3 or later",
-        "softwareVersion": "1.24.0",
+        "softwareVersion": "1.25.0",
         "url": "https://bearminion.com/"
       }
     ],

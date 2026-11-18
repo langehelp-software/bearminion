@@ -8,11 +8,12 @@ sidebar:
 
 There are 17 section types and 50 layouts. A new site starts with nine of them, marked **starter** below; the rest are one command away (`npx bearminion add pricing`), and the Contact section comes with its form handler from `npx bearminion add form`. Each one has its own page: what it is for, the layouts you can switch between, and the options and content it takes. On docs.bearminion.com every layout is shown live, with its default content: switch its tone and the screen width, and open the **Content** tab for the section as it sits in a page file. On GitHub the pages show a screenshot of each layout instead.
 
-Every section shares four controls, in the editor's **Section** tab and in the page JSON:
+Every section shares six controls, in the editor's **Section** tab and in the page JSON:
 
 - **Layout** (`variant`): one of the layouts listed under the section.
 - **Tone** (`tone`): `base`, `subtle`, `inverse` or `brand`. Every layout works in all four.
 - **Motion** (`motion`): whether the section animates in. The site-wide default applies until you set it.
+- **Top spacing** and **Bottom spacing** (`spaceTop`, `spaceBottom`): how much of the section's own padding it keeps, `none` (0), `half` (½) or `full` (1). Unset is `full`, the theme's design, and the editor writes nothing for it. `none` on two neighbouring sections of the same tone joins them into one band.
 - **Anchor** (`anchor`): an optional lowercase slug that becomes the section's `id`, so a link can jump to it.
 
 Optional text, links and images can be left out. The editor shows an empty field or an **Add** slot, and a built page leaves out whatever is empty. A section with a list shows its recommended length next to the list, and refuses to go outside the minimum and maximum. Sections are defined in `templates/default/src/components/sections/<name>/`. See [Building a theme](../themes.md#section-registry) to change one or add your own, and [Content files](../content.md) for the JSON.
