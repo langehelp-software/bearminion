@@ -8,7 +8,7 @@
         "badge": {
           "href": "https://github.com/langehelp-software/bearminion/releases",
           "tag": "BearMinion 1.25",
-          "text": "Section spacing: 0, ½ or 1"
+          "text": "Section spacing: None, Half or Full"
         },
         "button": false,
         "code": "action",
@@ -421,8 +421,8 @@
         "releases": [
           {
             "items": [
-              "Every section gets top and bottom spacing in the editor: 0, ½ or 1 of its own padding, repainted as you click.",
-              "Set both to 0 on two sections of the same tone and they join into one band.",
+              "Every section gets top and bottom spacing in the editor: None, Half or Full of its own padding, repainted as you click.",
+              "Set both to None on two sections of the same tone and they join into one band.",
               "Pages saved before stay as they were: a section without a setting keeps its full padding."
             ],
             "link": {

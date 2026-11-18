@@ -198,10 +198,10 @@ describe('Text, Gallery and Media editing', () => {
     }
     await openSettings()
     // The page repaints at once, before any save.
-    await form.getByRole('radiogroup', { name: 'Top spacing' }).getByRole('radio', { name: '0', exact: true }).click()
+    await form.getByRole('radiogroup', { name: 'Top spacing' }).getByRole('radio', { name: 'None', exact: true }).click()
     await page.waitForFunction(() => document.querySelector('[data-section-id="legal"]')?.getAttribute('data-space-top') === 'none')
     expect(Number.parseFloat(await padding('paddingTop'))).toBe(0)
-    await form.getByRole('radiogroup', { name: 'Bottom spacing' }).getByRole('radio', { name: '½', exact: true }).click()
+    await form.getByRole('radiogroup', { name: 'Bottom spacing' }).getByRole('radio', { name: 'Half', exact: true }).click()
     await page.waitForFunction(() => document.querySelector('[data-section-id="legal"]')?.getAttribute('data-space-bottom') === 'half')
     expect(Number.parseFloat(await padding('paddingBottom'))).toBeCloseTo(full / 2, 1)
 
@@ -213,9 +213,9 @@ describe('Text, Gallery and Media editing', () => {
     await page.waitForFunction(() => document.documentElement.hasAttribute('data-bearminion-ready'))
     expect(await section.getAttribute('data-space-top')).toBe('none')
 
-    // Back to 1: the file drops the key instead of storing the default.
+    // Back to Full: the file drops the key instead of storing the default.
     await openSettings()
-    await form.getByRole('radiogroup', { name: 'Top spacing' }).getByRole('radio', { name: '1', exact: true }).click()
+    await form.getByRole('radiogroup', { name: 'Top spacing' }).getByRole('radio', { name: 'Full', exact: true }).click()
     reloaded = page.waitForEvent('load')
     await page.keyboard.press('Control+s')
     await waitFor(() => !('spaceTop' in saved()), 'spaceTop still in legal.json')

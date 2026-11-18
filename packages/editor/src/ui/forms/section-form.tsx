@@ -15,9 +15,9 @@ const LAYOUT_OPTIONS = ['variant', 'tone', 'motion']
 
 /** The section's top and bottom spacing, as the sidebar offers it: a share of the theme's own padding. */
 const SPACE_CHOICES = [
-  { value: 'none', label: '0' },
-  { value: 'half', label: '½' },
-  { value: 'full', label: '1' },
+  { value: 'none', label: 'None' },
+  { value: 'half', label: 'Half' },
+  { value: 'full', label: 'Full' },
 ]
 
 export function SectionForm({

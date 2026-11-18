@@ -157,7 +157,7 @@ Apply is blocked while the JSON is invalid. The dialog edits a copy: Apply write
 The tab has three groups, top to bottom:
 
 1. **Section.** The section picker and the anchor.
-2. **Layout.** Variant, tone, motion (Site default, On or Off), and top and bottom spacing (0, ½ or 1 of the section's own padding). Spacing shows only when the theme renders it: its sections carry `data-space-top` (see [Custom sections](custom-section.md)).
+2. **Layout.** Variant, tone, motion (Site default, On or Off), and top and bottom spacing (None, Half or Full of the section's own padding). Spacing shows only when the theme renders it: its sections carry `data-space-top` (see [Custom sections](custom-section.md)).
 3. **Content.** The other options and every prop.
 
 Choices with up to four values are segmented controls, longer lists are selects, and a field with icons (a step's icon) is an icon grid. Props the current options do not use are hidden, such as the poster while a Media section shows an image. Their values stay in the file.
