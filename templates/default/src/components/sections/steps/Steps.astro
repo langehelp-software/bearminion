@@ -168,11 +168,14 @@ const hasVideo = Boolean(props.video) || placeholders
               return (
                 <li class="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-5 border-t border-line py-5">
                   {keys.length > 1 ? (
-                    <span class="flex gap-[0.3125rem]" data-field={field(`steps.${itemIndex}.keys`)} aria-label={keys.join(' + ')}>
+                    <kbd class="flex gap-[0.3125rem]" data-field={field(`steps.${itemIndex}.keys`)}>
                       {keys.map((key, keyIndex) => {
                         const last = keyIndex === keys.length - 1
                         const tone = last ? keyTone(itemIndex) : 'plain'
+                        // The "+" is read, not shown: the keycaps sit side by side.
                         return (
+                          <>
+                          {keyIndex > 0 && <span class="sr-only">+</span>}
                           <kbd
                             class:list={[
                               keycap,
@@ -180,13 +183,13 @@ const hasVideo = Boolean(props.video) || placeholders
                               tone === 'accent' && 'bg-accent text-on shadow-[inset_0_-2px_0_color-mix(in_oklch,var(--on)_25%,transparent)]',
                               tone === 'ink' && 'bg-fg text-bg shadow-[inset_0_-2px_0_oklch(0_0_0/0.4)]',
                             ]}
-                            aria-hidden="true"
                           >
                             {key}
                           </kbd>
+                          </>
                         )
                       })}
-                    </span>
+                    </kbd>
                   ) : keys.length === 1 ? (
                     <span class="inline-flex w-fit items-center rounded-lg px-3 py-1.5 text-[0.9375rem] font-semibold shadow-[inset_0_0_0_2px_var(--link)]">
                       <span data-field={field(`steps.${itemIndex}.keys`)}>{keys[0]}</span>
