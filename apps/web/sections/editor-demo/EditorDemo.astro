@@ -121,7 +121,8 @@ const pageSections = [
                           <button type="button" data-ed-font={font.id}><span class={`ed-font-${font.id}`}>Aa</span><span class="ed-fmt-label">{font.label}</span></button>
                         ))}
                       </div>
-                      <h3 class="ed-heading" contenteditable={editing ? undefined : 'true'} spellcheck="false" data-ed-heading data-font="sans">{START}</h3>
+                      {/* A mock page's heading, not one of this page's: a div keeps it out of the outline. */}
+                      <div class="ed-heading" contenteditable={editing ? undefined : 'true'} spellcheck="false" data-ed-heading data-font="sans">{START}</div>
                     </div>
                     <p class="ed-sub">Sourdough, rye and one very good cinnamon bun. Baked at four in the morning, gone by noon.</p>
                     <div class="ed-ctas"><span class="ed-cta">See today's bakes →</span><span class="ed-cta-link">Find us</span></div>
@@ -1149,7 +1150,8 @@ const pageSections = [
     font-size: 0.75rem;
   }
   .ed-moves .is-off {
-    color: oklch(0.65 0.01 255);
+    /* 4.8:1 on the button: dimmer than the others, still readable. */
+    color: oklch(0.52 0.01 255);
   }
   .ed-group {
     padding-bottom: 0.4375rem;
