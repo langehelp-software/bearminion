@@ -4,6 +4,18 @@ import { StoreError } from './store-error.js'
 import { parseKey } from './store-core.js'
 import type { ContentStore, StoredAsset, StoreOperation, UploadStore } from './store.js'
 import { hasImageExtension, isUploadFilename, uploadFilename } from './upload-names.js'
+import {
+  changeSummary,
+  isProjectPath,
+  isSha,
+  planRestore,
+  restoreMessage,
+  type VersionCommit,
+  VersionError,
+  type VersionFile,
+  type VersionFileStatus,
+  type VersionsPort,
+} from './versions-types.js'
 
 /*
  * A content store whose files live in a GitHub repository. Web-standard `fetch` only (no Node imports), so the same
@@ -303,7 +315,258 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
     return pulls.length > 0 ? 'closed' : 'none'
   }
 
-  /** One commit on the target's branch holding all of `changes`. Goes through the Git Data API so the files land together. */
+  /** One commit on the target's branch holding all of `changes`. Its sha, or undefined when nothing changed. */
+  async function commitOn(
+    target: Target,
+    changes: readonly Change[],
+    describe: (applied: readonly Change[]) => string,
+  ): Promise<string | undefined> {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const name = await target.writeBranch()
+      const headSha = await branchHead(name)
+      if (headSha === undefined) throw failure({ status: 404, headers: new Headers(), text: '' }, `read the branch "${name}"`)
+      const parent = await json<{ tree: { sha: string } }>(send('GET', `/repos/${repo}/git/commits/${headSha}`), 'read the latest commit')
+
+      const entries: Record<string, unknown>[] = []
+      const applied: Change[] = []
+      for (const change of changes) {
+        if ('remove' in change) {
+          // Removing what is not there is not an error, as it is not for the file store.
+          if ((await readFileAt(change.path, headSha)) === undefined) continue
+          entries.push({ path: change.path, mode: '100644', type: 'blob', sha: null })
+          applied.push(change)
+        } else if ('text' in change) {
+          entries.push({ path: change.path, mode: '100644', type: 'blob', content: change.text })
+          applied.push(change)
+        } else {
+          const blob = await json<{ sha: string }>(
+            send('POST', `/repos/${repo}/git/blobs`, { body: { content: toBase64(change.bytes), encoding: 'base64' } }),
+            `upload ${change.path}`,
+          )
+          entries.push({ path: change.path, mode: '100644', type: 'blob', sha: blob.sha })
+          applied.push(change)
+        }
+      }
+      if (entries.length === 0) return undefined
+
+      const tree = await json<{ sha: string }>(
+        send('POST', `/repos/${repo}/git/trees`, { body: { base_tree: parent.tree.sha, tree: entries } }),
+        'write the files',
+      )
+      const created = await json<{ sha: string }>(
+        send('POST', `/repos/${repo}/git/commits`, { body: { message: describe(applied), tree: tree.sha, parents: [headSha] } }),
+        'create the commit',
+      )
+      const update = await send('PATCH', `/repos/${repo}/git/refs/heads/${encodePath(name)}`, {
+        body: { sha: created.sha, force: false },
+      })
+      if (update.status === 200) {
+        await target.committed?.(name, {
+          written: applied.filter((change) => !('remove' in change)).map((change) => change.path),
+          removed: applied.filter((change) => 'remove' in change).map((change) => change.path),
+        })
+        return created.sha
+      }
+
+      if ((update.status === 403 || update.status === 422) && PROTECTED.test(messageOf(update.text))) {
+        throw new StoreError(
+          409,
+          'branch_protected',
+          `The branch "${name}" is protected, so edits cannot be committed to it directly. Allow this token to push to it, use another branch, or set mode: 'pr'.`,
+        )
+      }
+      // Someone pushed between reading the branch and moving it. The commit above is unreachable now; start again once
+      // from the new head. Changes are whole files, so this never merges two edits of the same file.
+      if (update.status === 422 && attempt === 0) continue
+      if (update.status === 422) {
+        throw new StoreError(409, 'branch_moved', 'The branch changed while saving. Reload the editor and try again.')
+      }
+      throw failure(update, `update the branch "${name}"`)
+    }
+  }
+
+  /* ---------- version history ---------- */
+
+  interface ApiCommit {
+    sha: string
+    parents?: { sha: string }[]
+    commit: { message: string; author?: { name?: string; date?: string }; committer?: { date?: string } }
+  }
+
+  const toCommit = (item: ApiCommit, branch?: string): VersionCommit => {
+    const parent = item.parents?.[0]?.sha
+    return {
+      sha: item.sha,
+      short: item.sha.slice(0, 7),
+      message: item.commit.message.split('\n')[0] ?? '',
+      author: item.commit.author?.name ?? '',
+      at: item.commit.committer?.date ?? item.commit.author?.date ?? '',
+      ...(parent ? { parent } : {}),
+      ...(branch ? { branch } : {}),
+    }
+  }
+
+  /** Project-relative folders whose commits count: the content, the uploads and `also`. */
+  function historyDirs(also: readonly string[] = []): string[] {
+    return [...new Set([contentDir, uploadsDir, ...also.filter(isProjectPath)])].filter((dir) => dir !== '')
+  }
+
+  /** The project-relative path of a repository path, or undefined outside the site folder. */
+  function projectPath(repoPath: string): string | undefined {
+    if (rootDir === '') return repoPath
+    return repoPath.startsWith(`${rootDir}/`) ? repoPath.slice(rootDir.length + 1) : undefined
+  }
+
+  const under = (file: string, dir: string): boolean => dir === '' || file === dir || file.startsWith(`${dir}/`)
+
+  function describeFile(file: string, status: VersionFileStatus, from?: string): VersionFile {
+    const asset = file.startsWith('src/assets/') || under(file, uploadsDir)
+    const key = !asset && under(file, contentDir) ? (contentDir === '' ? file : file.slice(contentDir.length + 1)) : undefined
+    return { path: file, status, ...(from ? { from } : {}), ...(key ? { key } : {}), ...(asset ? { asset: true } : {}) }
+  }
+
+  /** Cursor: the time of the last commit shown, and the commits at exactly that time that were shown already. */
+  function parseCursor(cursor: string | undefined): { until?: string; seen: Set<string> } {
+    if (cursor === undefined) return { seen: new Set() }
+    const [until, seen = ''] = cursor.split('|')
+    if (!until || Number.isNaN(Date.parse(until))) throw new VersionError('invalid', 'Not a history cursor.')
+    return { until, seen: new Set(seen.split(',').filter(isSha)) }
+  }
+
+  async function pendingCommits(base: string): Promise<VersionCommit[]> {
+    const pulls = await json<{ number: number; head: { ref: string } }[]>(
+      send('GET', `/repos/${repo}/pulls?state=open&base=${encodeURIComponent(base)}&per_page=100`),
+      'list pull requests',
+    )
+    const found: VersionCommit[] = []
+    for (const pull of pulls.filter((item) => item.head.ref.startsWith('bearminion/'))) {
+      const commits = await json<ApiCommit[]>(
+        send('GET', `/repos/${repo}/pulls/${pull.number}/commits?per_page=100`),
+        'list the commits of a pull request',
+      )
+      for (const item of commits) found.push(toCommit(item, pull.head.ref))
+    }
+    return found.sort((a, b) => b.at.localeCompare(a.at))
+  }
+
+  /** The scope a restore is committed in: the one entry it touches, or the shared `edits` scope. */
+  function restoreScope(files: readonly VersionFile[]): string {
+    const scopes = new Set(
+      files
+        .filter((file) => !file.asset)
+        .map((file) => {
+          if (file.key === 'site.json') return 'site'
+          const page = file.key ? /^pages\/([^/]+)\.json$/.exec(file.key) : null
+          return page ? `page:${page[1]}` : 'edits'
+        }),
+    )
+    const [only] = scopes
+    return scopes.size === 1 && only ? only : 'edits'
+  }
+
+  function versionsOn(targetFor: (scope: string) => Target): VersionsPort {
+    async function read(sha: string, file: string): Promise<Uint8Array | undefined> {
+      if (!isSha(sha) || !isProjectPath(file)) return undefined
+      const reply = await fetchBytes(contentsRoute(inRepo(file), sha))
+      if (reply.status === 404) return undefined
+      if (reply.status !== 200) throw failure({ status: reply.status, headers: new Headers(), text: reply.text }, `read ${file}`)
+      return reply.bytes
+    }
+
+    async function get(sha: string, also?: readonly string[]) {
+      if (!isSha(sha)) return undefined
+      const reply = await send('GET', `/repos/${repo}/commits/${sha}`)
+      if (reply.status === 404 || reply.status === 422) return undefined
+      if (reply.status !== 200) throw failure(reply, 'read the commit')
+      const item = JSON.parse(reply.text) as ApiCommit & { files?: { filename: string; status: string; previous_filename?: string }[] }
+      const dirs = historyDirs(also)
+      const files: VersionFile[] = []
+      for (const entry of item.files ?? []) {
+        const file = projectPath(entry.filename)
+        if (file === undefined || !dirs.some((dir) => under(file, dir))) continue
+        const status: VersionFileStatus =
+          entry.status === 'added' || entry.status === 'copied'
+            ? 'added'
+            : entry.status === 'removed'
+              ? 'deleted'
+              : entry.status === 'renamed'
+                ? 'renamed'
+                : 'modified'
+        const from = entry.previous_filename === undefined ? undefined : projectPath(entry.previous_filename)
+        files.push(describeFile(file, status, status === 'renamed' ? from : undefined))
+      }
+      return { commit: toCommit(item), files }
+    }
+
+    return {
+      read,
+      get,
+
+      async list({ cursor, limit, also }) {
+        const base = await baseBranch()
+        const { until, seen } = parseCursor(cursor)
+        // One request per folder (the API takes one path), each the newest `limit` + what was shown before. The newest
+        // `limit` of their union are the newest `limit` overall.
+        const perPage = Math.min(100, limit + seen.size + 1)
+        const lists = await Promise.all(
+          historyDirs(also).map((dir) =>
+            json<ApiCommit[]>(
+              send(
+                'GET',
+                `/repos/${repo}/commits?sha=${encodeURIComponent(base)}&path=${encodeURIComponent(inRepo(dir))}&per_page=${perPage}${until ? `&until=${encodeURIComponent(until)}` : ''}`,
+              ),
+              'list commits',
+            ),
+          ),
+        )
+        const bySha = new Map<string, VersionCommit>()
+        for (const list of lists) for (const item of list) if (!seen.has(item.sha)) bySha.set(item.sha, toCommit(item))
+        const merged = [...bySha.values()].sort((a, b) => b.at.localeCompare(a.at) || a.sha.localeCompare(b.sha))
+        const shown = merged.slice(0, limit)
+        const more = merged.length > limit || lists.some((list) => list.length === perPage)
+        const last = shown.at(-1)
+        let next: string | undefined
+        if (more && last) {
+          const sameTime = shown.filter((item) => item.at === last.at).map((item) => item.sha)
+          const carried = last.at === until ? [...seen] : []
+          next = `${last.at}|${[...carried, ...sameTime].join(',')}`
+        }
+        const pending = cursor === undefined && prMode ? await pendingCommits(base) : []
+        return { commits: [...pending, ...shown], ...(next ? { cursor: next } : {}), branch: base, restoreCommits: true }
+      },
+
+      async restore(sha, { paths, also }) {
+        const found = await get(sha, also)
+        if (!found) throw new VersionError('not_found', 'There is no such commit.')
+        const chosen = paths === undefined ? found.files : found.files.filter((file) => paths.includes(file.path))
+        if (chosen.length === 0) throw new VersionError('empty', 'That commit changed none of those files.')
+        const target = targetFor(restoreScope(chosen))
+        const ref = await target.readRef()
+        const current = async (file: string) => {
+          const reply = await fetchBytes(contentsRoute(inRepo(file), ref))
+          return reply.status === 200 ? reply.bytes : undefined
+        }
+        const changes = await planRestore(found.commit.sha, chosen, {
+          read,
+          exists: async (file) => (await current(file)) !== undefined,
+          same: async (file, bytes) => {
+            const now = await current(file)
+            return now !== undefined && now.length === bytes.length && now.every((byte, index) => byte === bytes[index])
+          },
+        })
+        if (changes.length === 0) throw new VersionError('empty', 'Those files are already as they were in that commit.')
+        const created = await commitOn(
+          target,
+          changes.map((change) =>
+            'remove' in change ? { path: inRepo(change.path), remove: true } : { path: inRepo(change.path), bytes: change.bytes },
+          ),
+          () => restoreMessage(found.commit.short, changes),
+        )
+        return { ...(created ? { commit: created.slice(0, 7) } : {}), ...changeSummary(changes) }
+      },
+    }
+  }
+
   function view(target: Target): ContentStore {
     async function readFile(path: string): Promise<string | undefined> {
       return readFileAt(path, await target.readRef())
@@ -319,70 +582,7 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
       return [...names].sort((a, b) => a.localeCompare(b))
     }
 
-    async function commit(changes: readonly Change[], describe: (applied: readonly Change[]) => string): Promise<void> {
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        const name = await target.writeBranch()
-        const headSha = await branchHead(name)
-        if (headSha === undefined) throw failure({ status: 404, headers: new Headers(), text: '' }, `read the branch "${name}"`)
-        const parent = await json<{ tree: { sha: string } }>(send('GET', `/repos/${repo}/git/commits/${headSha}`), 'read the latest commit')
-
-        const entries: Record<string, unknown>[] = []
-        const applied: Change[] = []
-        for (const change of changes) {
-          if ('remove' in change) {
-            // Removing what is not there is not an error, as it is not for the file store.
-            if ((await readFileAt(change.path, headSha)) === undefined) continue
-            entries.push({ path: change.path, mode: '100644', type: 'blob', sha: null })
-            applied.push(change)
-          } else if ('text' in change) {
-            entries.push({ path: change.path, mode: '100644', type: 'blob', content: change.text })
-            applied.push(change)
-          } else {
-            const blob = await json<{ sha: string }>(
-              send('POST', `/repos/${repo}/git/blobs`, { body: { content: toBase64(change.bytes), encoding: 'base64' } }),
-              `upload ${change.path}`,
-            )
-            entries.push({ path: change.path, mode: '100644', type: 'blob', sha: blob.sha })
-            applied.push(change)
-          }
-        }
-        if (entries.length === 0) return
-
-        const tree = await json<{ sha: string }>(
-          send('POST', `/repos/${repo}/git/trees`, { body: { base_tree: parent.tree.sha, tree: entries } }),
-          'write the files',
-        )
-        const created = await json<{ sha: string }>(
-          send('POST', `/repos/${repo}/git/commits`, { body: { message: describe(applied), tree: tree.sha, parents: [headSha] } }),
-          'create the commit',
-        )
-        const update = await send('PATCH', `/repos/${repo}/git/refs/heads/${encodePath(name)}`, {
-          body: { sha: created.sha, force: false },
-        })
-        if (update.status === 200) {
-          await target.committed?.(name, {
-            written: applied.filter((change) => !('remove' in change)).map((change) => change.path),
-            removed: applied.filter((change) => 'remove' in change).map((change) => change.path),
-          })
-          return
-        }
-
-        if ((update.status === 403 || update.status === 422) && PROTECTED.test(messageOf(update.text))) {
-          throw new StoreError(
-            409,
-            'branch_protected',
-            `The branch "${name}" is protected, so edits cannot be committed to it directly. Allow this token to push to it, use another branch, or set mode: 'pr'.`,
-          )
-        }
-        // Someone pushed between reading the branch and moving it. The commit above is unreachable now; start again once
-        // from the new head. Changes are whole files, so this never merges two edits of the same file.
-        if (update.status === 422 && attempt === 0) continue
-        if (update.status === 422) {
-          throw new StoreError(409, 'branch_moved', 'The branch changed while saving. Reload the editor and try again.')
-        }
-        throw failure(update, `update the branch "${name}"`)
-      }
-    }
+    const commit = (changes: readonly Change[], describe: (applied: readonly Change[]) => string) => commitOn(target, changes, describe)
 
     const uploads: UploadStore = {
       async list(): Promise<ListedImage[]> {
@@ -475,7 +675,7 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
     refs: async () => [await baseBranch()],
     writeBranch: baseBranch,
   }
-  if (!prMode) return view(direct)
+  if (!prMode) return { ...view(direct), versions: versionsOn(() => direct) }
 
   /** The branch of one entry's pull request: `bearminion/<scope>`, then `-2`, `-3` once earlier pull requests are closed. */
   async function activeBranch(scope: string): Promise<{ name: string; exists: boolean }> {
@@ -564,5 +764,6 @@ export function githubStore(options: GithubStoreOptions): ContentStore {
     // An image uploaded in pull request mode lives on the uploads branch until it is merged, so look there as well.
     readAsset: uploadScope.readAsset,
     scoped,
+    versions: versionsOn(scopeTarget),
   }
 }

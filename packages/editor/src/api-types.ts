@@ -111,11 +111,8 @@ export interface UploadedVideo {
   bytes?: number
 }
 
-/** `GET /history/site` and `GET /history/pages/:slug` entries. */
-export interface HistoryEntry {
-  id: string
-  at: string
-}
+export type { RestoreResult, VersionCommit, VersionFile, VersionPage } from './versions-types.js'
+export type { SectionState, SiteStatus, StatusSection } from './site-status.js'
 
 /** `POST /save`. At least one of `page` and `site`. */
 export interface SaveRequest<TPage = unknown, TSite = unknown> {

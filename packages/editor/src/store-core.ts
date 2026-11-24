@@ -1,6 +1,7 @@
 import type { ListedImage, SavedImage } from './image-sniff.js'
 import { StoreKeyError } from './store-error.js'
 import type { ImageKind } from './upload-names.js'
+import type { VersionsPort } from './versions-types.js'
 import type { ListedVideo, SavedVideo, VideoKind } from './video-sniff.js'
 
 export { StoreKeyError }
@@ -57,6 +58,11 @@ export interface ContentStore {
    * pending edits, writes go to them. Absent when every write goes to the same place.
    */
   scoped?(scope: string): ContentStore
+  /**
+   * The repository's commits of the content and the uploads, for a store that is a repository (`githubStore`). The
+   * local editor reads its own work tree instead.
+   */
+  readonly versions?: VersionsPort
 }
 
 export type StoredAsset = { notModified: true; etag: string } | { bytes: Uint8Array; etag?: string }

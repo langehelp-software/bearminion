@@ -6,7 +6,6 @@ import { z } from 'zod'
 import { handleEditorRequest } from '../src/api.js'
 import { multi, resolveTypes, single, type ContentTypes } from '../src/content-types.js'
 import { imageSchema } from '../src/fields.js'
-import { fileHistory } from '../src/history.js'
 import { createMigrator } from '../src/migrate.js'
 import { API_PREFIX, type EditorContext } from '../src/options.js'
 import { stableStringify } from '../src/stable-json.js'
@@ -79,7 +78,6 @@ function seed(types: ContentTypes | null = siteTypes(), lang?: string): EditorCo
     theme: defaultTheme,
     git: false,
   }
-  context.history = fileHistory(context)
   return context
 }
 
@@ -269,17 +267,6 @@ describe('entries of a declared type', () => {
     expect((await call(context, 'GET', '/types/blog/entries/renamed')).status).toBe(404)
   })
 
-  it('keeps undo history per entry, apart from a page of the same slug', async () => {
-    const context = seed()
-    await post(context, 'contact', '2026-01-05')
-    const entry = await data(await call(context, 'GET', '/types/blog/entries/contact'))
-    await call(context, 'PUT', '/types/blog/entries/contact', { ...entry, title: 'Changed' })
-    const history = await data<{ entries: unknown[] }>(await call(context, 'GET', '/history/types/blog/contact'))
-    expect(history.entries).toHaveLength(2)
-    expect((await data<{ entries: unknown[] }>(await call(context, 'GET', '/history/pages/contact'))).entries).toHaveLength(0)
-    expect(fs.existsSync(path.join(context.root, '.editor', 'history', 'types', 'blog', 'contact'))).toBe(true)
-  })
-
   it('saves and renames an entry through /save with its type', async () => {
     const context = seed()
     await post(context, 'first', '2026-01-05')
@@ -376,7 +363,6 @@ describe('singles and listing pages', () => {
     expect((await call(context, 'PUT', '/types/home/document', { ...home, title: 'Welcome' })).status).toBe(200)
     expect(stored(context, 'pages/index.json').title).toBe('Welcome')
     expect(await data(await call(context, 'GET', '/pages/index'))).toMatchObject({ title: 'Welcome' })
-    expect((await data<{ entries: unknown[] }>(await call(context, 'GET', '/history/pages/index'))).entries).toHaveLength(2)
   })
 
   it('answers 404 for a home page that does not exist: only declared singles start empty', async () => {
@@ -398,7 +384,6 @@ describe('singles and listing pages', () => {
     const { entries } = await data<{ entries: { slug: string }[] }>(await call(context, 'GET', '/types/blog/entries'))
     expect(entries.map((entry) => entry.slug)).toEqual(['first'])
     expect((await call(context, 'PUT', '/types/blog/listing', { ...initial, slug: 'blog' })).status).toBe(400)
-    expect((await data<{ entries: unknown[] }>(await call(context, 'GET', '/history/types/blog/_listing'))).entries).toHaveLength(1)
   })
 
   it('refuses an orphaned section the stored document does not already have', async () => {

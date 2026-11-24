@@ -48,10 +48,12 @@ import type { Wireframe } from './wireframe.js'
 import { JSON_BODY_LIMIT, isLocalRequest, isSameOriginRequest, readSlug } from './request-guards.js'
 import { formatBytes, type UploadRules } from './upload-rules.js'
 import { projectId } from './draft-store.js'
-import { NO_HISTORY, isHistoryId, type HistoryScope } from './history-types.js'
 import { fieldIssues, validateEditorPage, validateSite, type FieldIssue } from './validate.js'
 import { assetRefs, describePageRef, describeSiteRef, missingAssetIssues } from './asset-paths.js'
 import { COMMIT_MESSAGE_LIMIT, GitError, NO_GIT } from './git-types.js'
+import { isProjectPath, isSha, VersionError, type VersionsPort } from './versions-types.js'
+import { buildSiteStatus } from './site-status.js'
+import { VERSION } from './version.js'
 import { PreviewUnavailableError } from './preview.js'
 import { isSystemPage, withoutOrphanSections } from './page.js'
 import { isOrphanSection } from './section-schema.js'
@@ -96,8 +98,6 @@ const isPages = (type: MultiType): boolean => type.id === PAGES_TYPE
 const noun = (type: MultiType): string => (isPages(type) ? 'page' : 'entry')
 /** The pull-request scope of one entry. Pages keep `page:<slug>`, so pull requests opened before types existed still match. */
 const entryScope = (type: MultiType, slug: string): string => (isPages(type) ? `page:${slug}` : `${type.id}:${slug}`)
-const entryHistory = (type: MultiType, slug: string): [HistoryScope, string] =>
-  isPages(type) ? ['page', slug] : ['entry', `${type.id}/${slug}`]
 const entryRoute = (type: MultiType, slug: string): string => (isPages(type) ? `/pages/${slug}` : `/types/${type.id}/entries/${slug}`)
 
 /** Rename and delete locks. The `pages` option of `bearminion()` rules pages; other types carry their own. */
@@ -239,29 +239,15 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
     return methodNotAllowed(['POST'])
   }
 
-  if (parts[0] === 'history' && parts[1] === 'types' && parts.length >= 4 && parts.length <= 5) {
-    if (method !== 'GET') return methodNotAllowed(['GET'])
-    const type = typesOf(context).get(decodeSegment(parts[2] ?? ''))
-    const name = parts[3] ?? ''
-    if (!type) return problem(404, 'not_found', 'Unknown content type.')
-    if (type.kind === 'single') {
-      if (name !== SINGLE_HISTORY) return problem(404, 'not_found', 'Unknown editor API route.')
-      return getHistory(context, ...singleHistory(type), parts[4])
-    }
-    if (name === LISTING_HISTORY && type.listing) return getHistory(context, 'entry', `${type.id}/${LISTING_HISTORY}`, parts[4])
-    const slug = readSlug(name)
-    if (slug === null) return badSlug()
-    return getHistory(context, ...entryHistory(type, slug), parts[4])
-  }
+  if (parts[0] === 'versions') return versionsRoute(request, context, parts.slice(1), method, url)
 
-  if (parts[0] === 'history' && (parts[1] === 'site' || parts[1] === 'pages')) {
+  if (parts.length === 1 && parts[0] === 'status') {
     if (method !== 'GET') return methodNotAllowed(['GET'])
-    if (parts[1] === 'site' && parts.length <= 3) return getHistory(context, 'site', '', parts[2])
-    if (parts[1] === 'pages' && parts.length >= 3 && parts.length <= 4) {
-      const slug = readSlug(parts[2] ?? '')
-      if (slug === null) return badSlug()
-      return getHistory(context, 'page', slug, parts[3])
-    }
+    // A hosted editor has no copy of the site's files to compare: it lists the sections the site registers.
+    return json(
+      200,
+      context.siteStatus ? await context.siteStatus() : buildSiteStatus({ version: VERSION, mode: 'hosted', sections: context.sections }),
+    )
   }
 
   if (parts.length === 2 && parts[0] === 'pages') {
@@ -403,8 +389,6 @@ function relativeTo(root: string, file: string): string {
  * The context for editing one entry. A store that keeps each entry's pending edits apart (`githubStore` in `pr` mode)
  * hands out a view of its own; every other store is used as it is.
  */
-const history = (context: EditorContext) => context.history ?? NO_HISTORY
-
 function scoped(context: EditorContext, scope: string): EditorContext {
   const store = context.store.scoped?.(scope)
   return store ? { ...context, store } : context
@@ -483,9 +467,7 @@ async function putSite(request: Request, context: EditorContext): Promise<Respon
   if (!parsed.success) return validation(fieldIssues(parsed.error))
   const missing = await missingAssets(context, parsed.data)
   if (missing.length > 0) return validation(missing)
-  await history(context).ensureBaseline('site', '', await readStoredJson(context, SITE_KEY, 'site'))
   await writeDocuments(context, [[SITE_KEY, parsed.data]])
-  await history(context).write('site', '', parsed.data)
   return json(200, parsed.data)
 }
 
@@ -546,7 +528,6 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
 
   const writes: [key: string, value: unknown][] = []
   const removals: string[] = []
-  const after: (() => Promise<void>)[] = []
   const result: { page?: unknown; site?: Site } = {}
 
   // Validate both documents before answering, so one failed save reports every problem in the page and the site.
@@ -563,12 +544,7 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
       if (!site.success) failures.push(...tagIssues(fieldIssues(site.error), 'site'))
       else if (missing.length > 0) failures.push(...tagIssues(missing, 'site'))
       else {
-        const stored = await readStoredJson(context, SITE_KEY, 'site')
         writes.push([SITE_KEY, site.data])
-        after.push(async () => {
-          await history(context).ensureBaseline('site', '', stored)
-          await history(context).write('site', '', site.data)
-        })
         result.site = site.data
       }
     }
@@ -595,7 +571,6 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
     } else {
       writes.push(...planned.writes)
       removals.push(...planned.removals)
-      after.push(planned.after)
       result.page = planned.page
     }
   }
@@ -609,12 +584,11 @@ async function postSave(request: Request, context: EditorContext): Promise<Respo
     writes,
     removals.filter((key) => !written.has(key)),
   )
-  for (const step of after) await step()
   return json(200, result)
 }
 
 type PagePlan =
-  | { page: unknown; writes: [string, unknown][]; removals: string[]; after: () => Promise<void>; response?: undefined; issues?: undefined }
+  | { page: unknown; writes: [string, unknown][]; removals: string[]; response?: undefined; issues?: undefined }
   | { response: Response; issues?: undefined }
   /** Field errors; the caller decides how to answer, since a save reports the site's alongside them. */
   | { issues: FieldIssue[]; response?: undefined }
@@ -639,12 +613,7 @@ async function planPageSave(context: EditorContext, input: { from: string; docum
   const added = addedOrphans(context, found.page.sections, page.sections)
   if (added.length > 0) return { issues: added }
 
-  const after = async () => {
-    await history(context).ensureBaseline(...entryHistory(type, target), found.page)
-    await history(context).write(...entryHistory(type, target), page)
-  }
-
-  if (target === from) return { page, writes: [[found.key, page]], removals: [], after }
+  if (target === from) return { page, writes: [[found.key, page]], removals: [] }
   if (!entryRules(context, type).rename) return { response: locked('rename', type) }
 
   if (isPages(type)) {
@@ -665,7 +634,7 @@ async function planPageSave(context: EditorContext, input: { from: string; docum
   if (await context.store.exists(nextKey)) {
     return { response: problem(409, 'conflict', `A file named ${target}.json already exists.`) }
   }
-  return { page, writes: [[nextKey, page]], removals: [found.key], after }
+  return { page, writes: [[nextKey, page]], removals: [found.key] }
 }
 
 const commitSchema = z
@@ -693,12 +662,85 @@ async function postCommit(request: Request, context: EditorContext): Promise<Res
   }
 }
 
-async function getHistory(context: EditorContext, scope: HistoryScope, slug: string, id: string | undefined): Promise<Response> {
-  if (id === undefined) return json(200, { entries: await history(context).list(scope, slug) })
-  if (!isHistoryId(id)) return problem(400, 'invalid_id', 'Not a history id.')
-  const snapshot = await history(context).read(scope, slug, id)
-  if (snapshot === null) return problem(404, 'not_found', 'No saved version with that id.')
-  return json(200, snapshot)
+/* ---------- version history: the commits of the content and the uploads ---------- */
+
+export const VERSION_PAGE_SIZE = 30
+
+const restoreSchema = z.object({ paths: z.array(z.string().min(1).max(512)).max(500).optional() }).strict()
+
+/** Folders besides the content and uploads whose commits count: the Markdown collections. */
+const historyFolders = (context: EditorContext): string[] => Object.values(context.collections ?? {}).map((collection) => collection.dir)
+
+const MEDIA_TYPES: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  svg: 'image/svg+xml',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+}
+
+function versionProblem(error: unknown): Response {
+  if (!(error instanceof VersionError)) throw error
+  const status = { not_repo: 409, not_found: 404, dirty: 409, empty: 409, invalid: 400, failed: 500 }[error.code]
+  return problem(status, `versions_${error.code}`, error.message)
+}
+
+/**
+ * `GET /versions` (`?cursor=`), `GET /versions/<sha>`, `GET /versions/<sha>/file?path=` and
+ * `POST /versions/<sha>/restore`. A context without a version port (no repository behind it) answers 404 `no_versions`.
+ */
+async function versionsRoute(request: Request, context: EditorContext, parts: string[], method: string, url: URL): Promise<Response> {
+  const port: VersionsPort | undefined = context.versions
+  if (!port) return problem(404, 'no_versions', 'There is no commit history here: the content is not in a repository.')
+  const also = historyFolders(context)
+  try {
+    if (parts.length === 0) {
+      if (method !== 'GET') return methodNotAllowed(['GET'])
+      const cursor = url.searchParams.get('cursor') ?? undefined
+      const page = await port.list({ limit: VERSION_PAGE_SIZE, also, ...(cursor ? { cursor } : {}) })
+      return json(200, page)
+    }
+    const sha = parts[0] ?? ''
+    if (!isSha(sha)) return problem(400, 'invalid_sha', 'Not a commit id.')
+    if (parts.length === 1) {
+      if (method !== 'GET') return methodNotAllowed(['GET'])
+      const found = await port.get(sha, also)
+      return found ? json(200, found) : problem(404, 'not_found', 'There is no such commit.')
+    }
+    if (parts.length === 2 && parts[1] === 'file') {
+      if (method !== 'GET') return methodNotAllowed(['GET'])
+      const file = url.searchParams.get('path') ?? ''
+      if (!isProjectPath(file)) return problem(400, 'invalid_path', 'Not a file in the project.')
+      const bytes = await port.read(sha, file)
+      if (bytes === undefined) return problem(404, 'not_found', 'The file did not exist in that commit.')
+      const ext = file.slice(file.lastIndexOf('.') + 1).toLowerCase()
+      return new Response(bytes as BodyInit, {
+        status: 200,
+        headers: {
+          'content-type': MEDIA_TYPES[ext] ?? 'text/plain; charset=utf-8',
+          // A commit never changes: what it held can be cached for good.
+          'cache-control': 'private, max-age=31536000, immutable',
+          'x-content-type-options': 'nosniff',
+          'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+        },
+      })
+    }
+    if (parts.length === 2 && parts[1] === 'restore') {
+      if (method !== 'POST') return methodNotAllowed(['POST'])
+      const body = await readJsonBody(request)
+      if (body.response) return body.response
+      const parsed = restoreSchema.safeParse(body.value ?? {})
+      if (!parsed.success) return validation(fieldIssues(parsed.error))
+      return json(201, await port.restore(sha, { also, ...(parsed.data.paths ? { paths: parsed.data.paths } : {}) }))
+    }
+    return problem(404, 'not_found', 'Unknown editor API route.')
+  } catch (error) {
+    return versionProblem(error)
+  }
 }
 
 const sectionAnchors = (sections: readonly unknown[]): string[] =>
@@ -821,9 +863,7 @@ async function putPage(request: Request, context: EditorContext, slug: string, t
   if (!found) return problem(404, 'not_found', `No ${noun(type)} with slug "${slug}".`)
   const added = addedOrphans(context, found.page.sections, page.sections)
   if (added.length > 0) return validation(added)
-  await history(context).ensureBaseline(...entryHistory(type, slug), found.page)
   await writeDocuments(context, [[found.key, page]])
-  await history(context).write(...entryHistory(type, slug), page)
   return json(200, page)
 }
 
@@ -936,12 +976,8 @@ async function renamePage(request: Request, context: EditorContext, slug: string
   return json(200, validated.data)
 }
 
-const SINGLE_HISTORY = '_single'
-const LISTING_HISTORY = '_listing'
-
-/** Where a single's undo history is kept. The home and 404 pages share theirs with the pages API. */
-const singleHistory = (type: SingleType): [HistoryScope, string] =>
-  type.builtIn ? ['page', type.slug] : ['entry', `${type.id}/${SINGLE_HISTORY}`]
+/** The pull-request scope of a type's listing page. */
+const LISTING_SCOPE = '_listing'
 
 const emptySeo = (title: string) => ({ title, description: '', noindex: false, nofollow: false })
 
@@ -976,7 +1012,6 @@ interface StoredDocument {
   migrateAs: string
   /** What is served while the file does not exist yet, or undefined when the file must exist. */
   fallback: unknown
-  history: [HistoryScope, string]
 }
 
 function singleDocument(context: EditorContext, type: SingleType): StoredDocument {
@@ -988,7 +1023,6 @@ function singleDocument(context: EditorContext, type: SingleType): StoredDocumen
     fallback: type.builtIn
       ? undefined
       : { slug: type.slug, title: type.label, seo: emptySeo(type.label), sections: [], ...(type.fields ? { fields: {} } : {}) },
-    history: singleHistory(type),
   }
 }
 
@@ -998,7 +1032,6 @@ function listingDocument(context: EditorContext, type: MultiType): StoredDocumen
     schema: createListingSchema(context.sections, { tolerateOrphans: true }) as StoredDocument['schema'],
     migrateAs: LISTING_MIGRATION_TYPE,
     fallback: { title: type.label, seo: emptySeo(type.label), sections: [] },
-    history: ['entry', `${type.id}/${LISTING_HISTORY}`],
   }
 }
 
@@ -1053,16 +1086,7 @@ async function planFixedSave(context: EditorContext, target: StoredDocument, inp
   if (read.response) return { response: read.response }
   const added = addedOrphans(context, read.stored?.sections ?? [], document.sections)
   if (added.length > 0) return { issues: added }
-  const stored = read.stored
-  return {
-    page: document,
-    writes: [[target.key, document]],
-    removals: [],
-    after: async () => {
-      if (stored) await history(context).ensureBaseline(...target.history, stored)
-      await history(context).write(...target.history, document)
-    },
-  }
+  return { page: document, writes: [[target.key, document]], removals: [] }
 }
 
 async function putDocument(request: Request, context: EditorContext, target: StoredDocument, slug?: string): Promise<Response> {
@@ -1072,7 +1096,6 @@ async function putDocument(request: Request, context: EditorContext, target: Sto
   if (planned.issues) return validation(planned.issues)
   if (planned.response) return planned.response
   await writeDocuments(context, planned.writes)
-  await planned.after()
   return json(200, planned.page)
 }
 
@@ -1087,7 +1110,7 @@ async function getDocumentAt(context: EditorContext, pathname: string): Promise<
   if (match === null) return problem(404, 'not_found', `No content at "${pathname}".`)
   if (match.kind === 'listing') {
     const { type } = match
-    const read = await readDocument(scoped(context, `${type.id}:${LISTING_HISTORY}`), listingDocument(context, type))
+    const read = await readDocument(scoped(context, `${type.id}:${LISTING_SCOPE}`), listingDocument(context, type))
     if (read.response) return read.response
     return json(200, { type: type.id, kind: 'listing', slug: type.listing?.slug ?? type.prefix, page: match.page, document: read.document })
   }
@@ -1131,7 +1154,7 @@ async function typeRoute(request: Request, context: EditorContext, parts: string
 
   if (parts.length === 2 && parts[1] === 'listing') {
     if (!type.listing) return problem(404, 'not_found', `${type.label} has no listing page (listing in its type options).`)
-    const entry = scoped(context, `${type.id}:${LISTING_HISTORY}`)
+    const entry = scoped(context, `${type.id}:${LISTING_SCOPE}`)
     const target = listingDocument(entry, type)
     if (method === 'GET') return getDocument(entry, target)
     if (method === 'PUT') return putDocument(request, entry, target)

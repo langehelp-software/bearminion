@@ -120,7 +120,6 @@ describe('the editor on a page, as before content types', () => {
     const { doc } = editor
     expect(doc.ref.value).toEqual({ type: 'pages', kind: 'entry' })
     expect(doc.draftId.value).toBe('contact')
-    expect(doc.historyKey.value).toBe('pages/contact')
     expect(doc.pageFile.value).toBe('pages/contact.json')
     expect(doc.href.value).toBe('/contact')
     expect(doc.linkKey.value).toBe('contact')
@@ -151,7 +150,6 @@ describe('the editor on a document of a declared type', () => {
     expect(doc.savedSlug.value).toBe('first')
     // A page called `first` keeps its own draft, undo steps and history.
     expect(doc.draftId.value).toBe('blog~first')
-    expect(doc.historyKey.value).toBe('types/blog/first')
     expect(doc.pageFile.value).toBe('blog/first.json')
     expect(doc.href.value).toBe('/blog/first')
     expect(doc.linkKey.value).toBe('/blog/first')
@@ -173,7 +171,6 @@ describe('the editor on a document of a declared type', () => {
     expect(doc.page.value).toEqual({ ...listing, slug: 'blog' })
     expect(doc.pageDirty.value).toBe(false)
     expect(doc.draftId.value).toBe('blog~_listing')
-    expect(doc.historyKey.value).toBe('types/blog/_listing')
     expect(doc.pageFile.value).toBe('blog/_listing.json')
     // A listing has an address per page, so a save never sends the editor somewhere else.
     expect(doc.href.value).toBeNull()
@@ -196,7 +193,6 @@ describe('the editor on a document of a declared type', () => {
     const { editor, sent } = await open('/about', { type: 'about', kind: 'single', slug: 'about', document: about })
     const { doc } = editor
     expect(doc.draftId.value).toBe('about~_single')
-    expect(doc.historyKey.value).toBe('types/about/_single')
     expect(doc.pageFile.value).toBe('singles/about.json')
     expect(doc.href.value).toBe('/about')
     editor.edits.updatePage({ ...about, title: 'About us' })

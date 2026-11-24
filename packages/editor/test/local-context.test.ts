@@ -46,24 +46,19 @@ describe('the context of a local project', () => {
     return { root, context, call }
   }
 
-  it('has history, git and the form lookup', () => {
+  it('has versions, git and the form lookup', () => {
     const { context } = project()
-    expect(context.history).toBeDefined()
+    expect(context.versions).toBeDefined()
     expect(context.commits).toBeDefined()
     expect(context.formFile?.('contact')).toMatch(/src[\\/]forms[\\/]contact\.ts$/)
   })
 
-  it('keeps a copy of every save, and can read it back', async () => {
+  it('keeps no copies of saves on disk: the repository is the history', async () => {
     const { root, call } = project()
     const saved = await call('PUT', '/pages/index', { ...home, title: 'Home 2' })
     expect(saved.status).toBe(200)
-    expect(fs.existsSync(path.join(root, '.editor', 'history', 'pages', 'index'))).toBe(true)
-
-    const listed = (await (await call('GET', '/history/pages/index')).json()) as { entries: { id: string }[] }
-    expect(listed.entries.length).toBeGreaterThanOrEqual(2)
-    const snapshot = await call('GET', `/history/pages/index/${listed.entries[0]?.id}`)
-    expect(snapshot.status).toBe(200)
-    expect(((await snapshot.json()) as { title: string }).title).toBe('Home 2')
+    expect(fs.existsSync(path.join(root, '.editor', 'history'))).toBe(false)
+    expect((await call('GET', '/history/pages/index')).status).toBe(404)
   })
 
   it('answers Commit changes, which is on, and finds the form handler', async () => {

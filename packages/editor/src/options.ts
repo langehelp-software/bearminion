@@ -8,8 +8,8 @@ import { defaultTheme } from './theme.js'
 import { createFileStore, type ContentStore } from './store.js'
 import type { EditorContext } from './editor-context.js'
 import { formFile, resolveFormsConfig } from './forms-dev.js'
-import { fileGit } from './git.js'
-import { fileHistory } from './history.js'
+import { fileGit, fileVersions } from './git.js'
+import { localSiteStatus } from './site-status-local.js'
 import { resolvePageRules, type PageRules } from './page.js'
 import { resolveConvert, resolveMaxImageBytes, type ImageConvertOptions } from './upload-rules.js'
 
@@ -111,8 +111,9 @@ export function resolveEditorContext(options: BearminionOptions | undefined, roo
     formsDir: resolveFormsConfig(options?.forms, root)?.dir ?? null,
   }
   if (options.collections) context.collections = resolveCollections(options.collections)
-  // The local project keeps undo history on disk, commits with its own git work tree and finds form handlers in a folder.
-  context.history = fileHistory(context)
+  // The local project reads its history from and commits to its own git work tree, and finds form handlers in a folder.
+  context.versions = fileVersions(context)
+  context.siteStatus = localSiteStatus(context)
   context.commits = fileGit(context)
   const formsDir = context.formsDir
   if (formsDir) context.formFile = (name) => formFile(formsDir, name)

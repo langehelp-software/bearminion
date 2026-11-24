@@ -19,3 +19,7 @@ packages/create-bearminion/template/
 
 # Built from templates/default by the package build
 /packages/editor/registry/
+
+# Design handoffs and Claude exports: local references, not part of the repository
+design_handoff_*/
+Claude outputs/

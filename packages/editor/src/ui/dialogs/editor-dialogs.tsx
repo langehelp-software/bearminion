@@ -119,20 +119,8 @@ function SessionDialog({ editor, dialog }: { editor: Editor; dialog: EditorDialo
     ui.dialog.value = null
   }
   switch (dialog.kind) {
-    case 'history': {
-      const page = doc.page.value
-      if (!page || !doc.site.value) return null
-      return (
-        <HistoryDialog
-          slug={doc.historyKey.value}
-          labels={doc.catalog.value?.sectionLabels ?? {}}
-          page={page}
-          onRestore={editor.restoreVersion}
-          onUndo={editor.stepUndo}
-          onClose={close}
-        />
-      )
-    }
+    case 'history':
+      return <HistoryDialog onClose={close} />
     case 'commit': {
       const git = ui.gitState.value
       if (!git) return null

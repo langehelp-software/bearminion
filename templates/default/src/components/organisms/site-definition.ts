@@ -13,6 +13,8 @@ export const siteDefinition = defineSite({
     defaultVariant: 'bar',
     maxActions: 2,
     recommendedLinks: 4,
+    // The Navigation tab's "Full-screen mobile menu" switch. MobileMenu.astro draws both; remove this line to drop the option.
+    fullscreenMenu: true,
   },
   footer: {
     variants: ['simple', 'columns', 'wordmark'],

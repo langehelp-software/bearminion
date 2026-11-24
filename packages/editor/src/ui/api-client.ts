@@ -8,13 +8,17 @@ import type {
   DocumentAt,
   EntryListItem,
   GitInfo,
-  HistoryEntry,
   PageListItem,
+  RestoreResult,
+  SiteStatus,
   SaveRequest,
   SaveResponse,
   SitePreview,
   UploadedImage,
   UploadedVideo,
+  VersionCommit,
+  VersionFile,
+  VersionPage,
 } from '../api-types.js'
 import type { PageDraft } from '../draft.js'
 import type { UploadRules } from '../upload-rules.js'
@@ -101,13 +105,39 @@ export const getGit = () => request<GitInfo>('/git')
 export const getForms = () => request<{ enabled: boolean; handlers: Record<string, { file: string | null }> }>('/forms')
 export const commit = (body: CommitRequest) => request<CommitResult>('/git/commit', sendJson('POST', body))
 
-/**
- * Saved versions of the site (`scope` site) or of the open document. `key` says which document: `pages/about`,
- * `types/blog/first-post`, `types/blog/_listing`, `types/about/_single` (see `DocumentStore.historyKey`).
- */
-function historyPath(scope: 'page' | 'site', key: string): string {
-  return scope === 'page' ? `/history/${key.split('/').map(segment).join('/')}` : '/history/site'
+/** The bearminion version and the site's sections compared with this release: Site status. */
+export const getSiteStatus = () => request<SiteStatus>('/status')
+
+/** The newest bearminion on npm, or null when npm cannot be reached. */
+export async function latestVersion(): Promise<string | null> {
+  try {
+    const response = await fetch('https://registry.npmjs.org/bearminion/latest', { headers: { accept: 'application/json' } })
+    if (!response.ok) return null
+    const body = (await response.json()) as { version?: unknown }
+    return typeof body.version === 'string' ? body.version : null
+  } catch {
+    return null
+  }
 }
-export const listHistory = (scope: 'page' | 'site', slug: string) => request<{ entries: HistoryEntry[] }>(historyPath(scope, slug))
-export const getHistoryVersion = (scope: 'page' | 'site', slug: string, id: string) =>
-  request<unknown>(`${historyPath(scope, slug)}/${segment(id)}`)
+
+/** Commits of the content and the uploads, newest first; `cursor` from the previous page for older ones. */
+export const listVersions = (cursor?: string) => request<VersionPage>(`/versions${cursor ? `?cursor=${segment(cursor)}` : ''}`)
+/** One commit and the content files it changed. */
+export const getVersion = (sha: string) => request<{ commit: VersionCommit; files: VersionFile[] }>(`/versions/${segment(sha)}`)
+/** Where the bytes of `path` at commit `sha` are served: an image's `src`. */
+export const versionFileUrl = (sha: string, path: string) => `${API}/versions/${segment(sha)}/file?path=${segment(path)}`
+
+/** The text of `path` at `sha`: a string, `undefined` when it did not exist there, or `null` when it could not be read. */
+export async function getVersionText(sha: string, path: string): Promise<string | undefined | null> {
+  try {
+    const response = await fetch(versionFileUrl(sha, path))
+    if (response.status === 404) return undefined
+    return response.ok ? await response.text() : null
+  } catch {
+    return null
+  }
+}
+
+/** Put the files of `sha` (all, or `paths`) back as they were there, as a new commit. */
+export const restoreVersion = (sha: string, paths?: readonly string[]) =>
+  request<RestoreResult>(`/versions/${segment(sha)}/restore`, sendJson('POST', paths ? { paths } : {}))

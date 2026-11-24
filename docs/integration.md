@@ -106,7 +106,7 @@ Needs "Pull requests: Read and write" besides "Contents: Read and write". Nothin
 - The store does not rebase or merge a branch that fell behind the base. GitHub shows that on the pull request.
 - Several API calls per read: finding an entry's branch costs a few GETs, answered from the ETag cache when nothing changed.
 
-Not part of the store: undo history (local editor state in `.editor/history/`), Commit changes (needs a local git work tree, so the `git` option only works with the default store), the live-reload watcher, the dev route that serves images for preview, and the build-time loaders (`loadContent`, `loadPages`, `loadSite`), which read the local content directory.
+Not part of the store: the commit history of a local project (read from its own git work tree), Commit changes (needs a local git work tree, so the `git` option only works with the default store), the live-reload watcher, the dev route that serves images for preview, and the build-time loaders (`loadContent`, `loadPages`, `loadSite`), which read the local content directory.
 
 ```ts
 import { loadContent } from 'bearminion/astro'
@@ -144,7 +144,7 @@ export default {
 ```
 
 - `handleHostedRequest` replaces the localhost check of the dev editor with a same-origin check (`Sec-Fetch-Site` and `Origin`), because the caller has authenticated the request. Never call it on a route with no sign-in in front of it: anyone who can reach it can write the content.
-- There is no undo history and no Commit changes in this entry. The repository is the history.
+- There is no Commit changes in this entry: every save is a commit. A store with `versions` (`githubStore` has it) gives the editor its History screen: `GET /versions`, `GET /versions/:sha`, `GET /versions/:sha/file?path=` and `POST /versions/:sha/restore`.
 - Tried in the Cloudflare Workers runtime (workerd): reads, a page create and a commit through `githubStore` work, and a cross-site request is refused.
 
 ### Sign-in: `createHostedEditor`

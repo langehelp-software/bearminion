@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { defineConfig } from 'tsdown'
 
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
+
 /** `import css from './file.css?raw'`: the file's text, as Vite loads it in the tests. */
 const raw = {
   name: 'bearminion:raw',
@@ -49,6 +51,8 @@ export default defineConfig({
     alwaysBundle: [/^@preact\/signals/, /^(?:prosemirror-|orderedmap$|rope-sequence$|w3c-keyname$)/],
   },
   plugins: [raw],
+  // `src/version.ts`: what Site status reports.
+  define: { __BEARMINION_VERSION__: JSON.stringify(version) },
   // The registry `bearminion add` copies from: built from the template, shipped next to `dist/`.
   onSuccess: () => {
     execFileSync(process.execPath, ['dist/registry-build.js', 'build'], { stdio: 'inherit' })

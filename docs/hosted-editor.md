@@ -118,7 +118,8 @@ Editing is the same: text on the page, sections, the inspector, the listings and
 | | On your computer | Online |
 | --- | --- | --- |
 | A save | Writes files in your project | Commits to the repository |
-| Version history and Restore | Kept by the editor | Not shown. The repository's commit history is the history |
+| History: this tab's undo steps | Yes | Yes |
+| History: commits and Restore | From the local git repository | From the repository on GitHub; a restore is a new commit |
 | Commit changes (`git: true`) | Optional | Not needed: every save is a commit |
 | Video uploads | Yes | Not yet. Link a video, or upload it locally |
 | A just-uploaded image | Read from disk | Served from the repository to signed-in people until the next build holds it |

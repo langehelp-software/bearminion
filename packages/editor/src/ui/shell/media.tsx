@@ -39,11 +39,37 @@ function settle(event: Event) {
   if (img instanceof HTMLElement) img.parentElement?.removeAttribute('data-loading')
 }
 
+/** A file on its way to the library: shown at once from a local blob URL, replaced by the real card when it lands. */
+interface PendingUpload {
+  id: number
+  name: string
+  url: string
+  state: 'queued' | 'uploading'
+}
+
+let nextPendingId = 0
+
+function PendingCard({ item }: { item: PendingUpload }) {
+  return (
+    <li class="bm-media-card bm-media-pending" aria-busy="true">
+      <span class="bm-media-thumb" data-loading>
+        <img src={item.url} alt="" decoding="async" onLoad={settle} />
+        <span class="bm-media-progress" aria-hidden="true" />
+      </span>
+      <span class="bm-media-name" title={item.name}>
+        {item.name}
+      </span>
+      <span class="bm-media-use">{item.state === 'uploading' ? 'Uploading…' : 'Waiting…'}</span>
+    </li>
+  )
+}
+
 /** The image library as a full-screen grid: what is there, where the saved content uses it, upload and delete. */
 export function MediaView() {
   const { doc, ui } = useEditor()
   const [images, setImages] = useState<UploadedImage[] | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [pending, setPending] = useState<PendingUpload[]>([])
+  const busy = pending.length > 0
   const [dragging, setDragging] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
@@ -62,17 +88,48 @@ export function MediaView() {
     void refresh()
   }, [])
 
+  // Blob URLs of uploads still in flight when the view closes.
+  const pendingRef = useRef(pending)
+  pendingRef.current = pending
+  useEffect(
+    () => () => {
+      for (const item of pendingRef.current) URL.revokeObjectURL(item.url)
+    },
+    [],
+  )
+
+  function settlePending(id: number) {
+    setPending((current) => {
+      const item = current.find((entry) => entry.id === id)
+      if (item) URL.revokeObjectURL(item.url)
+      return current.filter((entry) => entry.id !== id)
+    })
+  }
+
   async function upload(files: FileList | null | undefined) {
     const list = [...(files ?? [])].filter((file) => file.type.startsWith('image/'))
     if (list.length === 0) return
-    setBusy(true)
+    const queued = list.map((file) => ({
+      file,
+      item: { id: nextPendingId++, name: file.name, url: URL.createObjectURL(file), state: 'queued' as const },
+    }))
+    setPending((current) => [...current, ...queued.map(({ item }) => item)])
     const failed: string[] = []
-    for (const file of list) {
+    // One at a time: each upload is a write to the repo, and the cards fill in in order.
+    for (const { file, item } of queued) {
+      setPending((current) => current.map((entry) => (entry.id === item.id ? { ...entry, state: 'uploading' } : entry)))
       const result = await uploadFile(file)
       if ('error' in result) failed.push(`${file.name}: ${result.error}`)
-      else doc.addImage(result.image)
+      else {
+        const image = result.image
+        doc.addImage(image)
+        // Land the real card now, in sorted place; the refresh below fills in its usages.
+        setImages((current) =>
+          [...(current ?? []).filter((entry) => entry.path !== image.path), image].sort((a, b) => a.filename.localeCompare(b.filename)),
+        )
+      }
+      settlePending(item.id)
     }
-    setBusy(false)
     if (failed.length > 0)
       ui.toasts.error(failed.length === 1 ? 'An upload failed.' : `${failed.length} uploads failed.`, { lines: failed })
     await refresh()
@@ -96,7 +153,7 @@ export function MediaView() {
             <h1 class="bm-screen-title">Media</h1>
             <button type="button" class="bm-primary bm-listing-new" disabled={busy} onClick={() => input.current?.click()}>
               <Icon name="upload" size={16} />
-              {busy ? 'Uploading…' : 'Upload'}
+              Upload
             </button>
             <input
               ref={input}
@@ -144,6 +201,9 @@ export function MediaView() {
               </li>
             )
           })}
+          {pending.map((item) => (
+            <PendingCard key={item.id} item={item} />
+          ))}
           <li class="bm-media-card">
             <button
               type="button"
