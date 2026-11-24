@@ -1,5 +1,19 @@
 # bearminion
 
+## 1.26.0
+
+### Minor Changes
+
+- 578cf62: Full-screen mobile menu: `defineSite({ header: { fullscreenMenu: true } })` adds a switch under Navigation → Header layout and allows `header.fullscreenMenu` in `site.json`. The starter offers it (off by default): the menu covers the screen, the header bar stays on top, the page stops scrolling, and Escape closes it. Existing sites copy `Header.astro`, `MobileMenu.astro` and the `site-definition.ts` line from the starter to get it.
+- 7dd8745: History has two tabs: this tab's undo steps of each document, kept in sessionStorage until the tab closes, and the repository's commits of the content and images, with a full History screen that compares a commit field by field and restores it as a new commit (local git and hosted GitHub). The save copies in `.editor/history/` and the `/history` API are gone.
+- 4c496f9: Site status, under Developer in the editor's navigation: the installed bearminion and whether npm has a newer one, each installed section compared with the release, the sections that can be added, and the hosted editor, content types and forms, each with its command to copy.
+
+### Patch Changes
+
+- 578cf62: Starter: the mobile menu draws no lines between items, so a link with a dropdown no longer stacks borders, and links under a parent sit closer together. `MobileBranch.astro` is not a file `add` updates: in an existing site, remove `border-b border-[var(--line)]` from its outer `div` by hand.
+  
+  The floating header's menu panel opens 8px below the pill and as wide as it, instead of touching its border and sitting 20px narrower: the pill's `backdrop-filter` made it the panel's containing block. In an existing site, change `inset-x-5 top-full` to `inset-x-0 top-[calc(100%+0.5rem)]` in `MobileMenu.astro`.
+
 ## 1.25.0
 
 ### Minor Changes
