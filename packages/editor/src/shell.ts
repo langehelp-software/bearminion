@@ -53,7 +53,7 @@ export function showsPage(view: string): boolean {
  * What covers the canvas: nothing (`canvas`), the Media library, the commit history, a settings screen, or the listing of a content type
  * (`listing:pages`, `listing:blog`).
  */
-export type View = 'canvas' | 'media' | 'history' | SettingsView | `listing:${string}`
+export type View = 'canvas' | 'media' | 'history' | 'status' | SettingsView | `listing:${string}`
 
 export function listingView(type: string): View {
   return `listing:${type}`
@@ -67,7 +67,7 @@ export function listingType(view: View): string | null {
 /** A view read back from storage, or `canvas` when it is not one. */
 export function parseView(value: string | null): View {
   if (value === null) return 'canvas'
-  if (value === 'canvas' || value === 'media' || value === 'history') return value
+  if (value === 'canvas' || value === 'media' || value === 'history' || value === 'status') return value
   if ((SETTINGS_VIEWS as readonly string[]).includes(value)) return value as SettingsView
   if (/^listing:[a-z0-9][a-z0-9-]*$/.test(value)) return value as View
   return 'canvas'

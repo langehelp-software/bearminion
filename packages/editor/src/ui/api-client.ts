@@ -10,6 +10,7 @@ import type {
   GitInfo,
   PageListItem,
   RestoreResult,
+  SiteStatus,
   SaveRequest,
   SaveResponse,
   SitePreview,
@@ -103,6 +104,21 @@ export const getGit = () => request<GitInfo>('/git')
 /** Whether the form handlers the sections post to exist in `src/forms`. */
 export const getForms = () => request<{ enabled: boolean; handlers: Record<string, { file: string | null }> }>('/forms')
 export const commit = (body: CommitRequest) => request<CommitResult>('/git/commit', sendJson('POST', body))
+
+/** The bearminion version and the site's sections compared with this release: Site status. */
+export const getSiteStatus = () => request<SiteStatus>('/status')
+
+/** The newest bearminion on npm, or null when npm cannot be reached. */
+export async function latestVersion(): Promise<string | null> {
+  try {
+    const response = await fetch('https://registry.npmjs.org/bearminion/latest', { headers: { accept: 'application/json' } })
+    if (!response.ok) return null
+    const body = (await response.json()) as { version?: unknown }
+    return typeof body.version === 'string' ? body.version : null
+  } catch {
+    return null
+  }
+}
 
 /** Commits of the content and the uploads, newest first; `cursor` from the previous page for older ones. */
 export const listVersions = (cursor?: string) => request<VersionPage>(`/versions${cursor ? `?cursor=${segment(cursor)}` : ''}`)

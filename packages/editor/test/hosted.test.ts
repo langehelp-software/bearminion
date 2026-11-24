@@ -118,5 +118,10 @@ describe('the editor API on the hosted entry', () => {
     const versions = (await (await call('GET', '/versions')).json()) as { commits: { message: string }[]; restoreCommits: boolean }
     expect(versions.commits[0]?.message).toBe('Update content/pages/about.json')
     expect(versions.restoreCommits).toBe(true)
+
+    const status = (await (await call('GET', '/status')).json()) as { mode: string; sections: { installed: boolean; state?: string }[] }
+    expect(status.mode).toBe('hosted')
+    expect(status.sections.length).toBeGreaterThan(0)
+    expect(status.sections.every((item) => item.installed && item.state === undefined)).toBe(true)
   })
 })

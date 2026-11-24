@@ -52,6 +52,8 @@ import { fieldIssues, validateEditorPage, validateSite, type FieldIssue } from '
 import { assetRefs, describePageRef, describeSiteRef, missingAssetIssues } from './asset-paths.js'
 import { COMMIT_MESSAGE_LIMIT, GitError, NO_GIT } from './git-types.js'
 import { isProjectPath, isSha, VersionError, type VersionsPort } from './versions-types.js'
+import { buildSiteStatus } from './site-status.js'
+import { VERSION } from './version.js'
 import { PreviewUnavailableError } from './preview.js'
 import { isSystemPage, withoutOrphanSections } from './page.js'
 import { isOrphanSection } from './section-schema.js'
@@ -238,6 +240,15 @@ async function route(request: Request, context: EditorContext, meta: HandleMeta)
   }
 
   if (parts[0] === 'versions') return versionsRoute(request, context, parts.slice(1), method, url)
+
+  if (parts.length === 1 && parts[0] === 'status') {
+    if (method !== 'GET') return methodNotAllowed(['GET'])
+    // A hosted editor has no copy of the site's files to compare: it lists the sections the site registers.
+    return json(
+      200,
+      context.siteStatus ? await context.siteStatus() : buildSiteStatus({ version: VERSION, mode: 'hosted', sections: context.sections }),
+    )
+  }
 
   if (parts.length === 2 && parts[0] === 'pages') {
     const slug = readSlug(parts[1] ?? '')

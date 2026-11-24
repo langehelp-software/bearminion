@@ -59,6 +59,7 @@
   --bm-r-card: 10px;
   --bm-r-chip: 5px;
   --bm-btn-h: 38px;
+  --bm-tracking-section: 0.1em;
   /* The picked version in the History timeline. */
   --bm-history-dot: oklch(0.87 0.2 145);
 
@@ -5307,4 +5308,356 @@ tbody .bm-tr-on:hover {
     position: static;
     max-height: 320px;
   }
+}
+
+/* ---------- site status ---------- */
+.bm-status {
+  padding: 40px 40px 48px;
+  gap: 28px;
+}
+.bm-status .bm-screen-title {
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+.bm-status > .bm-listing-head,
+.bm-status-body {
+  width: 100%;
+  max-width: 1320px;
+}
+.bm-status-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24rem;
+  gap: 24px;
+  align-items: start;
+}
+.bm-status-main,
+.bm-status-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.bm-status-main {
+  gap: 24px;
+}
+.bm-status-group {
+  gap: 12px;
+}
+.bm-status-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--bm-divider);
+}
+.bm-status-group-title {
+  margin: 0;
+  font-family: var(--bm-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--bm-tracking-section);
+  text-transform: uppercase;
+  color: var(--bm-section);
+}
+.bm-status-hint {
+  font-size: 12px;
+  color: var(--bm-muted);
+}
+.bm-status-flag {
+  flex: none;
+  align-self: flex-start;
+  padding: 2px 7px;
+  border-radius: var(--bm-r-chip);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.bm-status-row .bm-status-flag {
+  align-self: auto;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+.bm-status-flag-green {
+  background: var(--bm-badge-green-bg);
+  color: var(--bm-badge-green-fg);
+}
+.bm-status-flag-amber {
+  background: var(--bm-badge-amber-bg);
+  color: var(--bm-badge-amber-fg);
+}
+.bm-status-flag-grey {
+  background: var(--bm-fill-hover);
+  color: var(--bm-label);
+}
+
+/* The status card: what runs, and the verdict */
+.bm-status-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  border: 1px solid var(--bm-border);
+  border-radius: var(--bm-r-card);
+  background: #fff;
+}
+.bm-status-running {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 15rem;
+  padding: 20px 24px;
+  border-right: 1px solid var(--bm-divider);
+}
+.bm-status-version {
+  font-size: 22px;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+  color: var(--bm-ink);
+}
+.bm-status-version code {
+  font-family: var(--bm-font-mono);
+  font-size: 18px;
+  font-weight: 500;
+}
+.bm-status-summary {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px 24px;
+}
+.bm-status-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--bm-ink);
+}
+.bm-status-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.bm-status-icon-green {
+  background: var(--bm-badge-green-bg);
+  color: var(--bm-badge-green-fg);
+}
+.bm-status-icon-amber {
+  background: var(--bm-badge-amber-bg);
+  color: var(--bm-badge-amber-fg);
+}
+.bm-status-icon-grey {
+  background: var(--bm-fill-hover);
+  color: var(--bm-label);
+}
+.bm-status-step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--bm-help);
+}
+.bm-status-step > span:first-child {
+  flex: 1 1 16rem;
+}
+
+/* Section lists */
+.bm-status-list {
+  margin: 0;
+  padding: 0 16px;
+  list-style: none;
+  border: 1px solid var(--bm-border);
+  border-radius: var(--bm-r-card);
+  background: #fff;
+}
+.bm-status-list-missing {
+  border: 1px dashed oklch(0.85 0.005 250);
+  background: transparent;
+}
+.bm-status-row {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr) auto;
+  gap: 6px 16px;
+  align-items: baseline;
+  padding: 12px 0;
+}
+.bm-status-list-missing .bm-status-row {
+  align-items: center;
+  padding: 10px 0;
+}
+.bm-status-row + .bm-status-row {
+  border-top: 1px solid var(--bm-divider);
+}
+.bm-status-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bm-ink);
+}
+.bm-status-list-missing .bm-status-name {
+  color: var(--bm-label);
+}
+.bm-status-desc {
+  min-width: 0;
+  font-size: 13px;
+  color: var(--bm-help);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bm-status-list-missing .bm-status-desc {
+  color: var(--bm-muted);
+}
+.bm-status-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.bm-status-key {
+  font-family: var(--bm-font-mono);
+  font-size: 11px;
+  color: var(--bm-muted);
+}
+.bm-status-note {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 4px;
+  padding: 10px 10px 10px 14px;
+  border-radius: var(--bm-r-control);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--bm-label);
+}
+.bm-status-note > span:first-child {
+  flex: 1 1 14rem;
+  text-wrap: pretty;
+}
+.bm-status-note-amber {
+  background: oklch(0.97 0.025 80);
+}
+.bm-status-note-grey {
+  background: var(--bm-fill-soft);
+}
+
+/* More to add */
+.bm-status-addon {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--bm-border);
+  border-radius: var(--bm-r-card);
+  background: #fff;
+}
+.bm-status-addon-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bm-status-addon-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--bm-help);
+}
+
+/* A command with its Copy button */
+.bm-command {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0 4px 0 10px;
+  border-radius: var(--bm-r-btn-sm);
+  background: var(--bm-fill);
+}
+.bm-command code {
+  min-width: 0;
+  font-family: var(--bm-font-mono);
+  font-size: 12px;
+  color: var(--bm-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bm-command-outline {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--bm-border);
+}
+.bm-command-block {
+  display: flex;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 0 6px 0 12px;
+  border-radius: var(--bm-r-control);
+}
+.bm-command-block code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.bm-panel .bm-command-copy {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bm-r-chip);
+  background: transparent;
+  color: var(--bm-icon);
+}
+.bm-panel .bm-command-copy:hover {
+  background: var(--bm-fill-hover);
+  color: var(--bm-ink);
+}
+.bm-command-outline .bm-command-copy:hover {
+  background: var(--bm-fill);
+}
+.bm-diff-pad code {
+  font-family: var(--bm-font-mono);
+  font-size: 12.5px;
+}
+@media (max-width: 1240px) {
+  .bm-status-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .bm-status-card {
+    grid-template-columns: 1fr;
+  }
+  .bm-status-running {
+    border-right: 0;
+    border-bottom: 1px solid var(--bm-divider);
+  }
+  .bm-status-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bm-status-end {
+    justify-content: flex-start;
+  }
+  .bm-status-desc {
+    white-space: normal;
+  }
+  .bm-status-note {
+    grid-column: 1 / -1;
+  }
+}
+/* Room under the last card: a scroll container can drop its own bottom padding. */
+.bm-status-body,
+.bm-history-body {
+  padding-bottom: 64px;
 }

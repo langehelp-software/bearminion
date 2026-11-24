@@ -112,6 +112,7 @@ export interface UploadedVideo {
 }
 
 export type { RestoreResult, VersionCommit, VersionFile, VersionPage } from './versions-types.js'
+export type { SectionState, SiteStatus, StatusSection } from './site-status.js'
 
 /** `POST /save`. At least one of `page` and `site`. */
 export interface SaveRequest<TPage = unknown, TSite = unknown> {

@@ -62,6 +62,7 @@ export function navGroups(types: readonly ContentTypeInfo[], documents: readonly
         { view: 'seo', label: 'SEO', icon: 'search' },
       ],
     },
+    { label: 'Developer', items: [{ view: 'status', label: 'Site status', icon: 'info' }] },
   ]
 }
 

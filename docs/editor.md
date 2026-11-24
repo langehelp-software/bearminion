@@ -88,13 +88,14 @@ The toolbar stays visible while the section is in view. When the section top scr
 
 ### The navigation
 
-The left column has three groups:
+The left column has four groups:
 
 | Group | Items |
 | --- | --- |
-| Content | **Pages**, then one item for every multi content type the site declares (see [Content types](content-types.md)), then **Media**. Each content item shows how many documents it has |
+| Content | **Pages**, then one item for every multi content type the site declares (see [Content types](content-types.md)), then **Media** and **[History](#history)**. Each content item shows how many documents it has |
 | Layout | **Navigation**, **Footer** |
 | Settings | **Site**, **Design**, **SEO** |
+| Developer | **[Site status](#site-status)** |
 
 An item opens its [full-screen view](#full-screen-views) over the page. On the page, the content type of the open document is highlighted. **Collapse** at the bottom (Ctrl+\\ or Cmd+\\) turns the column into an icon rail with a tooltip on each icon. The choice is kept in `localStorage` as `bearminion:shell-nav-open`.
 
@@ -198,6 +199,17 @@ A listing page and a single are marked `listing` and `single`: their content is 
 ![The Media screen: a grid of uploaded images, each with where it is used, and a drop target.](images/editor-media.webp)
 
 Every uploaded image in `src/assets/uploads`, with where the saved content uses it (“Used on Home page › Hero”) or “Not used”. **Upload**, or drop images on the last tile, adds them; an image nothing uses can be deleted from its card. The same rules as the [image picker](#images) apply.
+
+#### Site status
+
+For the developer: what the site runs and what can be added, with each command next to a Copy button. Nothing is installed from the editor; the commands run in the project folder.
+
+- **The status card**: the installed `bearminion` and whether it is the **Latest release** (the screen asks npm, `registry.npmjs.org/bearminion/latest`; with a newer one it says **Update available** and offers `npm install bearminion@latest`), then the verdict, such as "All 17 sections up to date" or "2 of 15 sections need attention · 2 not installed", with `npx bearminion status`.
+- **Installed sections**, compared with the release the way [`bearminion status`](cli.md#see-what-is-out-of-date) does. Healthy sections carry no badge. Those that need attention come first, with a note and a command: **Out of date** (`npx bearminion@latest add <name>`) and **Changed** where you and the release both changed files (`npx bearminion add <name> --diff`). A section you changed that the release did not is marked **Changed** with nothing to do; a section the site defines itself is **Your own**.
+- **Not installed**: the release's sections the site does not have, with `npx bearminion add <name>`.
+- **More to add**, beside them: the hosted editor (`add hosted --install`), a blog, a content type and a form handler. The editor does not tell whether these are set up already.
+
+In the hosted editor there are no files to compare, so the list shows the installed sections without badges and the card points to `npx bearminion status`.
 
 #### Settings screens
 

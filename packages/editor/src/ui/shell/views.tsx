@@ -9,6 +9,7 @@ import { SidebarResize, useFocusRequest } from './inspector.js'
 import { ListingView } from './listing.js'
 import { HistoryView } from './history-view.js'
 import { MediaView } from './media.js'
+import { StatusView } from './status-view.js'
 import { DesignPanel, FooterPanel, NavigationPanel, SitePanel } from './panels.js'
 
 /** Title and the file a settings screen writes. */
@@ -121,7 +122,9 @@ export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; cat
           ? SETTINGS[settings].title
           : view === 'history'
             ? 'History'
-            : 'Media'
+            : view === 'status'
+              ? 'Site status'
+              : 'Media'
   return (
     <main class="bm-view bm-panel bm-chrome" aria-label={label}>
       <SiteContexts>
@@ -131,6 +134,8 @@ export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; cat
           <MediaView />
         ) : view === 'history' ? (
           <HistoryView />
+        ) : view === 'status' ? (
+          <StatusView />
         ) : settings ? (
           <SettingsScreen view={settings}>
             <SettingsBody view={settings} catalog={catalog} />
