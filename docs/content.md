@@ -34,7 +34,7 @@ The home page uses slug `index`. Other slugs are lowercase kebab-case (`about`).
 - `brandLogo` — optional `{ src, alt, height? }`. Shown in the header and footer instead of the name; `height` is 16–64 px (28 when omitted). The icon box beside the name is gone: the brand is either the name or this image.
 - `theme.mode` is `light` or `dark`. A legacy `system` reads as `light`.
 - `theme` — `mode` (`light`, `dark`, or `system`, default `light`) and `motion` (default `true`)
-- `header` — `variant` (`bar`, `centered`, `floating`), `tone`, `sticky`, `links`, and and `actions`, up to two header buttons shown left to right (the last is the primary button; an empty list hides them). Older `cta` and `signIn` fields are still read, as `signIn` then `cta`, and are rewritten as `actions` on the next save
+- `header` — `variant` (`bar`, `centered`, `floating`), `tone`, `sticky`, optional `fullscreenMenu` (`true` opens the mobile menu full screen; a missing field keeps the dropdown), `links`, and `actions`, up to two header buttons shown left to right (the last is the primary button; an empty list hides them). Older `cta` and `signIn` fields are still read, as `signIn` then `cta`, and are rewritten as `actions` on the next save
 - `footer` — `variant` (`simple`, `columns`, `wordmark`), `tone`, optional `text`, `legal`, `badge` (the columns pill) and `poweredBy` (the "Powered by BearMinion" link in the bottom row; only `false` hides it, so a missing field shows it), and up to three `columns` of `{ title, links }`
 
 ## Pages

@@ -621,6 +621,19 @@ describe('defineSite', () => {
     expect(plain.schema.safeParse({ ...base, footer: { columns: [], poweredBy: false } }).success).toBe(false)
   })
 
+  it('only offers the full-screen mobile menu switch when the theme enables it', () => {
+    const site = defineSite({ ...chrome, header: { ...chrome.header, fullscreenMenu: true } })
+    expect(site.schema.safeParse({ ...base, header: { links: [], fullscreenMenu: true } }).success).toBe(true)
+    expect(site.schema.safeParse({ ...base, header: { links: [] } }).success).toBe(true)
+    expect(site.header.fullscreenMenu).toBe(true)
+    expect(site.options.find((o) => o.name === 'header.fullscreenMenu')).toMatchObject({ type: 'boolean', default: false })
+
+    const plain = defineSite(chrome)
+    expect(plain.header.fullscreenMenu).toBe(false)
+    expect(plain.options.some((o) => o.name === 'header.fullscreenMenu')).toBe(false)
+    expect(plain.schema.safeParse({ ...base, header: { links: [], fullscreenMenu: true } }).success).toBe(false)
+  })
+
   it('rejects an invalid definition', () => {
     expect(() => defineSite({ ...chrome, header: { ...chrome.header, defaultVariant: 'wide' as never } })).toThrow(
       /header\.defaultVariant "wide"/,

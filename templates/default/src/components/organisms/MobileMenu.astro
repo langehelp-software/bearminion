@@ -7,19 +7,21 @@ import MobileBranch from './MobileBranch.astro'
 interface Props {
   site: Site
   floating?: boolean
+  /** Cover the whole screen instead of dropping down under the header. */
+  fullscreen?: boolean
 }
 
-const { site, floating = false } = Astro.props
+const { site, floating = false, fullscreen = false } = Astro.props
 const { actions } = site.header
 ---
 
-<div data-menu-root class="contents">
+<div data-menu-root data-fullscreen={fullscreen ? 'true' : undefined} class="contents">
   <button
     type="button"
     data-nav-toggle
     aria-expanded="false"
     aria-controls="mobile-nav"
-    class="inline-flex h-11 items-center gap-2.5 rounded-full bg-transparent px-4 text-[0.9375rem] font-medium shadow-[inset_0_0_0_1px_var(--line)]"
+    class="relative z-[60] inline-flex h-11 items-center gap-2.5 rounded-full bg-transparent px-4 text-[0.9375rem] font-medium shadow-[inset_0_0_0_1px_var(--line)]"
   >
     <span class="flex w-3.5 flex-col gap-1" aria-hidden="true">
       <span class="menu-bar menu-bar-1"></span>
@@ -32,9 +34,16 @@ const { actions } = site.header
     data-open="false"
     hidden
     class:list={[
-      'absolute z-50',
-      floating
-        ? 'inset-x-5 top-full rounded-card-lg bg-surface px-5 pt-2 pb-5 shadow-[inset_0_0_0_1px_var(--line),0_24px_48px_-24px_oklch(0.2_0.02_255/0.4)]'
+      fullscreen
+        ? // The header is a size container, so it is this panel's containing block: the panel starts at the header's top
+          // edge (the viewport's, once the menu has scrolled it there) and is as tall as the screen.
+          'fixed top-0 left-0 z-50 flex h-[100dvh] w-full flex-col overflow-y-auto overscroll-contain bg-surface px-5 pt-24 pb-8'
+        : 'absolute z-50',
+      fullscreen
+        ? ''
+        : floating
+        ? // The pill's backdrop-filter makes it the panel's containing block: these offsets are from the pill itself.
+          'inset-x-0 top-[calc(100%+0.5rem)] rounded-card-lg bg-surface px-5 pt-2 pb-5 shadow-[inset_0_0_0_1px_var(--line),0_24px_48px_-24px_oklch(0.2_0.02_255/0.4)]'
         : 'inset-x-0 top-full border-b border-[var(--line)] bg-bg px-5 pt-2 pb-6 shadow-[0_24px_48px_-24px_oklch(0.2_0.02_255/0.35)]',
     ]}
   >
@@ -47,7 +56,7 @@ const { actions } = site.header
     </nav>
     {
       actions.length > 0 && (
-        <div class:list={['mt-6 grid gap-2', actions.length > 1 ? 'grid-cols-2' : 'grid-cols-1']}>
+        <div class:list={['grid gap-2', fullscreen ? 'mt-auto pt-8' : 'mt-6', actions.length > 1 ? 'grid-cols-2' : 'grid-cols-1']}>
           {actions.map((action, index) => (
             <Button
               {...buttonLinkProps(action)}
@@ -74,15 +83,34 @@ const { actions } = site.header
       const label = root.querySelector('[data-menu-label]')
       if (!(toggle instanceof HTMLButtonElement) || !(nav instanceof HTMLElement)) return
 
+      const fullscreen = root.dataset.fullscreen === 'true'
       const setOpen = (open: boolean) => {
         nav.hidden = !open
         nav.setAttribute('data-open', String(open))
         toggle.setAttribute('aria-expanded', String(open))
         toggle.setAttribute('data-open', String(open))
         if (label) label.textContent = open ? 'Close' : 'Menu'
+        // Full screen: the header is brought to the top of the screen, the page stops scrolling, and the header bar stays
+        // above the panel (see the style below).
+        if (fullscreen) {
+          const header = root.closest('header')
+          const top = header?.getBoundingClientRect().top ?? 0
+          if (open && top !== 0) window.scrollBy(0, top)
+          document.documentElement.toggleAttribute('data-menu-fullscreen', open)
+        }
       }
 
       toggle.addEventListener('click', () => setOpen(nav.hidden))
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !nav.hidden) {
+          setOpen(false)
+          toggle.focus()
+        }
+      })
+      // Widening past the mobile breakpoint hides the menu; do not leave the page locked behind it.
+      window.matchMedia('(min-width: 880px)').addEventListener('change', (event) => {
+        if (event.matches && !nav.hidden) setOpen(false)
+      })
       nav.addEventListener('click', (event) => {
         const target = event.target
         if (target instanceof Element && target.closest('[data-menu-link]')) setOpen(false)
@@ -108,3 +136,22 @@ const { actions } = site.header
   bindMenus()
   document.addEventListener('bearminion:preview', bindMenus)
 </script>
+
+<style is:global>
+  html[data-menu-fullscreen] {
+    overflow: hidden;
+  }
+  /*
+   * The floating header's blur would make the bar the containing block of the fixed panel, so the panel would cover only
+   * the bar. Off while the menu is open; the panel is opaque anyway. The logo and the Close button stay above the panel.
+   */
+  html[data-menu-fullscreen] [data-menu-host] {
+    backdrop-filter: none;
+    background: transparent;
+    box-shadow: none;
+  }
+  html[data-menu-fullscreen] [data-menu-host] > :not([data-menu-root]) {
+    position: relative;
+    z-index: 60;
+  }
+</style>

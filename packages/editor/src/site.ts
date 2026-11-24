@@ -68,6 +68,7 @@ interface HeaderParts {
   variants: readonly [string, ...string[]]
   defaultVariant: string
   maxActions: number
+  fullscreenMenu: boolean
 }
 
 interface FooterParts {
@@ -78,12 +79,14 @@ interface FooterParts {
   poweredBy: boolean
 }
 
-function createHeaderSchema({ variants, defaultVariant, maxActions }: HeaderParts) {
+function createHeaderSchema({ variants, defaultVariant, maxActions, fullscreenMenu }: HeaderParts) {
   return z
     .object({
       variant: z.enum(variants).default(defaultVariant),
       tone: toneSchema,
       sticky: z.boolean().default(true),
+      /** The mobile menu covers the whole screen instead of dropping down. Only themes that enable it accept it. */
+      fullscreenMenu: z.boolean().optional(),
       links: z.array(linkSchema),
       actions: z.array(linkSchema).max(maxActions).optional(),
       /** Legacy: read as `actions` (`signIn` first, then `cta`) and not written back. */
@@ -93,6 +96,9 @@ function createHeaderSchema({ variants, defaultVariant, maxActions }: HeaderPart
     })
     .strict()
     .superRefine((header, ctx) => {
+      if (!fullscreenMenu && header.fullscreenMenu !== undefined) {
+        ctx.addIssue({ code: 'custom', message: 'This site has no full-screen mobile menu', path: ['fullscreenMenu'] })
+      }
       if (header.actions && (header.cta || header.signIn)) {
         ctx.addIssue({
           code: 'custom',
@@ -283,6 +289,8 @@ export interface HeaderConfig<TVariants extends readonly [string, ...string[]]> 
   maxActions?: number
   /** Recommended number of links, shown as guidance in the editor. Default 4. */
   recommendedLinks?: number
+  /** The mobile menu can open full screen, and the editor shows a switch for it. Default false. */
+  fullscreenMenu?: boolean
 }
 
 export interface FooterConfig<TVariants extends readonly [string, ...string[]]> {
@@ -318,7 +326,7 @@ export interface SiteDefinition<THeader extends string = string, TFooter extends
   /** Item-count guidance and limits for the header and footer lists. */
   readonly counts: { readonly header: Readonly<Record<string, CountRule>>; readonly footer: Readonly<Record<string, CountRule>> }
   readonly limits: { readonly maxHeaderActions: number; readonly maxFooterColumns: number }
-  readonly header: { readonly variants: readonly THeader[]; readonly defaultVariant: THeader }
+  readonly header: { readonly variants: readonly THeader[]; readonly defaultVariant: THeader; readonly fullscreenMenu: boolean }
   readonly footer: {
     readonly variants: readonly TFooter[]
     readonly defaultVariant: TFooter
@@ -339,6 +347,7 @@ export function defineSite<
   const maxColumns = footer.maxColumns ?? DEFAULT_MAX_FOOTER_COLUMNS
   const badge = footer.badge === true
   const poweredBy = footer.poweredBy === true
+  const fullscreenMenu = header.fullscreenMenu === true
   for (const [name, part] of [
     ['header', header],
     ['footer', footer],
@@ -351,7 +360,7 @@ export function defineSite<
   if (!Number.isInteger(maxColumns) || maxColumns < 1) throw new Error('defineSite: footer.maxColumns must be a positive integer.')
 
   const schema = createSiteSchema(
-    { variants: header.variants, defaultVariant: header.defaultVariant, maxActions },
+    { variants: header.variants, defaultVariant: header.defaultVariant, maxActions, fullscreenMenu },
     { variants: footer.variants, defaultVariant: footer.defaultVariant, maxColumns, badge, poweredBy },
   ) as unknown as z.ZodType<SiteWith<THeaderVariants[number], TFooterVariants[number]>>
 
@@ -362,6 +371,9 @@ export function defineSite<
     { name: 'header.variant', label: 'Header variant', type: 'enum', choices: header.variants, default: header.defaultVariant },
     { name: 'header.tone', label: 'Header tone', type: 'enum', choices: tones, default: 'base' },
     { name: 'header.sticky', label: 'Sticky header', type: 'boolean', default: true },
+    ...(fullscreenMenu
+      ? [{ name: 'header.fullscreenMenu', label: 'Full-screen mobile menu', type: 'boolean', default: false } as const]
+      : []),
     { name: 'footer.variant', label: 'Footer variant', type: 'enum', choices: footer.variants, default: footer.defaultVariant },
     { name: 'footer.tone', label: 'Footer tone', type: 'enum', choices: tones, default: 'base' },
     ...(badge ? [{ name: 'footer.badge', label: 'Footer badge', type: 'string', default: '' } as const] : []),
@@ -376,7 +388,7 @@ export function defineSite<
       footer: { columns: { recommended: maxColumns, max: maxColumns } },
     },
     limits: { maxHeaderActions: maxActions, maxFooterColumns: maxColumns },
-    header: { variants: header.variants, defaultVariant: header.defaultVariant },
+    header: { variants: header.variants, defaultVariant: header.defaultVariant, fullscreenMenu },
     footer: { variants: footer.variants, defaultVariant: footer.defaultVariant, badge, poweredBy },
   }
 }

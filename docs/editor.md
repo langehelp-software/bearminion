@@ -220,7 +220,7 @@ Navigation, Footer, Site, Design and SEO are one screen each, with every group a
 ![The Navigation screen: brand, header layout and the link list.](images/editor-tab-navigation.webp)
 
 - **Brand.** The name, or a logo image with a height slider.
-- **Header layout.** Variant, tone and sticky.
+- **Header layout.** Variant, tone, sticky and, when the theme offers it, **Full-screen mobile menu**: the menu on small screens covers the whole screen instead of dropping down under the header.
 - **Links.** Drag a row to reorder or nest it, indent and outdent, and pick a link target. Nesting stops at `MAX_NAV_DEPTH` (3): a top-level link, a child and a grandchild.
 - **Buttons.** Up to two header buttons.
 

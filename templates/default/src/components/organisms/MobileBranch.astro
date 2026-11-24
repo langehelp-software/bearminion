@@ -13,8 +13,8 @@ const { link, fieldPath, depth } = Astro.props
 const children = link.children ?? []
 ---
 
-<div data-accordion-item class="border-b border-[var(--line)]" style={`padding-left: ${(depth - 1) * 0.75}rem`}>
-  <div class="flex min-h-14 items-center gap-2">
+<div data-accordion-item style={`padding-left: ${(depth - 1) * 0.75}rem`}>
+  <div class:list={['flex items-center gap-2', depth === 1 ? 'min-h-14' : 'min-h-10']}>
     <a
       {...anchorAttrs(link)}
       data-menu-link
