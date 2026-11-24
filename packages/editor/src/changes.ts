@@ -169,3 +169,191 @@ export function groupChanges(entries: ChangeEntry[]): { area: string; entries: C
   }
   return [...groups].map(([area, list]) => ({ area, entries: list }))
 }
+
+/* ---------- a version's changes, for the History screen ---------- */
+
+/** One changed value: a readable label, the raw path for whoever needs to match it, and the values. */
+export interface DiffRow {
+  /** "Hero · main button link". */
+  label: string
+  /** "#intro › primary › href". */
+  path: string
+  kind: ChangeKind
+  /** What the value is, for the summary. */
+  is: 'link' | 'image' | 'field'
+  before?: string
+  after?: string
+}
+
+export interface DocumentDiff {
+  sectionsAdded: string[]
+  sectionsRemoved: string[]
+  reordered: boolean
+  rows: DiffRow[]
+  /** "1 section added · 5 removed · 1 link changed". Empty when nothing differs. */
+  summary: string
+}
+
+const LONG_VALUE = 280
+
+/** Two-segment names first (`primary.href`), then one segment (`heading`). Anything else is shown by its key. */
+const FIELD_NAMES_2: Record<string, string> = {
+  'primary.href': 'main button link',
+  'primary.label': 'main button text',
+  'secondary.href': 'second button link',
+  'secondary.label': 'second button text',
+  'cta.href': 'button link',
+  'cta.label': 'button text',
+  'link.href': 'link',
+  'link.label': 'link text',
+  'image.src': 'image',
+  'image.alt': 'image description',
+  'image.fit': 'image fit',
+  'image.position': 'image position',
+  'seo.title': 'SEO title',
+  'seo.description': 'SEO description',
+  'seo.ogImage': 'social preview image',
+  'seo.noindex': 'hidden from search',
+  'seo.nofollow': 'links not followed',
+  'brandLogo.src': 'logo',
+  'favicon.src': 'favicon',
+}
+
+const FIELD_NAMES_1: Record<string, string> = {
+  href: 'link',
+  url: 'link',
+  label: 'text',
+  heading: 'heading',
+  subheading: 'subheading',
+  eyebrow: 'eyebrow',
+  body: 'text',
+  text: 'text',
+  title: 'title',
+  description: 'description',
+  variant: 'layout',
+  tone: 'colour',
+  anchor: 'anchor',
+  src: 'image',
+  alt: 'image description',
+  name: 'name',
+  slug: 'address',
+}
+
+/** `items.1.cta.href` → `item 2 › button link`. */
+export function fieldName(path: string): string {
+  const segments = path.split('.').filter((segment, index) => !(index === 0 && segment === 'props'))
+  const last2 = segments.slice(-2).join('.')
+  const last = segments.at(-1) ?? ''
+  let name: string
+  let rest: string[]
+  if (segments.length >= 2 && FIELD_NAMES_2[last2]) {
+    name = FIELD_NAMES_2[last2]
+    rest = segments.slice(0, -2)
+  } else {
+    name = FIELD_NAMES_1[last] ?? words(last)
+    rest = segments.slice(0, -1)
+  }
+  const context: string[] = []
+  for (const segment of rest) {
+    if (/^\d+$/.test(segment)) {
+      const previous = context.pop()
+      const noun = previous && previous.length > 3 && previous.endsWith('s') ? previous.slice(0, -1) : (previous ?? 'item')
+      context.push(`${noun} ${Number(segment) + 1}`)
+    } else context.push(words(segment))
+  }
+  return [...context, name].join(' › ')
+}
+
+function rowKind(path: string): DiffRow['is'] {
+  const last = path.split('.').at(-1) ?? ''
+  if (last === 'href' || last === 'url') return 'link'
+  if (last === 'src' || last === 'ogImage' || last === 'favicon') return 'image'
+  return 'field'
+}
+
+function longValue(value: string): string {
+  const flat = value.replace(/\s+/g, ' ').trim()
+  if (flat === '') return 'empty'
+  return flat.length > LONG_VALUE ? `${flat.slice(0, LONG_VALUE - 1)}…` : flat
+}
+
+function diffRow(area: string, rawPrefix: string, path: string, change: { kind: ChangeKind; before?: string; after?: string }): DiffRow {
+  const raw = fieldLabel(path)
+  return {
+    label: area ? `${area} · ${fieldName(path)}` : fieldName(path).replace(/^./, (first) => first.toUpperCase()),
+    path: rawPrefix ? `${rawPrefix} › ${raw}` : raw,
+    kind: change.kind,
+    is: rowKind(path),
+    ...(change.before === undefined ? {} : { before: longValue(change.before) }),
+    ...(change.after === undefined ? {} : { after: longValue(change.after) }),
+  }
+}
+
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
+
+function summarize(diff: Omit<DocumentDiff, 'summary'>): string {
+  const parts: string[] = []
+  const added = diff.sectionsAdded.length
+  const removed = diff.sectionsRemoved.length
+  if (added > 0) parts.push(`${plural(added, 'section', 'sections')} added`)
+  if (removed > 0) parts.push(added > 0 ? `${removed} removed` : `${plural(removed, 'section', 'sections')} removed`)
+  if (diff.reordered) parts.push('order changed')
+  const count = (is: DiffRow['is']) => diff.rows.filter((row) => row.is === is).length
+  const links = count('link')
+  const images = count('image')
+  const fields = count('field')
+  if (links > 0) parts.push(`${plural(links, 'link', 'links')} changed`)
+  if (images > 0) parts.push(`${plural(images, 'image', 'images')} changed`)
+  if (fields > 0) parts.push(`${plural(fields, 'field', 'fields')} changed`)
+  return parts.join(' · ')
+}
+
+/** What a version changed in a page file: sections added, removed or moved, and each changed value. */
+export function describePageDiff(before: Json, after: Json, labels: Record<string, string> = {}): DocumentDiff {
+  const rows: DiffRow[] = []
+  const beforeRest = isRecord(before) ? { ...before, sections: undefined } : {}
+  const afterRest = isRecord(after) ? { ...after, sections: undefined } : {}
+  for (const change of compare(leaves(beforeRest, '', new Map()), leaves(afterRest, '', new Map()))) {
+    if (change.path === 'schemaVersion') continue
+    rows.push(diffRow('', '', change.path, change))
+  }
+  const old = sectionsOf(before)
+  const next = sectionsOf(after)
+  const oldIds = new Set(old.map((section) => section.id))
+  const nextIds = new Set(next.map((section) => section.id))
+  const name = (section: { type: string }) => labels[section.type] ?? section.type
+  const sectionsAdded = next.filter((section) => !oldIds.has(section.id)).map(name)
+  const sectionsRemoved = old.filter((section) => !nextIds.has(section.id)).map(name)
+  const keptOld = old.filter((section) => nextIds.has(section.id)).map((section) => section.id)
+  const keptNew = next.filter((section) => oldIds.has(section.id)).map((section) => section.id)
+
+  const oldSections = isRecord(before) && Array.isArray(before.sections) ? before.sections.filter(isRecord) : []
+  const newSections = isRecord(after) && Array.isArray(after.sections) ? after.sections.filter(isRecord) : []
+  for (const section of newSections) {
+    const previous = oldSections.find((item) => item.id === section.id)
+    if (!previous) continue
+    const area = labels[String(section.type)] ?? String(section.type)
+    const prefix = typeof section.anchor === 'string' && section.anchor !== '' ? `#${section.anchor}` : words(String(section.type))
+    for (const change of compare(leaves(previous, '', new Map()), leaves(section, '', new Map()))) {
+      if (change.path === 'id') continue
+      rows.push(diffRow(area, prefix, change.path, change))
+    }
+  }
+  const diff = { sectionsAdded, sectionsRemoved, reordered: keptOld.join('|') !== keptNew.join('|'), rows }
+  return { ...diff, summary: summarize(diff) }
+}
+
+/** What a version changed in `site.json`: each changed value, labelled by area (Brand, Header, Footer, Design). */
+export function describeSiteDiff(before: Json, after: Json): DocumentDiff {
+  const rows = compare(leaves(before ?? {}, '', new Map()), leaves(after ?? {}, '', new Map()))
+    .filter((change) => change.path !== 'schemaVersion')
+    .map((change) => {
+      const [top = '', ...rest] = change.path.split('.')
+      const area = SITE_AREAS[top] ?? 'Site'
+      const inner = (top === 'header' || top === 'footer' || top === 'theme') && rest.length > 0 ? rest.join('.') : change.path
+      const row = diffRow(area, '', inner, change)
+      return { ...row, path: fieldLabel(change.path) }
+    })
+  const diff = { sectionsAdded: [], sectionsRemoved: [], reordered: false, rows }
+  return { ...diff, summary: summarize(diff) }
+}

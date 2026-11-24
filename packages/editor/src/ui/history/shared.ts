@@ -91,3 +91,28 @@ function ready(page: VersionPage, known: VersionCommit[]): CommitsState {
     more: page.cursor !== undefined,
   }
 }
+
+const dayStart = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
+
+/** "16 Nov · 8 days ago" for the last two weeks, "20 Oct" before that, with the year when it is not this one. */
+export function timelineDate(iso: string, now = new Date()): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const day = date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
+  })
+  const days = Math.round((dayStart(now) - dayStart(date)) / 86_400_000)
+  if (days < 0 || days > 14) return day
+  const ago = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`
+  return `${day} · ${ago}`
+}
+
+/** "16 Nov 2026, 8:58". */
+export function fullDate(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  const day = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return `${day}, ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+}

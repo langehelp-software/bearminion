@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'preact/hooks'
 import { groupChanges } from '../../changes.js'
-import { relativeTime } from '../../shell.js'
 import { Segmented } from '../forms/segmented.js'
 import { changeSummary, clock, type CommitsState, stepChanges, useCommits } from '../history/shared.js'
 import { Icon } from '../icons.js'
@@ -99,6 +98,25 @@ function SessionTab() {
   )
 }
 
+/** "Today, 14:05", "Yesterday, 14:05", or "12 Nov, 14:05" (with the year when it is not this one). */
+function commitDate(iso: string, now = new Date()): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const dayStart = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
+  const days = Math.round((dayStart(now) - dayStart(date)) / 86_400_000)
+  const day =
+    days === 0
+      ? 'Today'
+      : days === 1
+        ? 'Yesterday'
+        : date.toLocaleDateString(undefined, {
+            day: 'numeric',
+            month: 'short',
+            ...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
+          })
+  return `${day}, ${clock(iso)}`
+}
+
 function commitsMessage(state: Extract<CommitsState, { status: 'failed' }>): string {
   return state.missing ? 'There is no commit history here: the content is not in a git repository.' : state.message
 }
@@ -115,12 +133,11 @@ function CommitsTab({ onOpen }: { onOpen: (sha: string | null) => void }) {
         {state.commits.slice(0, 12).map((commit) => (
           <li key={commit.sha} class="bm-version">
             <button type="button" class="bm-tertiary bm-version-when bm-commit-pick" onClick={() => onOpen(commit.sha)}>
-              <span class="bm-version-line">
-                <span class="bm-version-rel">{commit.message || commit.short}</span>
-                <span class="bm-version-abs">{relativeTime(commit.at)}</span>
+              <span class="bm-commit-pick-title" title={commit.message}>
+                {commit.message || commit.short}
               </span>
               <span class="bm-version-sum">
-                <code>{commit.short}</code> · {commit.author}
+                {commitDate(commit.at)} · {commit.author}
                 {commit.branch && <span class="bm-badge">not published</span>}
               </span>
             </button>
@@ -128,7 +145,7 @@ function CommitsTab({ onOpen }: { onOpen: (sha: string | null) => void }) {
         ))}
       </ul>
       <div class="bm-dialog-foot">
-        <button type="button" class="bm-tertiary" onClick={() => onOpen(null)}>
+        <button type="button" class="bm-tertiary bm-history-open" onClick={() => onOpen(null)}>
           <Icon name="git-commit" size={14} />
           Open full history
         </button>
