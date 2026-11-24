@@ -129,8 +129,6 @@ export interface SaveAction {
   onSelect: () => void
 }
 
-export type VersionEntry = { id: string; at: string }
-
 export interface GitState {
   enabled: boolean
   repo: boolean

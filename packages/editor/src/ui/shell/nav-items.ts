@@ -30,7 +30,7 @@ export function isPagesListed(item: PageSummary): boolean {
 
 /**
  * The navigation. Content types are read from the site, never hard-coded: Pages is built in, every multi type the
- * content model declares follows, and Media is always last.
+ * content model declares follows, then Media and the commit History.
  */
 export function navGroups(types: readonly ContentTypeInfo[], documents: readonly PageSummary[], media: boolean): NavGroup[] {
   const declared = types.filter((type) => type.kind === 'multi' && !type.builtIn)
@@ -43,6 +43,7 @@ export function navGroups(types: readonly ContentTypeInfo[], documents: readonly
       count: documents.filter((item) => item.type === type.id && item.fixed === undefined).length,
     })),
     ...(media ? [{ view: 'media' as const, label: 'Media', icon: 'image' as const }] : []),
+    { view: 'history', label: 'History', icon: 'history' },
   ]
   return [
     { label: 'Content', items: content },

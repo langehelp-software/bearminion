@@ -104,7 +104,7 @@ On the page, the left side shows where you are: the content type (it opens that 
 
 In the middle, the [viewport switch](#viewport) picks Desktop, Tablet or Mobile. The right side has:
 
-- **Version history**, a popover with the saved versions of the page and of the site. See [History](#history).
+- **History**, a popover with this tab's undo steps and the repository's commits. See [History](#history).
 - **The inspector button**, which shows or hides the inspector (Ctrl/Cmd+E).
 - **Commit changes**, with the number of changed files, when [git](#git) is on.
 - **Preview** ([details](#preview)).
@@ -393,7 +393,23 @@ Another tab that saves the same page raises “Another tab saved this page.”
 
 ### History
 
-`.editor/history/` keeps the newest 50 saved versions per page and for the site. Add it to `.gitignore`. To clear it, stop the dev server and delete the `.editor` folder.
+History in the top bar has two tabs.
+
+**This session** is the undo history of the open document: every settled edit is a step, and a burst of typing is one. Pick a step to go back to it, or forward again; it is the same as pressing Undo or Redo that many times.
+
+- The steps are kept in the tab's `sessionStorage` (`bearminion:undo:<projectId>:<document>`), one stack per document. They survive a reload, a save and a visit to another page, and are gone when the tab closes. Another tab has its own.
+- Coming back to a document records it as it is now, so the first Undo returns to where you left it.
+- Each document keeps up to 100 steps and about 1 MB; the oldest go first, and the least recently used documents go when the tab's storage is full. With storage blocked, undo still works until the next reload.
+
+**Commits** lists the repository's commits that changed the content, the uploads, the videos or a [collection](collections.md); commits of code only are left out, and so are the code files of a commit that changed both. **Open full history**, or **History** in the navigation, opens the History screen:
+
+- The commits, newest first, with their message, short hash, author and time. In a hosted editor with `mode: 'pr'`, the saves on open `bearminion/*` pull requests come first, marked **not published**.
+- The commit you pick, file by file: for a page or `site.json` the fields it changed, the way **Unsaved changes** shows them; for other text files the changed lines; for images, before and after.
+- **Restore this version** (or **Restore file** on one file) puts the files back as they were in that commit, with the images they point at that were deleted since, as **one new commit** on top. Nothing in the history is rewritten. In a hosted editor with `mode: 'pr'` the commit goes to the page's pull request (or a shared `edits` one), so it is published when that is merged.
+- Locally, a restore refuses to overwrite files with uncommitted changes. With `git` off it writes the files and leaves the commit to you.
+- When a restore touches the open document or `site.json`, the editor reloads them; unsaved edits to them are discarded, and the confirmation says so.
+
+A project that is not in a git repository has no Commits tab content: it says so.
 
 ### Git
 
@@ -402,6 +418,7 @@ Another tab that saves the same page raises “Another tab saved this page.”
 - Only changed files under `contentDir` and `uploadsDir` can be committed.
 - Git runs without a shell, and there is no push.
 - With `git` off, or outside a repo, the editor hides Commit changes.
+- [History](#history) reads the commits whenever the project is in a git repository, whatever `git` is set to.
 
 ## Keyboard shortcuts
 

@@ -1,285 +1,195 @@
-import { useRef, useState, useEffect } from 'preact/hooks'
-import { type ChangeEntry, describePageChanges, describeSiteChanges, groupChanges } from '../../changes.js'
-import type { PageDraft } from '../../draft.js'
-import { getHistoryVersion, listHistory } from '../api-client.js'
+import { useMemo, useRef, useState } from 'preact/hooks'
+import { groupChanges } from '../../changes.js'
+import { relativeTime } from '../../shell.js'
 import { Segmented } from '../forms/segmented.js'
+import { changeSummary, clock, type CommitsState, stepChanges, useCommits } from '../history/shared.js'
 import { Icon } from '../icons.js'
 import { Info } from '../info.js'
-import type { VersionEntry } from '../types.js'
+import { useEditor } from '../state/editor.js'
 import { ChangeRow } from './changes-dialog.js'
-import { useDialogFocus, DialogClose } from './dialog.js'
+import { DialogClose, useDialogFocus } from './dialog.js'
 
-function formatVersionTime(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return iso
-  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+type Tab = 'session' | 'commits'
+
+/** Ctrl+Z history of the open document in this tab, newest first. Picking a step goes there, as undo and redo would. */
+function SessionTab() {
+  const { undo, doc, ui } = useEditor()
+  const { steps, current } = undo.steps.value
+  const labels = doc.catalog.value?.sectionLabels ?? {}
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const changes = useMemo(
+    () => steps.map((step, index) => (index === 0 ? [] : stepChanges(steps[index - 1] ?? step, step, labels))),
+    // `labels` comes from the catalog, which does not change while the editor is open.
+    [steps],
+  )
+  if (steps.length <= 1) {
+    return <p class="bm-note">No edits yet. Every change you make here is a step you can go back to until you close this tab.</p>
+  }
+  const rows = steps.map((step, index) => ({ step, index })).reverse()
+  return (
+    <ul class="bm-versions">
+      {rows.map(({ step, index }) => {
+        const list = changes[index] ?? []
+        const isOpen = openIndex === index
+        const undone = index > current
+        return (
+          <li key={index} class={undone ? 'bm-version bm-version-undone' : 'bm-version'}>
+            <div class="bm-version-row">
+              {index === 0 ? (
+                <span class="bm-icon-btn" aria-hidden="true" />
+              ) : (
+                <button
+                  type="button"
+                  class="bm-icon-btn"
+                  aria-expanded={isOpen}
+                  aria-label={`${isOpen ? 'Hide' : 'Show'} what step ${index} changed`}
+                  onClick={() => setOpenIndex(isOpen ? null : index)}
+                >
+                  <Icon name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} />
+                </button>
+              )}
+              <span class="bm-version-when">
+                <span class="bm-version-line">
+                  <span class="bm-version-rel">{index === 0 ? 'Start' : changeSummary(list.map((entry) => entry.item)) || 'Edit'}</span>
+                  <span class="bm-version-abs">{step.at ? clock(step.at) : ''}</span>
+                </span>
+                {undone && <span class="bm-version-sum">Undone</span>}
+              </span>
+              {index === current ? (
+                <span class="bm-badge bm-badge-on">now</span>
+              ) : (
+                <button
+                  type="button"
+                  class="bm-restore"
+                  aria-label={index < current ? `Go back to step ${index}` : `Redo up to step ${index}`}
+                  onClick={() => {
+                    if (undo.goTo(index)) ui.status.value = index < current ? 'Went back.' : 'Redone.'
+                  }}
+                >
+                  <Icon name={index < current ? 'undo' : 'redo'} size={14} />
+                  {index < current ? 'Go back' : 'Redo'}
+                </button>
+              )}
+            </div>
+            {isOpen && (
+              <div class="bm-version-diff">
+                {list.length === 0 ? (
+                  <p class="bm-note">Nothing that is shown as a field.</p>
+                ) : (
+                  (['page', 'site'] as const).map((scope) => {
+                    const entries = list.filter((entry) => entry.scope === scope).map((entry) => entry.item)
+                    return groupChanges(entries).map((area) => (
+                      <section key={`${scope}:${area.area}`} aria-label={area.area}>
+                        <h3 class="bm-changes-area">{scope === 'site' ? `Site › ${area.area}` : area.area}</h3>
+                        <ul>
+                          {area.entries.map((item) => (
+                            <ChangeRow key={`${item.field}:${item.kind}`} item={item} scope={scope} />
+                          ))}
+                        </ul>
+                      </section>
+                    ))
+                  })
+                )}
+              </div>
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
 }
 
-const VERSION_CAP = 50
-
-function startOfDay(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+function commitsMessage(state: Extract<CommitsState, { status: 'failed' }>): string {
+  return state.missing ? 'There is no commit history here: the content is not in a git repository.' : state.message
 }
 
-/** Today / Yesterday / "12 Mar" (with the year when it is not this one). */
-function versionDay(iso: string, now = new Date()): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return iso
-  const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000)
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Yesterday'
-  return date.toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    ...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
-  })
-}
-
-function versionClock(iso: string): string {
-  const date = new Date(iso)
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })
-}
-
-/** "just now", "2 min ago", "3 h ago"; older than a day shows only the clock time. */
-function versionAgo(iso: string, now = Date.now()): string {
-  const then = new Date(iso).getTime()
-  if (Number.isNaN(then)) return ''
-  const minutes = Math.max(0, Math.round((now - then) / 60_000))
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.round(minutes / 60)
-  return hours < 24 ? `${hours} h ago` : versionClock(iso)
-}
-
-/** "title, hero › heading +2": the first changed fields of one save, for the collapsed row. */
-function versionSummary(list: ChangeEntry[] | undefined): string {
-  if (!list || list.length === 0) return ''
-  const names = [...new Set(list.map((item) => item.field))]
-  return names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} +${names.length - 3}`
+/** The newest commits; picking one opens it on the History screen. */
+function CommitsTab({ onOpen }: { onOpen: (sha: string | null) => void }) {
+  const { state } = useCommits()
+  if (state.status === 'loading') return <p class="bm-note">Loading the commits…</p>
+  if (state.status === 'failed') return <p class="bm-note">{commitsMessage(state)}</p>
+  if (state.commits.length === 0) return <p class="bm-note">No commits of the content yet.</p>
+  return (
+    <>
+      <ul class="bm-versions">
+        {state.commits.slice(0, 12).map((commit) => (
+          <li key={commit.sha} class="bm-version">
+            <button type="button" class="bm-tertiary bm-version-when bm-commit-pick" onClick={() => onOpen(commit.sha)}>
+              <span class="bm-version-line">
+                <span class="bm-version-rel">{commit.message || commit.short}</span>
+                <span class="bm-version-abs">{relativeTime(commit.at)}</span>
+              </span>
+              <span class="bm-version-sum">
+                <code>{commit.short}</code> · {commit.author}
+                {commit.branch && <span class="bm-badge">not published</span>}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div class="bm-dialog-foot">
+        <button type="button" class="bm-tertiary" onClick={() => onOpen(null)}>
+          <Icon name="git-commit" size={14} />
+          Open full history
+        </button>
+      </div>
+    </>
+  )
 }
 
 /**
- * Saved versions of this page and of the site, newest first and grouped by day. A version shows what that save changed,
- * and Restore loads it into the draft. Nothing is written until the next save, and the restore can be undone from here.
+ * History, from the top bar: this tab's undo steps of the open document (kept until the tab closes), and the commits
+ * of the content and the uploads, which open on the full History screen to compare and restore.
  */
-export function HistoryDialog({
-  slug,
-  labels,
-  page,
-  onRestore,
-  onUndo,
-  onClose,
-}: {
-  slug: string
-  labels: Record<string, string>
-  page: PageDraft
-  onRestore: (scope: 'page' | 'site', data: unknown, when: string) => void
-  onUndo: () => void
-  onClose: () => void
-}) {
+export function HistoryDialog({ onClose }: { onClose: () => void }) {
+  const { ui } = useEditor()
   const root = useRef<HTMLDivElement>(null)
   useDialogFocus(root)
-  const [scope, setScope] = useState<'page' | 'site'>('page')
-  const [entries, setEntries] = useState<VersionEntry[] | null>(null)
-  const [diffs, setDiffs] = useState<Record<string, ChangeEntry[]>>({})
-  const [failed, setFailed] = useState(false)
-  const [openId, setOpenId] = useState<string | null>(null)
-  const [restored, setRestored] = useState<string | null>(null)
-  const base = `${scope}:${slug}`
+  const [tab, setTab] = useState<Tab>('session')
 
-  useEffect(() => {
-    let live = true
-    setEntries(null)
-    setDiffs({})
-    setOpenId(null)
-    setRestored(null)
-    setFailed(false)
-    const load = async () => {
-      const listed = await listHistory(scope, slug)
-      if (!listed.ok) throw new Error(listed.message)
-      const body = listed.value
-      if (!live) return
-      setEntries(body.entries)
-      // Each version is shown as what that save changed: the save before it against it.
-      const data = await Promise.all(
-        body.entries.map(async (entry) => {
-          const version = await getHistoryVersion(scope, slug, entry.id)
-          return version.ok ? version.value : null
-        }),
-      )
-      if (!live) return
-      const next: Record<string, ChangeEntry[]> = {}
-      body.entries.forEach((entry, index) => {
-        const after = data[index]
-        const before = data[index + 1]
-        if (after === null || before === null || before === undefined) return
-        next[entry.id] = scope === 'page' ? describePageChanges(before, after, labels) : describeSiteChanges(before, after)
-      })
-      setDiffs(next)
-    }
-    load().catch(() => live && setFailed(true))
-    return () => {
-      live = false
-    }
-    // `labels` is a stable catalog lookup; refetching on its identity would reload the list needlessly.
-  }, [base])
-
-  async function restore(entry: VersionEntry) {
-    const version = await getHistoryVersion(scope, slug, entry.id)
-    if (!version.ok) {
-      setFailed(true)
-      return
-    }
-    const when = formatVersionTime(entry.at)
-    onRestore(scope, version.value, when)
-    setRestored(when)
+  function open(sha: string | null) {
+    ui.historyCommit.value = sha
+    ui.openView('history')
   }
-
-  const days: { day: string; items: { entry: VersionEntry; index: number }[] }[] = []
-  entries?.forEach((entry, index) => {
-    const day = versionDay(entry.at)
-    const last = days[days.length - 1]
-    if (last && last.day === day) last.items.push({ entry, index })
-    else days.push({ day, items: [{ entry, index }] })
-  })
 
   return (
     <div
       class="bm-dialog bm-changes"
       role="dialog"
       aria-modal="true"
-      aria-label="Version history"
+      aria-label="History"
       ref={root}
       style="top:12%;left:50%;transform:translateX(-50%);"
     >
       <div class="bm-dialog-head">
         <div class="bm-dialog-heading">
           <h2 class="bm-dialog-title">
-            Version history
+            History
             <Info
-              label="Where versions are kept"
+              label="Where history is kept"
               text={
                 <>
-                  Versions are kept only on this computer, in <code>.editor/history</code>. They are not in git and not on the published
-                  site. The newest {VERSION_CAP} stay. To clear them, stop the dev server and delete the <code>.editor</code> folder in your
-                  project root.
+                  <strong>This session</strong> is kept in this browser tab only and goes when you close it. <strong>Commits</strong> come
+                  from the repository: they are shared, permanent, and restoring one adds a new commit.
                 </>
               }
             />
           </h2>
-          <p class="bm-dialog-sub">Every save is kept. Restore loads a version into the draft; nothing is written until you save.</p>
+          <p class="bm-dialog-sub">{tab === 'session' ? 'Steps of this page since this tab opened.' : 'Changes to content and images.'}</p>
         </div>
         <DialogClose onClose={onClose} />
       </div>
       <Segmented
         hideLabel
-        label="Scope"
-        value={scope}
+        label="History"
+        value={tab}
         options={[
-          { value: 'page', label: `Page "${page.title}"` },
-          { value: 'site', label: 'Site' },
+          { value: 'session', label: 'This session' },
+          { value: 'commits', label: 'Commits' },
         ]}
-        onChange={(value) => setScope(value === 'site' ? 'site' : 'page')}
+        onChange={(value) => setTab(value === 'commits' ? 'commits' : 'session')}
       />
-      {restored !== null && (
-        <div class="bm-restored" role="status">
-          <span>Restored the version from {restored} into the draft.</span>
-          <button
-            type="button"
-            class="bm-tertiary"
-            onClick={() => {
-              onUndo()
-              setRestored(null)
-            }}
-          >
-            Undo
-          </button>
-        </div>
-      )}
-      <div class="bm-changes-list">
-        {failed && <p class="bm-error">Could not load the saved versions.</p>}
-        {!failed && entries === null && <p class="bm-note">Loading…</p>}
-        {entries !== null && entries.length === 0 && <p class="bm-note">Nothing saved yet. Every save keeps a copy here, newest first.</p>}
-        {days.map((group) => (
-          <section class="bm-day" key={group.day} aria-label={group.day}>
-            <h3 class="bm-changes-area">{group.day}</h3>
-            <ul class="bm-versions">
-              {group.items.map(({ entry, index }) => {
-                const isOpen = openId === entry.id
-                const list = diffs[entry.id]
-                const stamp = formatVersionTime(entry.at)
-                const earliest = index === (entries?.length ?? 0) - 1
-                return (
-                  <li key={entry.id} class="bm-version">
-                    <div class="bm-version-row">
-                      <button
-                        type="button"
-                        class="bm-icon-btn"
-                        aria-expanded={isOpen}
-                        aria-label={`${isOpen ? 'Hide' : 'Show'} what changed in the version from ${stamp}`}
-                        onClick={() => setOpenId(isOpen ? null : entry.id)}
-                      >
-                        <Icon name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} />
-                      </button>
-                      <button type="button" class="bm-tertiary bm-version-when" onClick={() => setOpenId(isOpen ? null : entry.id)}>
-                        <span class="bm-version-line">
-                          <span class="bm-version-rel">{versionAgo(entry.at) || stamp}</span>
-                          <span class="bm-version-abs">{versionClock(entry.at)}</span>
-                        </span>
-                        {versionSummary(list) && <span class="bm-version-sum">{versionSummary(list)}</span>}
-                      </button>
-                      {index === 0 ? (
-                        <span class="bm-badge bm-badge-on">current</span>
-                      ) : (
-                        <button
-                          type="button"
-                          class="bm-restore"
-                          aria-label={`Restore the version from ${stamp}`}
-                          onClick={() => void restore(entry)}
-                        >
-                          <Icon name="rotate-ccw" size={14} />
-                          Restore
-                        </button>
-                      )}
-                    </div>
-                    {isOpen && (
-                      <div class="bm-version-diff">
-                        {!list || list.length === 0 ? (
-                          <p class="bm-note">
-                            {earliest
-                              ? 'The earliest kept version, so there is nothing older to compare with.'
-                              : list
-                                ? 'No difference from the save before it.'
-                                : 'Loading…'}
-                          </p>
-                        ) : (
-                          groupChanges(list).map((area) => (
-                            <section key={area.area} aria-label={area.area}>
-                              <h3 class="bm-changes-area">{area.area}</h3>
-                              <ul>
-                                {area.entries.map((item) => (
-                                  <ChangeRow key={`${item.field}:${item.kind}`} item={item} scope={scope} />
-                                ))}
-                              </ul>
-                            </section>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        ))}
-      </div>
-      {entries !== null && entries.length > 0 && (
-        <div class="bm-dialog-foot">
-          <p class="bm-hint">
-            {entries.length} of {VERSION_CAP} kept on this computer. Older versions drop off.
-          </p>
-        </div>
-      )}
+      <div class="bm-changes-list">{tab === 'session' ? <SessionTab /> : <CommitsTab onOpen={open} />}</div>
     </div>
   )
 }

@@ -55,12 +55,6 @@ export function createDocumentStore() {
     if (type === 'pages') return savedSlug.value
     return `${type}~${kind === 'listing' ? '_listing' : kind === 'single' ? '_single' : savedSlug.value}`
   })
-  /** The undo history of this document on the server: the path after `/history/`. */
-  const historyKey = computed(() => {
-    const { type, kind } = ref.value
-    if (type === 'pages') return `pages/${savedSlug.value}`
-    return `types/${type}/${kind === 'listing' ? '_listing' : kind === 'single' ? '_single' : savedSlug.value}`
-  })
   /** The address of the saved document, or null for a listing, whose pages each have their own. */
   const href = computed(() => {
     const { type, kind } = ref.value
@@ -138,7 +132,6 @@ export function createDocumentStore() {
     types,
     typeInfo,
     draftId,
-    historyKey,
     href,
     linkKey,
     allowedSections,

@@ -6,6 +6,8 @@
 export interface DraftSnapshot {
   page: string
   site: string
+  /** When the step was recorded (ms since epoch). Shown in the session history; not part of equality. */
+  at?: number
 }
 
 export interface UndoState {
@@ -63,4 +65,17 @@ export function redoSnapshot(state: UndoState): UndoState {
     present: next,
     future: rest,
   }
+}
+
+/** Every step, oldest first, with the index of the present one. */
+export function timeline(state: UndoState): { steps: DraftSnapshot[]; current: number } {
+  return { steps: [...state.past, state.present, ...state.future], current: state.past.length }
+}
+
+/** Make step `index` of {@link timeline} the present, as if undone or redone that many times. */
+export function jumpTo(state: UndoState, index: number): UndoState {
+  const { steps } = timeline(state)
+  const present = steps[index]
+  if (!present) return state
+  return { slug: state.slug, past: steps.slice(0, index), present, future: steps.slice(index + 1) }
 }

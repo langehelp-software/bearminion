@@ -88,13 +88,21 @@ export class FakeGithub {
     this.branches.set(branch, this.addCommit(message, head, next))
   }
 
+  /** Delete files straight on the branch. */
+  remove(paths: string[], message = 'Someone else', branch = this.branch): void {
+    const head = this.headOf(branch)
+    const next = new Map(this.filesAt(head))
+    for (const path of paths) next.delete(path)
+    this.branches.set(branch, this.addCommit(message, head, next))
+  }
+
   filesAt(sha: string): Map<string, Uint8Array> {
     const commit = this.commits.find((candidate) => candidate.sha === sha)
     if (!commit) throw new Error(`no commit ${sha}`)
     return commit.files
   }
 
-  private headOf(branch?: string): string {
+  headOf(branch?: string): string {
     const sha = this.branches.get(branch ?? this.branch)
     if (!sha) throw new Error(`no branch ${branch}`)
     return sha
@@ -111,6 +119,49 @@ export class FakeGithub {
 
   get commitCount(): number {
     return this.commits.length
+  }
+
+  /** The commit and its first-parent ancestors, newest first. */
+  ancestry(sha: string): string[] {
+    const found: string[] = []
+    let at: string | undefined = sha
+    while (at) {
+      const commit = this.commits.find((candidate) => candidate.sha === at)
+      if (!commit) break
+      found.push(commit.sha)
+      at = commit.parent
+    }
+    return found
+  }
+
+  /** Paths whose bytes differ from the parent's. */
+  changed(sha: string): string[] {
+    const commit = this.commits.find((candidate) => candidate.sha === sha)
+    if (!commit) return []
+    const before = commit.parent ? this.filesAt(commit.parent) : new Map<string, Uint8Array>()
+    const paths = new Set([...before.keys(), ...commit.files.keys()])
+    return [...paths]
+      .filter((path) => {
+        const a = before.get(path)
+        const b = commit.files.get(path)
+        return a === undefined || b === undefined || decoder.decode(a) !== decoder.decode(b)
+      })
+      .sort()
+  }
+
+  /** One minute apart per commit, so ordering by time is ordering by creation. */
+  dateOf(sha: string): string {
+    const index = this.commits.findIndex((candidate) => candidate.sha === sha)
+    return new Date(Date.UTC(2026, 0, 1) + index * 60_000).toISOString().replace('.000Z', 'Z')
+  }
+
+  private apiCommit(sha: string) {
+    const commit = this.commits.find((candidate) => candidate.sha === sha)
+    return {
+      sha,
+      parents: commit?.parent ? [{ sha: commit.parent }] : [],
+      commit: { message: commit?.message ?? '', author: { name: 'Bot', date: this.dateOf(sha) }, committer: { date: this.dateOf(sha) } },
+    }
   }
 
   private addCommit(message: string, parent: string | undefined, files: Map<string, Uint8Array>): string {
@@ -156,6 +207,57 @@ export class FakeGithub {
       }
       this.branches.set(name, String(body.sha))
       return json(201, { ref: body.ref, object: { sha: body.sha } })
+    }
+
+    if (rest === '/pulls' && method === 'GET' && !url.searchParams.has('head')) {
+      const base = url.searchParams.get('base')
+      const state = url.searchParams.get('state') ?? 'open'
+      return json(
+        200,
+        this.pulls
+          .filter((pull) => (state === 'all' || pull.state === state) && (base === null || pull.base === base))
+          .map((pull) => ({ number: pull.number, state: pull.state, head: { ref: pull.head } })),
+      )
+    }
+
+    const pullCommits = /^\/pulls\/(\d+)\/commits$/.exec(rest)
+    if (pullCommits && method === 'GET') {
+      const pull = this.pulls.find((candidate) => candidate.number === Number(pullCommits[1]))
+      if (!pull) return json(404, { message: 'Not Found' })
+      const onBase = new Set(this.ancestry(this.headOf(pull.base)))
+      const own = this.ancestry(this.headOf(pull.head)).filter((sha) => !onBase.has(sha))
+      // Oldest first, as GitHub lists them.
+      return json(
+        200,
+        own.reverse().map((sha) => this.apiCommit(sha)),
+      )
+    }
+
+    if (rest === '/commits' && method === 'GET') {
+      const start = this.branches.get(url.searchParams.get('sha') ?? this.branch) ?? url.searchParams.get('sha') ?? ''
+      const filter = url.searchParams.get('path')
+      const until = url.searchParams.get('until')
+      const perPage = Number(url.searchParams.get('per_page') ?? 30)
+      const found = this.ancestry(start)
+        .filter((sha) => filter === null || this.changed(sha).some((file) => file === filter || file.startsWith(`${filter}/`)))
+        .filter((sha) => until === null || this.dateOf(sha) <= until)
+        .slice(0, perPage)
+      return json(
+        200,
+        found.map((sha) => this.apiCommit(sha)),
+      )
+    }
+
+    const oneCommit = /^\/commits\/([^/]+)$/.exec(rest)
+    if (oneCommit && method === 'GET') {
+      const commit = this.commits.find((candidate) => candidate.sha === oneCommit[1])
+      if (!commit) return json(422, { message: 'No commit found for SHA' })
+      const before = commit.parent ? this.filesAt(commit.parent) : new Map<string, Uint8Array>()
+      const files = this.changed(commit.sha).map((filename) => ({
+        filename,
+        status: !before.has(filename) ? 'added' : !commit.files.has(filename) ? 'removed' : 'modified',
+      }))
+      return json(200, { ...this.apiCommit(commit.sha), files })
     }
 
     if (rest === '/pulls' && method === 'GET') {

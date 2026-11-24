@@ -56,21 +56,6 @@ export function createEditor() {
     if (undo.redo()) ui.status.value = 'Redone.'
   }
 
-  /** Load a saved version into the draft. It is a normal edit: undoable, and written only when saved. */
-  function restoreVersion(scope: 'page' | 'site', data: unknown, when: string) {
-    undo.flush()
-    if (scope === 'page') {
-      const next = data as PageDraft
-      doc.page.value = next
-      paintPage(next)
-      preview.schedulePage()
-    } else {
-      doc.site.value = data as SiteDraft
-      preview.scheduleSite()
-    }
-    ui.status.value = `Loaded the version from ${when}. Save to keep it.`
-  }
-
   /** Bring back the drafts this browser kept from an earlier visit. */
   function restoreOffer() {
     const offer = ui.draftOffer.peek()
@@ -124,7 +109,6 @@ export function createEditor() {
     richTarget,
     stepUndo,
     stepRedo,
-    restoreVersion,
     restoreOffer,
     discardOffer,
     openImagePicker,

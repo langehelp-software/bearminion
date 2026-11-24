@@ -90,7 +90,7 @@ Slugs are lowercase kebab-case, as for pages. The store key of an entry is built
 
 ## With a GitHub store
 
-Every save is one commit. In `mode: 'pr'` each entry gets its own branch and pull request, `bearminion/collection/<id>/<slug>`, titled `Edit <id>: <slug>`; later saves to the same entry join it, and the base branch is never written. A hosted editor keeps no undo history: the repository is the history, as for pages. The local dev editor does not keep undo history for collections either; use git.
+Every save is one commit. In `mode: 'pr'` each entry gets its own branch and pull request, `bearminion/collection/<id>/<slug>`, titled `Edit <id>: <slug>`; later saves to the same entry join it, and the base branch is never written. Their commits are in History with the pages', and Restore works on them the same way.
 
 ## Not yet
 

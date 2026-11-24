@@ -7,6 +7,7 @@ import { useEditor } from '../state/editor.js'
 import type { Catalog } from '../types.js'
 import { SidebarResize, useFocusRequest } from './inspector.js'
 import { ListingView } from './listing.js'
+import { HistoryView } from './history-view.js'
 import { MediaView } from './media.js'
 import { DesignPanel, FooterPanel, NavigationPanel, SitePanel } from './panels.js'
 
@@ -106,7 +107,7 @@ export function SettingsSidebar({ view, catalog }: { view: SideView; catalog: Ca
   )
 }
 
-/** A full-screen view over the canvas and the inspector: a content listing, Media or a settings screen. */
+/** A full-screen view over the canvas and the inspector: a content listing, Media, History or a settings screen. */
 export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; catalog: Catalog }) {
   const { doc } = useEditor()
   const type = listingType(view)
@@ -118,7 +119,9 @@ export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; cat
         ? (doc.types.value.find((item) => item.id === type)?.label ?? type)
         : settings
           ? SETTINGS[settings].title
-          : 'Media'
+          : view === 'history'
+            ? 'History'
+            : 'Media'
   return (
     <main class="bm-view bm-panel bm-chrome" aria-label={label}>
       <SiteContexts>
@@ -126,6 +129,8 @@ export function FullView({ view, catalog }: { view: Exclude<View, 'canvas'>; cat
           <ListingView key={type} catalog={catalog} type={type} />
         ) : view === 'media' ? (
           <MediaView />
+        ) : view === 'history' ? (
+          <HistoryView />
         ) : settings ? (
           <SettingsScreen view={settings}>
             <SettingsBody view={settings} catalog={catalog} />

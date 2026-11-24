@@ -151,6 +151,38 @@ describe('editor state', () => {
     expect(ui.status.value).toBe('Redone.')
   })
 
+  it('keeps undo steps for the tab across a reload, and goes to any step', () => {
+    vi.useFakeTimers()
+    sessionStorage.clear()
+    const open = () => {
+      const next = loaded()
+      next.doc.projectId.value = 'project-1'
+      next.undo.noteChange()
+      return next
+    }
+    editor = open()
+    editor.edits.writeField(HEADING, 'One')
+    editor.undo.noteChange()
+    vi.advanceTimersByTime(450)
+    editor.edits.writeField(HEADING, 'Two')
+    editor.undo.noteChange()
+    vi.advanceTimersByTime(450)
+    expect(editor.undo.steps.value.steps).toHaveLength(3)
+    editor.dispose()
+
+    // A reload: the page comes back as saved ("Hello"), and the steps from before it are still there.
+    editor = open()
+    const { steps, current } = editor.undo.steps.value
+    expect(steps.map((step) => getAt(JSON.parse(step.page), HEADING))).toEqual(['Hello', 'One', 'Two', 'Hello'])
+    expect(current).toBe(3)
+    editor.stepUndo()
+    expect(getAt(editor.doc.page.value, HEADING)).toBe('Two')
+    expect(editor.undo.goTo(1)).toBe(true)
+    expect(getAt(editor.doc.page.value, HEADING)).toBe('One')
+    expect(editor.undo.redoable.value).toBe(true)
+    sessionStorage.clear()
+  })
+
   it('backs out one layer per Escape: the dialog, then the confirm, then nothing', () => {
     editor = loaded()
     const { ui } = editor

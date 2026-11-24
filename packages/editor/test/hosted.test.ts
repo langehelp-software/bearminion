@@ -107,7 +107,7 @@ describe('the editor API on the hosted entry', () => {
     expect(github.commitCount).toBe(before)
   })
 
-  it('commits a new page, and has no history and no Commit changes', async () => {
+  it('commits a new page, lists it in the version history, and has no Commit changes', async () => {
     const { github, call } = setup()
     const created = await call('POST', '/pages', { origin: 'https://admin.example.com' }, { slug: 'about', title: 'About' })
     expect(created.status).toBe(201)
@@ -115,6 +115,8 @@ describe('the editor API on the hosted entry', () => {
 
     expect(await (await call('GET', '/git')).json()).toEqual({ enabled: false, repo: false, files: [] })
     expect((await call('POST', '/git/commit', {}, { message: 'x' })).status).toBe(409)
-    expect(await (await call('GET', '/history/pages/about')).json()).toEqual({ entries: [] })
+    const versions = (await (await call('GET', '/versions')).json()) as { commits: { message: string }[]; restoreCommits: boolean }
+    expect(versions.commits[0]?.message).toBe('Update content/pages/about.json')
+    expect(versions.restoreCommits).toBe(true)
   })
 })

@@ -72,6 +72,8 @@ export function createUiState() {
   const pagePick = signal<string | null>(null)
 
   const dialog = signal<EditorDialog | null>(null)
+  /** The commit the History screen shows, or null for the newest. */
+  const historyCommit = signal<string | null>(null)
   const draftOffer = signal<DraftOffer | null>(null)
   const gitState = signal<GitState | null>(null)
   /** Errors and warnings over the editor. They stay until dismissed, on every screen. */
@@ -152,6 +154,7 @@ export function createUiState() {
     inspectorWidth,
     navOpen,
     view,
+    historyCommit,
     viewport,
     previewing,
     status,

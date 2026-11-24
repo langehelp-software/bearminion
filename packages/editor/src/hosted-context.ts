@@ -15,8 +15,8 @@ import { DEFAULT_VIDEO_BYTE_LIMIT } from './video-sniff.js'
 /*
  * The editor API for a place that is not a developer's machine: a Worker, a serverless function. Web-standard APIs
  * only, no Node imports (a test keeps it that way). The caller signs the person in and passes
- * `{ authenticated: true }` with each request; there is no localhost check, undo history or Commit changes here,
- * because the repository is the history.
+ * `{ authenticated: true }` with each request; there is no localhost check or Commit changes here: every save is a
+ * commit, and the store's repository is the history.
  */
 
 export interface HostedEditorOptions extends ContentModel {
@@ -55,6 +55,7 @@ export function createHostedContext(options: HostedEditorOptions): EditorContext
     store: options.store,
     migrator: createMigrator(options),
     git: false,
+    ...(options.store.versions ? { versions: options.store.versions } : {}),
     ...(options.collections ? { collections: resolveCollections(options.collections) } : {}),
   }
 }
